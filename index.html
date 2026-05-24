@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CarDiagnostic AI</title>
-  <meta name="description" content="AI ассистент для диагностики автомобиля, сервисной истории, ошибок DTC и мануалов.">
+  <meta name="description" content="PULS для диагностики автомобиля, сервисной истории, ошибок DTC и мануалов.">
   <style>
     @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
 
@@ -644,8 +644,15 @@
     }
 
     .messages {
+      height: min(52vh, 520px);
       min-height: 330px;
+      overflow-y: auto;
+      padding-right: 8px;
+      scroll-behavior: smooth;
     }
+
+    .messages::-webkit-scrollbar { width: 8px; }
+    .messages::-webkit-scrollbar-thumb { background: #0b456f; border-radius: 10px; }
 
     .bubble {
       background: rgba(8, 35, 58, .9);
@@ -734,6 +741,10 @@
 
     .composer {
       padding: 14px;
+      position: sticky;
+      bottom: 12px;
+      z-index: 12;
+      backdrop-filter: blur(12px);
     }
 
     .composer-line {
@@ -860,10 +871,10 @@
         <div class="bot-logo" aria-hidden="true"></div>
         <div>
           <div class="brand-title">CarDiagnostic <span>AI</span></div>
-          <div class="brand-subtitle">Ваш умный помощник для автомобиля</div>
+          <div class="brand-subtitle">Ваш AI-помощник для диагностики автомобиля</div>
         </div>
       </div>
-      <div class="system-pill">AI работает для вас 24/7</div>
+      <div class="system-pill">PULS работает для вас 24/7</div>
     </header>
 
     <section class="hero" aria-label="Автомобиль">
@@ -882,7 +893,7 @@
     <div class="workspace">
       <aside class="side">
         <nav class="panel nav" aria-label="Разделы">
-          <button class="active" data-view="assistant" data-icon="bot">AI Ассистент</button>
+          <button class="active" data-view="assistant" data-icon="bot">PULS</button>
           <button data-view="car" data-icon="home">Мой автомобиль</button>
           <button data-view="journal" data-icon="journal">Журнал запросов</button>
           <button data-view="history" data-icon="history">История запросов</button>
@@ -915,14 +926,14 @@
               <div>
                 <div class="head">
                   <div>
-                    <h1>AI Ассистент</h1>
+                    <h1>PULS</h1>
                     <p>Задайте любой вопрос о вашем автомобиле</p>
                   </div>
                 </div>
                 <div class="messages" id="messages">
                   <div class="bubble user">У меня Nissan X-Trail T32, при разгоне появляется гул под капотом, особенно на 2000–3000 оборотах. <small>10:42</small></div>
                   <div class="bubble">
-                    <strong>AI Ассистент</strong><br>
+                    <strong>PULS</strong><br>
                     Похоже на проблему со вспомогательными узлами двигателя. Вероятные причины: износ подшипника генератора, ролик натяжителя ремня, помпа или приводной ремень.
                     <br><br><strong>Что можно сделать:</strong><br>
                     • Проверьте состояние ремня и роликов<br>
@@ -955,8 +966,10 @@
                   <p><span class="num">4</span>Проверьте помпу на течь и люфт</p>
                 </div>
                 <div class="card">
-                  <h3>Совет AI</h3>
-                  <p>Начните с роликов и генератора: эти узлы чаще всего дают гул на указанных оборотах.</p>
+                  <h3>Итог: что проверить</h3>
+                  <div id="keyChecks">
+                    <p>После ответа PULS здесь появится краткий список ключевых проверок.</p>
+                  </div>
                 </div>
               </aside>
             </div>
@@ -1019,7 +1032,7 @@
           </section>
 
           <section class="view" id="history">
-            <div class="head"><div><h1>История запросов</h1><p>Ваши недавние запросы и обращения к AI Ассистенту</p></div></div>
+            <div class="head"><div><h1>История запросов</h1><p>Ваши недавние запросы и обращения к PULSу</p></div></div>
             <div class="search"><input id="historySearch" placeholder="Поиск по запросам"><button class="btn" data-action="filter">Фильтр</button></div>
             <div class="list" id="historyList"></div>
           </section>
@@ -1058,7 +1071,7 @@
               <div class="card">
                 <h3>Подписка</h3>
                 <p class="ok"><strong>Premium активна</strong></p>
-                <p>AI ассистент без лимитов, диагностика по коду и симптомам, сервисная история и экспорт отчетов.</p>
+                <p>PULS без лимитов, диагностика по коду и симптомам, сервисная история и экспорт отчетов.</p>
               </div>
               <div class="card">
                 <h3>Уведомления</h3>
@@ -1156,23 +1169,28 @@
     }
 
     function renderLists() {
-      $("#journalList").innerHTML = requests.map((item, index) => `
+      const savedHistory = loadUserHistory();
+      const savedRows = savedHistory.map((item) => [item.question, item.answer, item.date, "Сохранено", item.vehicle, item.type]);
+      const baseRows = requests.map((item) => [item[0], item[1], item[2], item[3], "Nissan X-Trail T32", "Демо"]);
+      const allRows = savedRows.concat(baseRows);
+
+      $("#journalList").innerHTML = allRows.map((item, index) => `
         <article class="row ${index === 0 ? "featured" : ""}">
           <div class="thumb" aria-hidden="true"></div>
           <div>
-            <h3>${item[0]}</h3>
-            <span class="tag">Nissan X-Trail T32</span>
-            <p>${item[1]}</p>
+            <h3>${escapeHtml(item[0])}</h3>
+            <span class="tag">${escapeHtml(item[4] || "Nissan X-Trail T32")}</span>
+            <p>${escapeHtml(item[1]).slice(0, 220)}${String(item[1]).length > 220 ? "..." : ""}</p>
           </div>
-          <div><p>${item[2]}</p><p class="ok">${item[3]} ✓</p></div>
+          <div><p>${escapeHtml(item[2])}</p><p class="ok">${escapeHtml(item[3])} ✓</p></div>
         </article>
       `).join("");
 
-      $("#historyList").innerHTML = requests.concat([["Ошибка P0171 слишком бедная смесь", "Nissan X-Trail T32 • 2.0 dCi • Дизель", "28 апр., 20:33", "Код ошибки"]]).map((item, index) => `
+      $("#historyList").innerHTML = allRows.concat([["Ошибка P0171 слишком бедная смесь", "Nissan X-Trail T32 • 2.0 dCi • Дизель", "28 апр., 20:33", "Код ошибки", "Nissan X-Trail T32", "Код ошибки"]]).map((item, index) => `
         <article class="row" style="grid-template-columns:64px 1fr 150px">
-          <div class="square ${index % 3 === 0 ? "violet" : ""}">${index % 3 === 0 ? "🎙" : "⌨"}</div>
-          <div><h3>${item[0]}</h3><p>${index < 6 ? "Nissan X-Trail T32 • 2.0 dCi • 4WD" : item[1]}</p></div>
-          <div><p>${item[2]}</p><span class="tag">${index % 3 === 0 ? "Голосовой запрос" : item[3] || "Текстовый запрос"}</span></div>
+          <div class="square ${item[5] === "Голосовой запрос" ? "violet" : ""}">${item[5] === "Голосовой запрос" ? "🎙" : "⌨"}</div>
+          <div><h3>${escapeHtml(item[0])}</h3><p>${escapeHtml(item[4] || "Nissan X-Trail T32 • 2.0 dCi • 4WD")}</p></div>
+          <div><p>${escapeHtml(item[2])}</p><span class="tag">${escapeHtml(item[5] || item[3] || "Текстовый запрос")}</span></div>
         </article>
       `).join("");
 
@@ -1236,14 +1254,54 @@
       const div = document.createElement("div");
       div.className = `bubble ${isUser ? "user" : ""}`;
       div.innerHTML = `${escapeHtml(text)} <small>${new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</small>`;
-      $("#messages").appendChild(div);
-      div.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      const messagesBox = $("#messages");
+      messagesBox.appendChild(div);
+      messagesBox.scrollTop = messagesBox.scrollHeight;
       return div;
     }
 
     function escapeHtml(text) {
       const map = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" };
       return String(text).replace(/[&<>"']/g, (m) => map[m]);
+    }
+
+    const HISTORY_STORAGE_KEY = "puls_request_history_v1";
+
+    function loadUserHistory() {
+      try {
+        return JSON.parse(localStorage.getItem(HISTORY_STORAGE_KEY) || "[]");
+      } catch (error) {
+        return [];
+      }
+    }
+
+    function saveHistoryItem(question, answer) {
+      const history = loadUserHistory();
+      const now = new Date();
+      const item = {
+        question,
+        answer,
+        date: now.toLocaleDateString("ru-RU", { day: "2-digit", month: "short" }) + ", " + now.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }),
+        vehicle: "Nissan X-Trail T32 • 2.0 dCi • 4WD",
+        type: "Текстовый запрос"
+      };
+      history.unshift(item);
+      localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history.slice(0, 50)));
+      renderLists();
+    }
+
+    function updateKeyChecks(answer) {
+      const box = $("#keyChecks");
+      if (!box) return;
+      const lines = String(answer)
+        .split(/\n|•|-|\d+[.)]/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+      const important = lines.filter((line) => /проверь|проверить|начни|датчик|ремень|ролик|генератор|масло|ошиб|obd|свеч|катуш|насос|давлен|egr|турбин|фильтр/i.test(line)).slice(0, 5);
+      const finalLines = important.length ? important : lines.slice(0, 4);
+      box.innerHTML = finalLines.length
+        ? `<ul style="margin:8px 0 0; padding-left:20px; color:var(--soft); line-height:1.6">${finalLines.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ul>`
+        : `<p>Ключевые проверки появятся после ответа PULS.</p>`;
     }
 
     async function sendPrompt() {
@@ -1254,7 +1312,7 @@
       appendMessage(prompt, true);
       input.value = "";
 
-      const loading = appendMessage("Думаю над диагностикой...", false);
+      const loading = appendMessage("PULS анализирует запрос...", false);
       try {
         let answer;
         if (N8N_WEBHOOK_URL) {
@@ -1276,9 +1334,13 @@
         } else {
           answer = "Демо-ответ: для реального AI подключите n8n webhook в переменной N8N_WEBHOOK_URL. По описанию я бы начал с проверки приводного ремня, роликов, генератора и помпы, затем считал ошибки OBD2.";
         }
-        loading.innerHTML = `<strong>AI Ассистент</strong><br>${escapeHtml(answer).replace(/\n/g, "<br>")} <small>${new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</small>`;
+        loading.innerHTML = `<strong>PULS</strong><br>${escapeHtml(answer).replace(/\n/g, "<br>")} <small>${new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</small>`;
+        updateKeyChecks(answer);
+        saveHistoryItem(prompt, answer);
       } catch (error) {
-        loading.innerHTML = `<strong>AI Ассистент</strong><br>Не получилось получить ответ от n8n. Проверьте URL webhook и CORS-настройки. <small>${new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</small>`;
+        const errorText = "Не получилось получить ответ от n8n. Проверьте URL webhook, CORS и Respond to Webhook node.";
+        loading.innerHTML = `<strong>PULS</strong><br>${errorText} <small>${new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</small>`;
+        updateKeyChecks(errorText);
       }
     }
 
