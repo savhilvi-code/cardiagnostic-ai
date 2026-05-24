@@ -1,1 +1,823 @@
 
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CarDiagnostic AI</title>
+  <meta name="description" content="AI ассистент для диагностики и обслуживания автомобиля">
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+
+    :root {
+      --bg: #01060c;
+      --panel: #061622;
+      --panel-2: #082238;
+      --line: #123a5c;
+      --line-bright: #0787ff;
+      --text: #f5f9ff;
+      --muted: #a8b5c8;
+      --blue: #0787ff;
+      --blue-2: #075fe8;
+      --cyan: #13d9ff;
+      --violet: #985cff;
+      --green: #58f07a;
+      --amber: #ffad2f;
+      --red: #ff4d4d;
+      --shadow: 0 22px 80px rgba(0, 0, 0, .42);
+      color-scheme: dark;
+      font-family: Inter, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 20% -10%, rgba(0, 137, 255, .2), transparent 38%),
+        radial-gradient(circle at 96% 12%, rgba(0, 230, 255, .08), transparent 28%),
+        linear-gradient(135deg, #000 0%, #03101b 48%, #000 100%);
+    }
+
+    button, input, textarea { font: inherit; }
+    button { cursor: pointer; }
+    .app {
+      width: min(1420px, 100%);
+      margin: 0 auto;
+      padding: 22px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .bot {
+      width: 54px;
+      height: 54px;
+      border: 2px solid var(--blue);
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      color: var(--blue);
+      box-shadow: 0 0 26px rgba(0, 132, 255, .34), inset 0 0 18px rgba(0, 132, 255, .14);
+      position: relative;
+      flex: 0 0 auto;
+    }
+
+    .bot::before { content: "◉_◉"; font-weight: 800; font-size: 14px; }
+    .bot::after {
+      content: "";
+      position: absolute;
+      width: 34px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--blue);
+      bottom: -9px;
+      left: 8px;
+      box-shadow: 15px 0 0 rgba(0, 132, 255, .8);
+    }
+
+    .logo {
+      font-size: clamp(24px, 3vw, 34px);
+      font-weight: 800;
+      letter-spacing: 0;
+      line-height: 1.05;
+      white-space: nowrap;
+    }
+
+    .logo span { color: var(--blue); }
+    .subtitle { color: var(--muted); margin-top: 6px; }
+
+    .status {
+      border: 1px solid #0b426b;
+      color: var(--cyan);
+      background: rgba(4, 22, 36, .76);
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 320px 1fr 320px;
+      gap: 32px;
+      align-items: center;
+      min-height: 180px;
+      border: 1px solid var(--line-bright);
+      border-radius: 18px;
+      padding: 18px 34px;
+      margin-bottom: 18px;
+      background:
+        linear-gradient(110deg, rgba(5, 25, 42, .96), rgba(6, 36, 60, .74)),
+        linear-gradient(180deg, rgba(255,255,255,.02), transparent);
+      box-shadow: inset 0 0 46px rgba(0, 132, 255, .15), var(--shadow);
+      overflow: hidden;
+    }
+
+    .car-render {
+      height: 142px;
+      border-radius: 16px;
+      background:
+        radial-gradient(ellipse at center, rgba(255,255,255,.55), transparent 0),
+        linear-gradient(12deg, transparent 20%, rgba(255,255,255,.88) 21% 43%, transparent 44%),
+        linear-gradient(160deg, transparent 7%, #d6d8db 8% 66%, transparent 67%),
+        linear-gradient(#252b30, #0b0d10);
+      position: relative;
+      filter: drop-shadow(0 26px 28px rgba(0,0,0,.45));
+    }
+
+    .car-render::before {
+      content: "";
+      position: absolute;
+      inset: 48px 20px 30px 18px;
+      border-radius: 42px 26px 16px 16px;
+      background:
+        linear-gradient(180deg, #f0f0f1, #aeb3b8 72%, #6d737a),
+        linear-gradient(90deg, transparent, rgba(255,255,255,.5), transparent);
+      clip-path: polygon(4% 54%, 18% 24%, 42% 8%, 74% 10%, 92% 32%, 98% 64%, 88% 78%, 11% 78%);
+    }
+
+    .car-render::after {
+      content: "";
+      position: absolute;
+      left: 54px;
+      right: 50px;
+      bottom: 22px;
+      height: 34px;
+      background:
+        radial-gradient(circle at 18% 50%, #111 0 14px, #72777d 15px 18px, transparent 19px),
+        radial-gradient(circle at 82% 50%, #111 0 14px, #72777d 15px 18px, transparent 19px);
+    }
+
+    .vehicle-title {
+      font-size: clamp(28px, 4vw, 38px);
+      font-weight: 800;
+      margin-bottom: 22px;
+    }
+
+    .facts {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(120px, 1fr));
+      gap: 18px;
+    }
+
+    .fact {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      min-width: 0;
+      color: var(--muted);
+    }
+
+    .fact-icon {
+      width: 34px;
+      height: 34px;
+      border: 1px solid rgba(216, 218, 238, .42);
+      border-radius: 9px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      color: #d7d4ea;
+    }
+
+    .fact b {
+      display: block;
+      color: white;
+      font-size: 22px;
+      margin-top: 4px;
+    }
+
+    .spline-card {
+      min-height: 140px;
+      border-radius: 16px;
+      border: 1px solid rgba(19, 217, 255, .22);
+      background:
+        radial-gradient(circle at center, rgba(0, 132, 255, .22), transparent 58%),
+        linear-gradient(145deg, rgba(0, 132, 255, .08), rgba(151, 92, 255, .12));
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      text-align: center;
+      padding: 16px;
+    }
+
+    .spline-card iframe {
+      width: 100%;
+      height: 160px;
+      border: 0;
+      border-radius: 14px;
+      display: none;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 270px 1fr;
+      gap: 18px;
+    }
+
+    .sidebar { display: flex; flex-direction: column; gap: 14px; }
+    .panel {
+      border: 1px solid var(--line);
+      background: linear-gradient(145deg, rgba(8, 26, 42, .96), rgba(2, 13, 22, .94));
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .nav { padding: 14px; }
+    .nav button {
+      width: 100%;
+      min-height: 52px;
+      border: 0;
+      background: transparent;
+      color: #dbe2ef;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 14px;
+      border-radius: 11px;
+      font-size: 16px;
+      text-align: left;
+    }
+
+    .nav button:hover,
+    .nav button.active {
+      background: linear-gradient(90deg, #075fe8, #07346d);
+      box-shadow: inset 0 0 0 1px var(--blue);
+      color: white;
+    }
+
+    .nav svg,
+    .action svg,
+    .send svg {
+      width: 21px;
+      height: 21px;
+      flex: 0 0 auto;
+    }
+
+    .sound {
+      padding: 18px;
+      text-align: center;
+      border-color: rgba(152, 92, 255, .95);
+    }
+
+    .sound h3 { margin: 0 0 8px; font-size: 18px; }
+    .sound p { color: var(--muted); margin: 8px 0; line-height: 1.55; }
+
+    .rings {
+      width: 162px;
+      aspect-ratio: 1;
+      margin: 16px auto;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background:
+        repeating-radial-gradient(circle, rgba(151, 89, 255, .92) 0 2px, transparent 3px 11px),
+        radial-gradient(circle, #121b3d 0, #071221 68%);
+      box-shadow: 0 0 38px rgba(0, 132, 255, .5);
+    }
+
+    .rings strong { display: block; font-size: 14px; margin-bottom: 8px; }
+    .mic-symbol { font-size: 42px; color: #9f7cff; text-shadow: 0 0 14px #008cff; }
+    .wave {
+      height: 44px;
+      margin: 12px 0;
+      background: repeating-linear-gradient(90deg, #0787ff 0 3px, transparent 3px 12px);
+      clip-path: polygon(0 55%,4% 35%,8% 75%,12% 25%,16% 65%,20% 45%,24% 80%,28% 20%,32% 60%,36% 38%,40% 74%,44% 30%,48% 70%,52% 28%,56% 62%,60% 44%,64% 78%,68% 20%,72% 55%,76% 35%,80% 75%,84% 24%,88% 58%,92% 38%,96% 70%,100% 48%,100% 100%,0 100%);
+    }
+    .sound a { color: var(--cyan); text-decoration: none; }
+
+    .workspace {
+      display: grid;
+      gap: 18px;
+      min-width: 0;
+    }
+
+    .main { padding: 22px; min-width: 0; }
+    .view { display: none; }
+    .view.active { display: block; }
+
+    .section-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    h1, h2, h3 { letter-spacing: 0; }
+    h2 { margin: 0 0 6px; font-size: clamp(24px, 3vw, 30px); }
+    h3 { margin: 0 0 8px; }
+    p { line-height: 1.55; }
+    .section-head p,
+    .muted { color: var(--muted); margin: 0; }
+
+    .search {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .input,
+    .search input {
+      width: 100%;
+      background: rgba(4, 17, 29, .95);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      color: white;
+      padding: 14px 16px;
+      outline: 0;
+    }
+
+    .input:focus,
+    .search input:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(7, 135, 255, .16);
+    }
+
+    .btn {
+      border: 1px solid #173c61;
+      background: #071725;
+      color: white;
+      border-radius: 11px;
+      padding: 12px 17px;
+      font-weight: 700;
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: center;
+      min-height: 46px;
+    }
+
+    .btn.primary {
+      background: linear-gradient(180deg, #0b7dff, #075fe8);
+      border-color: var(--blue);
+      box-shadow: 0 0 18px rgba(7, 135, 255, .2);
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      background: linear-gradient(145deg, rgba(9, 31, 49, .92), rgba(4, 17, 29, .92));
+      border-radius: 14px;
+      padding: 18px;
+    }
+
+    .grid-2 { display: grid; grid-template-columns: 1.5fr .85fr; gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .car-info { display: grid; grid-template-columns: 1fr 260px; gap: 16px; }
+    .car-box { min-height: 165px; }
+
+    .spec-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 9px 0;
+      color: var(--muted);
+      border-bottom: 1px solid rgba(18, 58, 92, .55);
+    }
+    .spec-line b { color: white; text-align: right; }
+
+    .quick {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+    }
+
+    .quick button {
+      min-height: 92px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(7, 26, 42, .78);
+      color: white;
+      display: grid;
+      place-items: center;
+      gap: 8px;
+      padding: 10px;
+    }
+
+    .quick span { font-size: 27px; }
+
+    .chat-grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 16px; }
+    .bubble {
+      background: #08233a;
+      border: 1px solid #174466;
+      border-radius: 15px;
+      padding: 16px;
+      margin-bottom: 12px;
+      line-height: 1.62;
+      color: #e9f0fb;
+    }
+    .bubble.user {
+      background: linear-gradient(180deg, #096fff, #074fc1);
+      border-color: #2d91ff;
+      margin-left: 82px;
+    }
+    .bubble small { color: #b8c5d8; float: right; }
+
+    .engine-card {
+      min-height: 205px;
+      border-radius: 12px;
+      background:
+        radial-gradient(circle at 31% 39%, rgba(7,135,255,.9) 0 10px, rgba(7,135,255,.22) 11px 20px, transparent 21px),
+        radial-gradient(circle at 66% 31%, rgba(7,135,255,.9) 0 10px, rgba(7,135,255,.22) 11px 20px, transparent 21px),
+        radial-gradient(circle at 78% 68%, rgba(7,135,255,.9) 0 10px, rgba(7,135,255,.22) 11px 20px, transparent 21px),
+        linear-gradient(135deg, #24282d, #090d11 42%, #303841);
+      position: relative;
+      overflow: hidden;
+    }
+    .engine-card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(120deg, transparent 0 18px, rgba(255,255,255,.06) 19px 20px);
+      opacity: .38;
+    }
+
+    .steps { display: grid; gap: 13px; }
+    .step { display: flex; gap: 12px; align-items: center; color: #dde8f5; }
+    .num {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--blue-2);
+      display: grid;
+      place-items: center;
+      font-size: 13px;
+      font-weight: 800;
+      flex: 0 0 auto;
+    }
+
+    .list { display: grid; gap: 10px; }
+    .row {
+      display: grid;
+      grid-template-columns: 138px 1fr 130px;
+      gap: 16px;
+      align-items: center;
+      border: 1px solid var(--line);
+      background: rgba(7, 26, 42, .76);
+      border-radius: 14px;
+      padding: 12px 16px;
+      min-width: 0;
+    }
+    .thumb {
+      height: 82px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #1a2630, #0c1117);
+      position: relative;
+      overflow: hidden;
+    }
+    .thumb::before {
+      content: "";
+      position: absolute;
+      inset: 18px 10px;
+      border-radius: 999px;
+      background:
+        radial-gradient(circle at 20% 50%, #15191f 0 16px, #69717a 17px 21px, transparent 22px),
+        radial-gradient(circle at 80% 50%, #15191f 0 16px, #69717a 17px 21px, transparent 22px),
+        linear-gradient(180deg, #c6c9cc, #656b72);
+      clip-path: polygon(0 48%, 15% 16%, 66% 13%, 97% 44%, 90% 75%, 8% 76%);
+    }
+    .row h3 { font-size: 17px; margin: 0 0 7px; }
+    .row p { margin: 0; color: var(--muted); }
+    .tag {
+      display: inline-block;
+      background: #0b315d;
+      color: #b9d9ff;
+      border-radius: 8px;
+      padding: 5px 9px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .ok { color: var(--green); font-weight: 800; }
+    .amber { color: var(--amber); }
+    .red { color: var(--red); }
+
+    .service {
+      display: grid;
+      grid-template-columns: 72px 1fr 160px;
+      gap: 16px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 10px;
+      background: rgba(7, 26, 42, .76);
+    }
+    .sq {
+      width: 64px;
+      height: 64px;
+      border-radius: 13px;
+      display: grid;
+      place-items: center;
+      font-size: 30px;
+      background: #123a69;
+    }
+
+    .dtc {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 12px;
+      background: rgba(7, 26, 42, .76);
+    }
+    .dtc-top { display: flex; gap: 18px; align-items: flex-start; }
+    .code { min-width: 138px; font-size: 25px; font-weight: 800; }
+    .cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      margin-top: 14px;
+      color: var(--muted);
+      line-height: 1.75;
+    }
+
+    .manual {
+      min-height: 224px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      background: rgba(7, 26, 42, .76);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .manual-visual {
+      height: 86px;
+      border-radius: 10px;
+      background:
+        linear-gradient(90deg, rgba(255,255,255,.9), rgba(150,160,170,.4)),
+        repeating-linear-gradient(135deg, #1a2734 0 12px, #2b3f52 13px 22px);
+      opacity: .9;
+    }
+    .manual .btn { margin-top: auto; align-self: flex-start; }
+
+    .settings-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .setting-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px solid rgba(18, 58, 92, .58);
+      padding: 10px 0;
+      color: var(--muted);
+    }
+    .toggle {
+      width: 48px;
+      height: 26px;
+      border-radius: 999px;
+      background: #103050;
+      border: 1px solid #24557d;
+      position: relative;
+      flex: 0 0 auto;
+    }
+    .toggle::after {
+      content: "";
+      width: 20px;
+      height: 20px;
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      border-radius: 50%;
+      background: #8c9aaa;
+    }
+    .toggle.on { background: #075fe8; }
+    .toggle.on::after { left: 24px; background: white; }
+
+    .composer {
+      padding: 14px;
+      position: sticky;
+      bottom: 0;
+      z-index: 5;
+      backdrop-filter: blur(16px);
+    }
+    .composer-line { display: flex; gap: 12px; align-items: center; }
+    .composer input {
+      flex: 1;
+      border: 1px solid var(--blue);
+      background: rgba(4, 17, 29, .96);
+      border-radius: 15px;
+      padding: 18px 20px;
+      color: white;
+      font-size: 18px;
+      outline: 0;
+      min-width: 0;
+    }
+    .send {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      border: 1px solid var(--blue);
+      background: linear-gradient(180deg, #0b7dff, #075fe8);
+      color: white;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+    }
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr 110px 1fr 1fr;
+      gap: 18px;
+      align-items: center;
+      margin-top: 14px;
+    }
+    .action {
+      min-height: 54px;
+      border: 1px solid #173c61;
+      background: #071725;
+      color: white;
+      border-radius: 12px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      padding: 0 14px;
+    }
+    .big-mic {
+      width: 82px;
+      aspect-ratio: 1;
+      margin: auto;
+      border-radius: 50%;
+      border: 2px solid var(--blue);
+      background: #07355c;
+      display: grid;
+      place-items: center;
+      font-size: 38px;
+      box-shadow: 0 0 30px rgba(0, 132, 255, .78);
+    }
+
+    .toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      max-width: min(420px, calc(100vw - 40px));
+      padding: 14px 16px;
+      border-radius: 13px;
+      border: 1px solid var(--line);
+      background: rgba(5, 18, 30, .95);
+      box-shadow: var(--shadow);
+      color: #dbe9f9;
+      opacity: 0;
+      transform: translateY(18px);
+      pointer-events: none;
+      transition: .22s ease;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 1180px) {
+      .hero { grid-template-columns: 260px 1fr; }
+      .spline-card { grid-column: 1 / -1; }
+      .facts { grid-template-columns: repeat(2, 1fr); }
+      .chat-grid, .grid-2 { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 900px) {
+      .app { padding: 14px; }
+      .topbar, .section-head { align-items: stretch; flex-direction: column; }
+      .hero, .layout, .car-info, .settings-grid { grid-template-columns: 1fr; }
+      .sidebar { order: 2; }
+      .grid-3 { grid-template-columns: 1fr 1fr; }
+      .quick { grid-template-columns: repeat(2, 1fr); }
+      .row, .service { grid-template-columns: 1fr; }
+      .thumb { height: 140px; }
+      .actions { grid-template-columns: 1fr 1fr; }
+      .big-mic { grid-column: 1 / -1; grid-row: 1; }
+      .cols { grid-template-columns: 1fr; }
+      .composer { position: static; }
+    }
+
+    @media (max-width: 560px) {
+      .status { white-space: normal; }
+      .facts, .grid-3 { grid-template-columns: 1fr; }
+      .bubble.user { margin-left: 0; }
+      .search { flex-direction: column; }
+      .actions { grid-template-columns: 1fr; }
+      .logo { white-space: normal; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="bot" aria-hidden="true"></div>
+        <div>
+          <div class="logo">CarDiagnostic <span>AI</span></div>
+          <div class="subtitle">Ваш умный помощник для автомобиля</div>
+        </div>
+      </div>
+      <div class="status">AI работает для вас 24/7</div>
+    </header>
+
+    <section class="hero">
+      <div class="car-render" aria-label="Nissan X-Trail T32"></div>
+      <div>
+        <div class="vehicle-title">Nissan X-Trail T32</div>
+        <div class="facts">
+          <div class="fact"><div class="fact-icon">▣</div><div>Год выпуска<b>2016</b></div></div>
+          <div class="fact"><div class="fact-icon">⚙</div><div>Двигатель<b>2.0 dCi</b></div></div>
+          <div class="fact"><div class="fact-icon">⌘</div><div>Привод<b>4WD</b></div></div>
+          <div class="fact"><div class="fact-icon">▯</div><div>Тип топлива<b>Дизель</b></div></div>
+        </div>
+      </div>
+      <div class="spline-card" id="splineCard">
+        <iframe id="splineFrame" title="Spline animation" loading="lazy"></iframe>
+        <div id="splinePlaceholder">Здесь появится ваша Spline-анимация<br><span class="muted">добавьте ссылку в SPLINE_SCENE_URL</span></div>
+      </div>
+    </section>
+
+    <div class="layout">
+      <aside class="sidebar">
+        <nav class="panel nav" aria-label="Основные разделы">
+          <button class="active" data-view="assistant">🤖 AI Ассистент</button>
+          <button data-view="car">⌂ Мой автомобиль</button>
+          <button data-view="journal">↺ Журнал запросов</button>
+          <button data-view="history">☰ История запросов</button>
+          <button data-view="dtc">▣ Ошибки (DTC)</button>
+          <button data-view="service">⌘ Сервис и ТО</button>
+          <button data-view="manuals">□ Мануалы</button>
+          <button data-view="video">▷ Видео</button>
+          <button data-view="settings">⚙ Настройки</button>
+        </nav>
+
+        <section class="panel sound">
+          <h3>Диагностика по шуму</h3>
+          <p>Как Shazam, только<br>для вашего авто</p>
+          <div class="rings">
+            <div>
+              <strong>Слушаю...</strong>
+              <div class="mic-symbol">🎙</div>
+            </div>
+          </div>
+          <div class="wave"></div>
+          <a href="#" data-demo>Запись звука неполадки</a>
+          <p>Говорите или воспроизведите шум, а ассистент поможет определить причину.</p>
+        </section>
+      </aside>
+
+      <main class="workspace">
+        <section class="panel main">
+          <div class="view active" id="assistant">
+            <div class="chat-grid">
+              <div>
+                <div class="section-head">
+                  <div>
+                    <h2>AI Ассистент</h2>
+                    <p>Задайте любой вопрос о вашем автомобиле</p>
+                  </div>
+                </div>
+                <div id="chatLog">
+                  <div class="bubble user">У меня Nissan X-Trail T32, при разгоне появляется гул под капотом, особенно на 2000–3000 оборотах. <small>10:42</small></div>
+                  <div class="bubble"><b>AI Ассистент</b><br>Понял, давайте разберёмся. По описанию это похоже на проблему со вспомогательными узлами двигателя: ролик натяжителя, подшипник генератора, помпа или приводной ремень.<br><br><b>Что проверить:</b><br>• состояние ремня и роликов<br>• люфт подшипников<br>• помпу на наличие течи и люфта<br>• изменение шума при включении нагрузки <small>10:43</small></div>
+                </div>
+                <div class="card">
+                  <h3>Видео по теме</h3>
+                  <p class="muted">Как проверить ролик натяжителя и генератор</p>
+                  <button class="btn primary" data-demo>Смотреть видео ↗</button>
+                </div>
+              </div>
+              <div>
+                <div class="card">
+                  <h3>Изображение</h3>
+                  <div class="engine-card"></div>
+                </div>
+                <div class="card" style="margin-top:14px">
+                  <h3>Пошаговая проверка</h3>
+                  <div class="steps">
+                    <div class="step"><span class="num">1</span>Снимите приводной ремень</div>
+                    <div class="step"><span class="num">2</span>Проверьте ролики на люфт и шум</div>
+                    <div class="step"><span class="num">3</span>Проверьте подшипник генератора</div>
+                    <div class="step"><span class="num">4</span>Проверьте помпу на течь и люфт</div>
+                    <div class="step"><span class="num">5</span>Установите ремень и повторите проверку</div>
+                  </div>
+                </div>
+                <div class="card" style="margin-top:14px">
+                  <h3>Совет AI</h3>
+                  <p class="muted">Начните с роликов и генератора. Эти узлы часто дают гул именно на средних оборотах.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="view" id="car">
