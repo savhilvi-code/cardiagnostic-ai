@@ -1099,16 +1099,6 @@
   <script>
     const N8N_WEBHOOK_URL = "https://auto-diagnost.app.n8n.cloud/webhook/abf2cd35-c7c9-43e3-8adc-be94b22089f2";
     const SPLINE_SCENE_URL = "";
-    const WEB_SESSION_ID_KEY = "cardiagnostic_web_session_id";
-
-    function getWebSessionId() {
-     let sessionId = localStorage.getItem(WEB_SESSION_ID_KEY);
-     if (!sessionId) {
-       sessionId = crypto.randomUUID();
-       localStorage.setItem(WEB_SESSION_ID_KEY, sessionId);
-     }
-     return sessionId;
-  }
 
     const iconMap = {
       bot: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="8" width="14" height="10" rx="3"/><path d="M12 4v4M8 13h.01M16 13h.01M7 21h10M3 11v4M21 11v4"/></svg>',
@@ -1274,19 +1264,10 @@
             body: JSON.stringify({
               message: prompt,
               text: prompt,
-              session_id: getWebSessionId(),
-              user_id: getWebSessionId(),
-              chat_id: getWebSessionId(),
-              username: "web_user",
-              first_name: "Web",
-              car_info: "Nissan X-Trail T32, 2016, двигатель 2.0 dCi, привод 4WD, топливо дизель",
-              vehicle: {
-                model: "Nissan X-Trail T32",
-                year: 2016,
-                engine: "2.0 dCi",
-                drive: "4WD",
-                fuel: "Дизель"
-              }
+              prompt: prompt,
+              source: "website",
+              userId: "website-user",
+              vehicle: { model: "Nissan X-Trail T32", year: 2016, engine: "2.0 dCi", drive: "4WD", fuel: "Дизель" }
             })
           });
           if (!res.ok) throw new Error("n8n webhook вернул ошибку");
