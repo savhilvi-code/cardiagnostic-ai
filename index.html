@@ -862,6 +862,142 @@
       .send { width: 100%; border-radius: 12px; }
       .tools { grid-template-columns: 1fr; }
     }
+
+
+    /* === ChatGPT-like fixed layout overrides === */
+    html, body { height: 100%; overflow: hidden; }
+    body { min-height: 100dvh; }
+    .app {
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      padding: 16px 0;
+    }
+    .topbar { flex: 0 0 auto; margin-bottom: 12px; }
+    .hero {
+      flex: 0 0 auto;
+      margin-bottom: 12px;
+      padding: 16px 28px;
+      min-height: 128px;
+    }
+    .car-visual {
+      min-height: 96px;
+      border: 1px dashed rgba(19, 217, 255, .45);
+      background:
+        linear-gradient(135deg, rgba(8,125,255,.12), rgba(19,217,255,.05)),
+        rgba(3, 14, 24, .72);
+      clip-path: none;
+      display: grid;
+      place-items: center;
+      filter: none;
+    }
+    .car-visual::after {
+      content: "Фото автомобиля";
+      color: var(--muted);
+      font-weight: 700;
+      letter-spacing: .02em;
+    }
+    .hero-title { margin-bottom: 14px; }
+    .facts { gap: 12px; }
+    .fact strong { font-size: 18px; }
+    .workspace {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: hidden;
+      grid-template-columns: 220px minmax(0, 1fr);
+    }
+    .side {
+      min-height: 0;
+      overflow: hidden;
+    }
+    .nav {
+      flex: 0 0 auto;
+    }
+    .sound-card {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .content {
+      height: 100%;
+      min-height: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .main-panel {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: hidden;
+      padding: 18px;
+    }
+    .view.active,
+    #assistant {
+      height: 100%;
+      min-height: 0;
+    }
+    .chat-grid {
+      height: 100%;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 350px;
+      gap: 14px;
+    }
+    .chat-column {
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .chat-head {
+      flex: 0 0 auto;
+      margin-bottom: 12px;
+    }
+    .messages {
+      flex: 1 1 auto;
+      height: auto;
+      min-height: 0;
+      max-height: none;
+      overflow-y: auto;
+      padding-right: 10px;
+      padding-bottom: 8px;
+    }
+    .right-info {
+      min-height: 0;
+      display: grid;
+      grid-template-rows: minmax(160px, 1fr) minmax(190px, 1fr);
+      gap: 14px;
+      overflow: hidden;
+    }
+    .summary-card,
+    .video-card {
+      min-height: 0;
+      overflow: auto;
+    }
+    .summary-card h3,
+    .video-card h3 { position: sticky; top: 0; background: rgba(7,29,48,.95); padding-bottom: 8px; z-index: 2; }
+    .composer {
+      flex: 0 0 auto;
+      position: static;
+      bottom: auto;
+      z-index: 12;
+      padding: 12px;
+      backdrop-filter: blur(12px);
+    }
+    .composer-line input { height: 54px; }
+    .send { width: 54px; height: 54px; }
+    .tools { margin-top: 10px; gap: 12px; }
+    .bigmic { width: 64px; height: 64px; font-size: 34px; }
+
+    @media (max-width: 1050px) {
+      html, body { overflow: auto; }
+      .app { height: auto; overflow: visible; }
+      .workspace, .content, .main-panel, .view.active, #assistant { height: auto; overflow: visible; }
+      .chat-grid { height: auto; grid-template-columns: 1fr; }
+      .messages { height: 55vh; }
+      .right-info { grid-template-rows: auto auto; }
+      .composer { position: sticky; bottom: 8px; }
+    }
   </style>
 </head>
 <body>
@@ -880,12 +1016,12 @@
     <section class="hero" aria-label="Автомобиль">
       <div class="car-visual" aria-hidden="true"></div>
       <div>
-        <div class="hero-title">Nissan X-Trail T32</div>
+        <div class="hero-title">Укажите машину</div>
         <div class="facts">
-          <div class="fact" data-icon="calendar"><span>Год выпуска<strong>2016</strong></span></div>
-          <div class="fact" data-icon="engine"><span>Двигатель<strong>2.0 dCi</strong></span></div>
-          <div class="fact" data-icon="drivetrain"><span>Привод<strong>4WD</strong></span></div>
-          <div class="fact" data-icon="fuel"><span>Тип топлива<strong>Дизель</strong></span></div>
+          <div class="fact" data-icon="calendar"><span>Год выпуска<strong>Укажите год</strong></span></div>
+          <div class="fact" data-icon="engine"><span>Двигатель<strong>Укажите мотор</strong></span></div>
+          <div class="fact" data-icon="drivetrain"><span>Привод<strong>Укажите привод</strong></span></div>
+          <div class="fact" data-icon="fuel"><span>Тип топлива<strong>Укажите топливо</strong></span></div>
         </div>
       </div>
     </section>
@@ -923,15 +1059,15 @@
         <section class="panel main-panel">
           <section class="view active" id="assistant">
             <div class="chat-grid">
-              <div>
-                <div class="head">
+              <div class="chat-column">
+                <div class="head chat-head">
                   <div>
                     <h1>PULS</h1>
                     <p>Задайте любой вопрос о вашем автомобиле</p>
                   </div>
                 </div>
                 <div class="messages" id="messages">
-                  <div class="bubble user">У меня Nissan X-Trail T32, при разгоне появляется гул под капотом, особенно на 2000–3000 оборотах. <small>10:42</small></div>
+                  <div class="bubble user">У меня появляется гул под капотом, особенно на 2000–3000 оборотах. <small>10:42</small></div>
                   <div class="bubble">
                     <strong>PULS</strong><br>
                     Похоже на проблему со вспомогательными узлами двигателя. Вероятные причины: износ подшипника генератора, ролик натяжителя ремня, помпа или приводной ремень.
@@ -942,33 +1078,19 @@
                     <small>10:43</small>
                   </div>
                 </div>
-                <div class="card">
-                  <h3>Видео по теме</h3>
-                  <p>Как проверить ролик натяжителя и генератор. Подключите YouTube или базу материалов через n8n.</p>
-                  <button class="btn blue" data-action="demo">Смотреть видео</button>
-                </div>
               </div>
-              <aside>
-                <div class="card">
-                  <h3>Spline / 3D зона</h3>
-                  <div class="spline-box" id="splineBox">
-                    <div>
-                      Вставьте ссылку Spline в переменную<br>
-                      <strong>SPLINE_SCENE_URL</strong>
-                    </div>
+              <aside class="right-info">
+                <div class="card summary-card">
+                  <h3>Краткий итог ответа</h3>
+                  <div id="keyChecks">
+                    <p>После ответа PULS здесь появится короткий список: что проверить в первую очередь.</p>
                   </div>
                 </div>
-                <div class="card steps">
-                  <h3>Пошаговая проверка</h3>
-                  <p><span class="num">1</span>Снимите приводной ремень</p>
-                  <p><span class="num">2</span>Проверьте ролики на люфт и шум</p>
-                  <p><span class="num">3</span>Проверьте подшипник генератора</p>
-                  <p><span class="num">4</span>Проверьте помпу на течь и люфт</p>
-                </div>
-                <div class="card">
-                  <h3>Итог: что проверить</h3>
-                  <div id="keyChecks">
-                    <p>После ответа PULS здесь появится краткий список ключевых проверок.</p>
+                <div class="card video-card">
+                  <h3>Видео / ссылки по теме</h3>
+                  <div id="videoLinksBox">
+                    <p>Здесь позже будут появляться ссылки на видео, мануалы и материалы из n8n.</p>
+                    <button class="btn blue" data-action="demo">Смотреть видео</button>
                   </div>
                 </div>
               </aside>
@@ -1282,7 +1404,7 @@
         question,
         answer,
         date: now.toLocaleDateString("ru-RU", { day: "2-digit", month: "short" }) + ", " + now.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }),
-        vehicle: "Nissan X-Trail T32 • 2.0 dCi • 4WD",
+        vehicle: "Автомобиль не указан",
         type: "Текстовый запрос"
       };
       history.unshift(item);
@@ -1325,7 +1447,7 @@
               prompt: prompt,
               source: "website",
               userId: "website-user",
-              vehicle: { model: "Nissan X-Trail T32", year: 2016, engine: "2.0 dCi", drive: "4WD", fuel: "Дизель" }
+              vehicle: { model: "", year: "", engine: "", drive: "", fuel: "" }
             })
           });
           if (!res.ok) throw new Error("n8n webhook вернул ошибку");
