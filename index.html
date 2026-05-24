@@ -1,34 +1,31 @@
-
 <!doctype html>
 <html lang="ru">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CarDiagnostic AI</title>
-  <meta name="description" content="AI ассистент для диагностики и обслуживания автомобиля">
+  <meta name="description" content="AI ассистент для диагностики автомобиля, сервисной истории, ошибок DTC и мануалов.">
   <style>
     @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
 
     :root {
-      --bg: #01060c;
-      --panel: #061622;
-      --panel-2: #082238;
+      --bg: #02070d;
+      --panel: rgba(5, 18, 31, .92);
+      --panel-2: rgba(7, 29, 48, .84);
+      --panel-3: rgba(4, 13, 23, .78);
       --line: #123a5c;
-      --line-bright: #0787ff;
-      --text: #f5f9ff;
-      --muted: #a8b5c8;
-      --blue: #0787ff;
-      --blue-2: #075fe8;
+      --line-strong: #087dff;
+      --blue: #087dff;
       --cyan: #13d9ff;
-      --violet: #985cff;
-      --green: #58f07a;
-      --amber: #ffad2f;
-      --red: #ff4d4d;
-      --shadow: 0 22px 80px rgba(0, 0, 0, .42);
-      color-scheme: dark;
-      font-family: Inter, Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
+      --violet: #965cff;
+      --text: #f5f9ff;
+      --muted: #a9b6c9;
+      --soft: #d7ddeb;
+      --ok: #56f07b;
+      --warn: #ffa927;
+      --danger: #ff4c4c;
+      --shadow: 0 22px 70px rgba(0, 0, 0, .45);
+      --radius: 14px;
     }
 
     * { box-sizing: border-box; }
@@ -36,18 +33,22 @@
     body {
       margin: 0;
       min-height: 100vh;
+      font-family: Inter, Arial, sans-serif;
+      color: var(--text);
       background:
-        radial-gradient(circle at 20% -10%, rgba(0, 137, 255, .2), transparent 38%),
-        radial-gradient(circle at 96% 12%, rgba(0, 230, 255, .08), transparent 28%),
-        linear-gradient(135deg, #000 0%, #03101b 48%, #000 100%);
+        radial-gradient(circle at 28% -8%, rgba(0, 128, 255, .22), transparent 34%),
+        radial-gradient(circle at 88% 14%, rgba(0, 217, 255, .12), transparent 28%),
+        linear-gradient(135deg, #02070d 0%, #010409 48%, #000 100%);
     }
 
     button, input, textarea { font: inherit; }
     button { cursor: pointer; }
+    a { color: inherit; }
+
     .app {
-      width: min(1420px, 100%);
+      width: min(1320px, calc(100% - 32px));
       margin: 0 auto;
-      padding: 22px;
+      padding: 24px 0 28px;
     }
 
     .topbar {
@@ -65,267 +66,296 @@
       min-width: 0;
     }
 
-    .bot {
-      width: 54px;
-      height: 54px;
+    .bot-logo {
+      position: relative;
+      width: 52px;
+      height: 52px;
       border: 2px solid var(--blue);
-      border-radius: 16px;
+      border-radius: 15px;
       display: grid;
       place-items: center;
       color: var(--blue);
-      box-shadow: 0 0 26px rgba(0, 132, 255, .34), inset 0 0 18px rgba(0, 132, 255, .14);
-      position: relative;
+      box-shadow: 0 0 24px rgba(8, 125, 255, .42);
       flex: 0 0 auto;
     }
 
-    .bot::before { content: "◉_◉"; font-weight: 800; font-size: 14px; }
-    .bot::after {
+    .bot-logo::before {
       content: "";
-      position: absolute;
-      width: 34px;
-      height: 6px;
-      border-radius: 999px;
-      background: var(--blue);
-      bottom: -9px;
-      left: 8px;
-      box-shadow: 15px 0 0 rgba(0, 132, 255, .8);
+      width: 28px;
+      height: 22px;
+      border: 2px solid currentColor;
+      border-radius: 7px;
+      background:
+        radial-gradient(circle at 8px 10px, currentColor 0 2px, transparent 2.5px),
+        radial-gradient(circle at 20px 10px, currentColor 0 2px, transparent 2.5px);
     }
 
-    .logo {
-      font-size: clamp(24px, 3vw, 34px);
-      font-weight: 800;
-      letter-spacing: 0;
+    .bot-logo::after {
+      content: "";
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      top: 4px;
+      box-shadow: -18px 36px 0 currentColor, 0 36px 0 currentColor, 18px 36px 0 currentColor;
+    }
+
+    .brand-title {
+      font-size: clamp(24px, 3vw, 32px);
       line-height: 1.05;
+      font-weight: 800;
       white-space: nowrap;
     }
 
-    .logo span { color: var(--blue); }
-    .subtitle { color: var(--muted); margin-top: 6px; }
+    .brand-title span { color: var(--blue); }
+    .brand-subtitle {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 14px;
+    }
 
-    .status {
-      border: 1px solid #0b426b;
+    .system-pill {
+      border: 1px solid #0b456f;
+      border-radius: 10px;
+      padding: 11px 16px;
       color: var(--cyan);
-      background: rgba(4, 22, 36, .76);
-      border-radius: 12px;
-      padding: 12px 16px;
-      font-weight: 700;
+      background: rgba(4, 19, 32, .68);
+      font-weight: 600;
       white-space: nowrap;
     }
 
     .hero {
       display: grid;
-      grid-template-columns: 320px 1fr 320px;
-      gap: 32px;
+      grid-template-columns: minmax(230px, 340px) 1fr;
+      gap: clamp(18px, 3vw, 42px);
       align-items: center;
-      min-height: 180px;
-      border: 1px solid var(--line-bright);
-      border-radius: 18px;
-      padding: 18px 34px;
-      margin-bottom: 18px;
+      border: 1px solid var(--line-strong);
+      border-radius: 16px;
       background:
-        linear-gradient(110deg, rgba(5, 25, 42, .96), rgba(6, 36, 60, .74)),
-        linear-gradient(180deg, rgba(255,255,255,.02), transparent);
-      box-shadow: inset 0 0 46px rgba(0, 132, 255, .15), var(--shadow);
+        linear-gradient(110deg, rgba(5, 23, 38, .95), rgba(5, 34, 57, .72)),
+        radial-gradient(circle at 20% 50%, rgba(8, 125, 255, .16), transparent 42%);
+      padding: clamp(16px, 2.5vw, 24px) clamp(18px, 4vw, 44px);
+      margin-bottom: 18px;
+      box-shadow: inset 0 0 45px rgba(0, 132, 255, .12), var(--shadow);
       overflow: hidden;
     }
 
-    .car-render {
-      height: 142px;
-      border-radius: 16px;
+    .car-visual {
+      min-height: 145px;
+      border-radius: 12px;
       background:
-        radial-gradient(ellipse at center, rgba(255,255,255,.55), transparent 0),
-        linear-gradient(12deg, transparent 20%, rgba(255,255,255,.88) 21% 43%, transparent 44%),
-        linear-gradient(160deg, transparent 7%, #d6d8db 8% 66%, transparent 67%),
-        linear-gradient(#252b30, #0b0d10);
-      position: relative;
-      filter: drop-shadow(0 26px 28px rgba(0,0,0,.45));
+        linear-gradient(155deg, rgba(255, 255, 255, .92), rgba(160, 168, 176, .72) 52%, rgba(26, 35, 44, .15) 53%),
+        radial-gradient(ellipse at 35% 75%, #10161c 0 8%, transparent 9%),
+        radial-gradient(ellipse at 78% 75%, #10161c 0 8%, transparent 9%),
+        linear-gradient(90deg, transparent 0 14%, #eff3f5 15% 80%, transparent 81%);
+      clip-path: polygon(3% 58%, 12% 41%, 29% 31%, 58% 23%, 80% 35%, 93% 53%, 96% 70%, 88% 75%, 81% 67%, 72% 67%, 64% 76%, 43% 76%, 35% 67%, 26% 67%, 17% 76%, 5% 71%);
+      filter: drop-shadow(0 24px 16px rgba(0, 0, 0, .45));
     }
 
-    .car-render::before {
-      content: "";
-      position: absolute;
-      inset: 48px 20px 30px 18px;
-      border-radius: 42px 26px 16px 16px;
-      background:
-        linear-gradient(180deg, #f0f0f1, #aeb3b8 72%, #6d737a),
-        linear-gradient(90deg, transparent, rgba(255,255,255,.5), transparent);
-      clip-path: polygon(4% 54%, 18% 24%, 42% 8%, 74% 10%, 92% 32%, 98% 64%, 88% 78%, 11% 78%);
-    }
-
-    .car-render::after {
-      content: "";
-      position: absolute;
-      left: 54px;
-      right: 50px;
-      bottom: 22px;
-      height: 34px;
-      background:
-        radial-gradient(circle at 18% 50%, #111 0 14px, #72777d 15px 18px, transparent 19px),
-        radial-gradient(circle at 82% 50%, #111 0 14px, #72777d 15px 18px, transparent 19px);
-    }
-
-    .vehicle-title {
-      font-size: clamp(28px, 4vw, 38px);
+    .hero-title {
+      font-size: clamp(26px, 3.5vw, 34px);
       font-weight: 800;
-      margin-bottom: 22px;
+      margin-bottom: 24px;
     }
 
     .facts {
       display: grid;
-      grid-template-columns: repeat(4, minmax(120px, 1fr));
-      gap: 18px;
+      grid-template-columns: repeat(4, minmax(110px, 1fr));
+      gap: 16px;
     }
 
     .fact {
       display: flex;
-      gap: 12px;
       align-items: center;
+      gap: 12px;
+      color: var(--muted);
       min-width: 0;
-      color: var(--muted);
     }
 
-    .fact-icon {
-      width: 34px;
-      height: 34px;
-      border: 1px solid rgba(216, 218, 238, .42);
-      border-radius: 9px;
-      display: grid;
-      place-items: center;
-      flex: 0 0 auto;
+    .fact svg {
+      width: 28px;
+      height: 28px;
       color: #d7d4ea;
+      flex: 0 0 auto;
     }
 
-    .fact b {
+    .fact strong {
       display: block;
-      color: white;
+      margin-top: 5px;
+      color: #fff;
       font-size: 22px;
-      margin-top: 4px;
+      line-height: 1.1;
     }
 
-    .spline-card {
-      min-height: 140px;
-      border-radius: 16px;
-      border: 1px solid rgba(19, 217, 255, .22);
-      background:
-        radial-gradient(circle at center, rgba(0, 132, 255, .22), transparent 58%),
-        linear-gradient(145deg, rgba(0, 132, 255, .08), rgba(151, 92, 255, .12));
-      overflow: hidden;
+    .workspace {
       display: grid;
-      place-items: center;
-      color: var(--muted);
-      text-align: center;
-      padding: 16px;
-    }
-
-    .spline-card iframe {
-      width: 100%;
-      height: 160px;
-      border: 0;
-      border-radius: 14px;
-      display: none;
-    }
-
-    .layout {
-      display: grid;
-      grid-template-columns: 270px 1fr;
+      grid-template-columns: 255px minmax(0, 1fr);
       gap: 18px;
     }
 
-    .sidebar { display: flex; flex-direction: column; gap: 14px; }
-    .panel {
-      border: 1px solid var(--line);
-      background: linear-gradient(145deg, rgba(8, 26, 42, .96), rgba(2, 13, 22, .94));
-      border-radius: 16px;
-      box-shadow: var(--shadow);
+    .side {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
     }
 
-    .nav { padding: 14px; }
+    .panel {
+      border: 1px solid var(--line);
+      background: linear-gradient(145deg, var(--panel), rgba(2, 13, 22, .94));
+      border-radius: var(--radius);
+      box-shadow: 0 14px 44px rgba(0, 0, 0, .23);
+    }
+
+    .nav { padding: 12px; }
+
     .nav button {
       width: 100%;
-      min-height: 52px;
+      height: 50px;
       border: 0;
       background: transparent;
-      color: #dbe2ef;
+      color: #dce4f0;
       display: flex;
       align-items: center;
       gap: 12px;
       padding: 0 14px;
-      border-radius: 11px;
+      border-radius: 10px;
       font-size: 16px;
       text-align: left;
+      transition: background .18s, box-shadow .18s, color .18s;
     }
 
-    .nav button:hover,
-    .nav button.active {
-      background: linear-gradient(90deg, #075fe8, #07346d);
-      box-shadow: inset 0 0 0 1px var(--blue);
-      color: white;
-    }
-
-    .nav svg,
-    .action svg,
-    .send svg {
-      width: 21px;
-      height: 21px;
+    .nav button svg {
+      width: 23px;
+      height: 23px;
+      color: #e8ecf7;
       flex: 0 0 auto;
     }
 
-    .sound {
-      padding: 18px;
-      text-align: center;
-      border-color: rgba(152, 92, 255, .95);
+    .nav button.active,
+    .nav button:hover {
+      background: linear-gradient(90deg, #0766f2, #07386f);
+      box-shadow: inset 0 0 0 1px var(--blue), 0 0 22px rgba(8, 125, 255, .22);
+      color: white;
     }
 
-    .sound h3 { margin: 0 0 8px; font-size: 18px; }
-    .sound p { color: var(--muted); margin: 8px 0; line-height: 1.55; }
+    .sound-card {
+      padding: 18px;
+      text-align: center;
+      border-color: #9554ff;
+      background:
+        radial-gradient(circle at 50% 54%, rgba(151, 89, 255, .2), transparent 42%),
+        linear-gradient(145deg, rgba(9, 21, 38, .95), rgba(3, 11, 19, .95));
+    }
+
+    .sound-card h3 {
+      margin: 0 0 8px;
+      font-size: 17px;
+    }
+
+    .sound-card p {
+      color: var(--soft);
+      margin: 8px 0;
+      line-height: 1.45;
+    }
 
     .rings {
-      width: 162px;
-      aspect-ratio: 1;
+      width: 154px;
+      height: 154px;
       margin: 16px auto;
       border-radius: 50%;
       display: grid;
       place-items: center;
       background:
         repeating-radial-gradient(circle, rgba(151, 89, 255, .92) 0 2px, transparent 3px 11px),
-        radial-gradient(circle, #121b3d 0, #071221 68%);
-      box-shadow: 0 0 38px rgba(0, 132, 255, .5);
+        radial-gradient(circle, #151d43 0, #071221 64%);
+      box-shadow: 0 0 36px rgba(8, 125, 255, .48);
+      animation: pulse 2.6s ease-in-out infinite;
     }
 
-    .rings strong { display: block; font-size: 14px; margin-bottom: 8px; }
-    .mic-symbol { font-size: 42px; color: #9f7cff; text-shadow: 0 0 14px #008cff; }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); filter: brightness(1); }
+      50% { transform: scale(1.025); filter: brightness(1.18); }
+    }
+
+    .rings .listen { font-size: 13px; }
+    .rings .mic {
+      font-size: 42px;
+      color: #9f7cff;
+      text-shadow: 0 0 14px #008cff;
+    }
+
     .wave {
-      height: 44px;
-      margin: 12px 0;
+      height: 42px;
+      margin: 8px 0;
       background: repeating-linear-gradient(90deg, #0787ff 0 3px, transparent 3px 12px);
       clip-path: polygon(0 55%,4% 35%,8% 75%,12% 25%,16% 65%,20% 45%,24% 80%,28% 20%,32% 60%,36% 38%,40% 74%,44% 30%,48% 70%,52% 28%,56% 62%,60% 44%,64% 78%,68% 20%,72% 55%,76% 35%,80% 75%,84% 24%,88% 58%,92% 38%,96% 70%,100% 48%,100% 100%,0 100%);
+      animation: wave 1.8s steps(2) infinite;
     }
-    .sound a { color: var(--cyan); text-decoration: none; }
 
-    .workspace {
-      display: grid;
-      gap: 18px;
+    @keyframes wave { 50% { transform: scaleY(.72); } }
+    .sound-link { color: var(--cyan); text-decoration: none; }
+
+    .content {
       min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
     }
 
-    .main { padding: 22px; min-width: 0; }
+    .main-panel {
+      min-height: 640px;
+      padding: clamp(16px, 2.4vw, 22px);
+    }
+
     .view { display: none; }
     .view.active { display: block; }
 
-    .section-head {
+    .head {
       display: flex;
-      align-items: flex-start;
       justify-content: space-between;
       gap: 16px;
+      align-items: flex-start;
       margin-bottom: 18px;
     }
 
-    h1, h2, h3 { letter-spacing: 0; }
-    h2 { margin: 0 0 6px; font-size: clamp(24px, 3vw, 30px); }
-    h3 { margin: 0 0 8px; }
-    p { line-height: 1.55; }
-    .section-head p,
-    .muted { color: var(--muted); margin: 0; }
+    .head h1 {
+      font-size: clamp(24px, 3vw, 30px);
+      margin: 0 0 7px;
+      letter-spacing: 0;
+    }
+
+    .head p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .btn {
+      border: 1px solid #173c61;
+      background: #071725;
+      color: white;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 44px;
+      text-decoration: none;
+      transition: transform .18s, border-color .18s, background .18s;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      border-color: var(--blue);
+      background: #0a2035;
+    }
+
+    .btn.blue {
+      background: linear-gradient(180deg, #087dff, #064cbf);
+      border-color: var(--blue);
+    }
 
     .search {
       display: flex;
@@ -333,387 +363,493 @@
       margin-bottom: 16px;
     }
 
-    .input,
-    .search input {
+    .search input,
+    .composer input {
       width: 100%;
-      background: rgba(4, 17, 29, .95);
       border: 1px solid var(--line);
-      border-radius: 12px;
+      background: #04111d;
+      border-radius: 10px;
       color: white;
+      outline: none;
+    }
+
+    .search input {
       padding: 14px 16px;
-      outline: 0;
+      font-size: 15px;
     }
 
-    .input:focus,
-    .search input:focus {
-      border-color: var(--blue);
-      box-shadow: 0 0 0 3px rgba(7, 135, 255, .16);
-    }
+    .search input:focus,
+    .composer input:focus { border-color: var(--blue); }
 
-    .btn {
-      border: 1px solid #173c61;
-      background: #071725;
-      color: white;
-      border-radius: 11px;
-      padding: 12px 17px;
-      font-weight: 700;
-      display: inline-flex;
-      gap: 8px;
-      align-items: center;
-      justify-content: center;
-      min-height: 46px;
-    }
-
-    .btn.primary {
-      background: linear-gradient(180deg, #0b7dff, #075fe8);
-      border-color: var(--blue);
-      box-shadow: 0 0 18px rgba(7, 135, 255, .2);
+    .grid-2 {
+      display: grid;
+      grid-template-columns: minmax(0, 1.55fr) minmax(260px, .85fr);
+      gap: 16px;
     }
 
     .card {
       border: 1px solid var(--line);
-      background: linear-gradient(145deg, rgba(9, 31, 49, .92), rgba(4, 17, 29, .92));
-      border-radius: 14px;
+      background: linear-gradient(145deg, var(--panel-2), rgba(4, 17, 29, .9));
+      border-radius: 12px;
       padding: 18px;
+      min-width: 0;
     }
 
-    .grid-2 { display: grid; grid-template-columns: 1.5fr .85fr; gap: 16px; }
-    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-    .car-info { display: grid; grid-template-columns: 1fr 260px; gap: 16px; }
-    .car-box { min-height: 165px; }
-
-    .spec-line {
-      display: flex;
-      justify-content: space-between;
-      gap: 14px;
-      padding: 9px 0;
-      color: var(--muted);
-      border-bottom: 1px solid rgba(18, 58, 92, .55);
+    .card h2,
+    .card h3 {
+      margin: 0 0 10px;
     }
-    .spec-line b { color: white; text-align: right; }
 
-    .quick {
+    .card p {
+      color: var(--soft);
+      line-height: 1.55;
+      margin: 7px 0;
+    }
+
+    .car-info {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: 1fr minmax(190px, 270px);
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .info-table {
+      display: grid;
+      grid-template-columns: 130px 1fr;
+      gap: 9px 16px;
+    }
+
+    .info-table span:nth-child(odd) { color: var(--soft); }
+
+    .car-mini {
+      min-height: 160px;
+      border-radius: 12px;
+      background:
+        linear-gradient(155deg, rgba(255, 255, 255, .92), rgba(160, 168, 176, .72) 52%, rgba(26, 35, 44, .15) 53%),
+        radial-gradient(ellipse at 35% 75%, #10161c 0 8%, transparent 9%),
+        radial-gradient(ellipse at 78% 75%, #10161c 0 8%, transparent 9%);
+      clip-path: polygon(3% 58%, 12% 41%, 29% 31%, 58% 23%, 80% 35%, 93% 53%, 96% 70%, 88% 75%, 81% 67%, 72% 67%, 64% 76%, 43% 76%, 35% 67%, 26% 67%, 17% 76%, 5% 71%);
+    }
+
+    .spec-list {
+      display: grid;
       gap: 12px;
     }
 
-    .quick button {
+    .spec-list div {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      color: var(--soft);
+    }
+
+    .spec-list b { color: white; text-align: right; }
+
+    .quick-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(90px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .quick {
       min-height: 92px;
       border: 1px solid var(--line);
-      border-radius: 12px;
-      background: rgba(7, 26, 42, .78);
-      color: white;
+      border-radius: 10px;
+      background: var(--panel-3);
       display: grid;
       place-items: center;
-      gap: 8px;
+      text-align: center;
+      gap: 6px;
       padding: 10px;
+      color: var(--soft);
+      font-size: 14px;
     }
 
-    .quick span { font-size: 27px; }
+    .quick svg { width: 28px; height: 28px; color: white; }
 
-    .chat-grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 16px; }
-    .bubble {
-      background: #08233a;
-      border: 1px solid #174466;
-      border-radius: 15px;
-      padding: 16px;
-      margin-bottom: 12px;
-      line-height: 1.62;
-      color: #e9f0fb;
-    }
-    .bubble.user {
-      background: linear-gradient(180deg, #096fff, #074fc1);
-      border-color: #2d91ff;
-      margin-left: 82px;
-    }
-    .bubble small { color: #b8c5d8; float: right; }
-
-    .engine-card {
-      min-height: 205px;
-      border-radius: 12px;
-      background:
-        radial-gradient(circle at 31% 39%, rgba(7,135,255,.9) 0 10px, rgba(7,135,255,.22) 11px 20px, transparent 21px),
-        radial-gradient(circle at 66% 31%, rgba(7,135,255,.9) 0 10px, rgba(7,135,255,.22) 11px 20px, transparent 21px),
-        radial-gradient(circle at 78% 68%, rgba(7,135,255,.9) 0 10px, rgba(7,135,255,.22) 11px 20px, transparent 21px),
-        linear-gradient(135deg, #24282d, #090d11 42%, #303841);
-      position: relative;
-      overflow: hidden;
-    }
-    .engine-card::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: repeating-linear-gradient(120deg, transparent 0 18px, rgba(255,255,255,.06) 19px 20px);
-      opacity: .38;
-    }
-
-    .steps { display: grid; gap: 13px; }
-    .step { display: flex; gap: 12px; align-items: center; color: #dde8f5; }
-    .num {
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      background: var(--blue-2);
+    .list {
       display: grid;
-      place-items: center;
-      font-size: 13px;
-      font-weight: 800;
-      flex: 0 0 auto;
+      gap: 10px;
     }
 
-    .list { display: grid; gap: 10px; }
     .row {
       display: grid;
-      grid-template-columns: 138px 1fr 130px;
+      grid-template-columns: 138px 1fr 120px;
       gap: 16px;
       align-items: center;
       border: 1px solid var(--line);
-      background: rgba(7, 26, 42, .76);
-      border-radius: 14px;
+      background: rgba(7, 26, 42, .72);
+      border-radius: 12px;
       padding: 12px 16px;
       min-width: 0;
     }
+
+    .row.featured {
+      border-color: var(--blue);
+      box-shadow: inset 0 0 0 1px rgba(8, 125, 255, .35);
+    }
+
     .thumb {
-      height: 82px;
-      border-radius: 10px;
-      background: linear-gradient(135deg, #1a2630, #0c1117);
+      width: 125px;
+      height: 78px;
+      object-fit: cover;
+      border-radius: 8px;
+      background:
+        radial-gradient(circle at 35% 45%, rgba(255, 255, 255, .28), transparent 18%),
+        linear-gradient(135deg, #0a0f14, #2e3843 48%, #080b0f);
       position: relative;
       overflow: hidden;
     }
-    .thumb::before {
+
+    .thumb::after {
       content: "";
       position: absolute;
-      inset: 18px 10px;
-      border-radius: 999px;
-      background:
-        radial-gradient(circle at 20% 50%, #15191f 0 16px, #69717a 17px 21px, transparent 22px),
-        radial-gradient(circle at 80% 50%, #15191f 0 16px, #69717a 17px 21px, transparent 22px),
-        linear-gradient(180deg, #c6c9cc, #656b72);
-      clip-path: polygon(0 48%, 15% 16%, 66% 13%, 97% 44%, 90% 75%, 8% 76%);
+      inset: 14px 22px;
+      border: 2px solid rgba(255, 255, 255, .18);
+      border-radius: 50%;
+      box-shadow: 34px 5px 0 rgba(8, 125, 255, .32), 64px 18px 0 rgba(255, 169, 39, .28);
     }
-    .row h3 { font-size: 17px; margin: 0 0 7px; }
-    .row p { margin: 0; color: var(--muted); }
+
+    .row h3,
+    .service h3,
+    .manual h3,
+    .video-title {
+      margin: 0 0 6px;
+      font-size: 17px;
+      line-height: 1.3;
+    }
+
+    .row p,
+    .service p,
+    .manual p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
     .tag {
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
       background: #0b315d;
       color: #b9d9ff;
-      border-radius: 8px;
-      padding: 5px 9px;
+      border-radius: 7px;
+      padding: 4px 8px;
       font-size: 12px;
-      font-weight: 700;
+      white-space: nowrap;
     }
-    .ok { color: var(--green); font-weight: 800; }
-    .amber { color: var(--amber); }
-    .red { color: var(--red); }
+
+    .ok { color: var(--ok); font-weight: 700; }
+    .warn { color: var(--warn); }
+    .danger { color: var(--danger); }
 
     .service {
       display: grid;
-      grid-template-columns: 72px 1fr 160px;
+      grid-template-columns: 70px 1fr 160px;
       gap: 16px;
       align-items: center;
       border: 1px solid var(--line);
-      border-radius: 14px;
+      border-radius: 12px;
       padding: 14px;
       margin-bottom: 10px;
-      background: rgba(7, 26, 42, .76);
+      background: rgba(7, 26, 42, .72);
     }
-    .sq {
+
+    .square {
       width: 64px;
       height: 64px;
-      border-radius: 13px;
+      border-radius: 12px;
       display: grid;
       place-items: center;
-      font-size: 30px;
       background: #123a69;
+      color: white;
+      font-size: 28px;
+      font-weight: 800;
+    }
+
+    .square.green { background: #0d5a36; }
+    .square.violet { background: #3c1d6f; }
+    .square.orange { background: #6b3a11; }
+    .square.cyan { background: #056466; }
+
+    .alert {
+      border-color: #8c591a;
+      background: linear-gradient(90deg, rgba(255, 169, 39, .15), rgba(255, 169, 39, .04));
+      margin-bottom: 12px;
     }
 
     .dtc {
       border: 1px solid var(--line);
-      border-radius: 14px;
+      border-radius: 12px;
       padding: 18px;
       margin-bottom: 12px;
-      background: rgba(7, 26, 42, .76);
+      background: rgba(7, 26, 42, .72);
     }
-    .dtc-top { display: flex; gap: 18px; align-items: flex-start; }
-    .code { min-width: 138px; font-size: 25px; font-weight: 800; }
+
+    .dtc-top {
+      display: grid;
+      grid-template-columns: 155px 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .code {
+      font-size: 24px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .dtc h3 { margin: 0 0 6px; }
+    .dtc p { color: var(--muted); margin: 0; line-height: 1.45; }
+
     .cols {
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-columns: repeat(3, 1fr);
       gap: 16px;
       margin-top: 14px;
       color: var(--muted);
-      line-height: 1.75;
+      line-height: 1.65;
+      border-top: 1px solid var(--line);
+      padding-top: 14px;
+    }
+
+    .manuals {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
     }
 
     .manual {
-      min-height: 224px;
+      min-height: 210px;
       border: 1px solid var(--line);
-      border-radius: 14px;
+      border-radius: 12px;
       padding: 14px;
-      background: rgba(7, 26, 42, .76);
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
+      background: rgba(7, 26, 42, .72);
     }
-    .manual-visual {
-      height: 86px;
-      border-radius: 10px;
-      background:
-        linear-gradient(90deg, rgba(255,255,255,.9), rgba(150,160,170,.4)),
-        repeating-linear-gradient(135deg, #1a2734 0 12px, #2b3f52 13px 22px);
-      opacity: .9;
-    }
-    .manual .btn { margin-top: auto; align-self: flex-start; }
 
-    .settings-grid {
+    .manual-pic {
+      height: 86px;
+      border-radius: 8px;
+      margin: 10px 0;
+      background:
+        radial-gradient(circle at 35% 45%, rgba(255, 255, 255, .3), transparent 18%),
+        linear-gradient(135deg, #dadde2, #707986 52%, #111923);
+    }
+
+    .chat-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: minmax(0, 1.2fr) minmax(280px, .85fr);
+      gap: 16px;
+    }
+
+    .messages {
+      min-height: 330px;
+    }
+
+    .bubble {
+      background: rgba(8, 35, 58, .9);
+      border: 1px solid #174466;
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 12px;
+      line-height: 1.6;
+      color: var(--soft);
+    }
+
+    .bubble.user {
+      background: linear-gradient(180deg, #0869f3, #064bbf);
+      color: white;
+      margin-left: min(90px, 14%);
+      border-color: var(--blue);
+    }
+
+    .bubble small {
+      float: right;
+      color: rgba(255, 255, 255, .7);
+    }
+
+    .spline-box {
+      position: relative;
+      height: 218px;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      background:
+        radial-gradient(circle at 50% 42%, rgba(8, 125, 255, .22), transparent 28%),
+        linear-gradient(135deg, #08131f, #101923);
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      text-align: center;
+      padding: 22px;
+    }
+
+    .spline-box iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      position: absolute;
+      inset: 0;
+    }
+
+    .steps p {
+      display: grid;
+      grid-template-columns: 26px 1fr;
+      gap: 9px;
+      align-items: center;
+    }
+
+    .num {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: var(--blue);
+      color: white;
+      font-weight: 800;
+      font-size: 12px;
+    }
+
+    .settings {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 12px;
     }
+
     .setting-line {
       display: flex;
       justify-content: space-between;
-      gap: 12px;
-      border-bottom: 1px solid rgba(18, 58, 92, .58);
+      gap: 18px;
+      border-bottom: 1px solid var(--line);
       padding: 10px 0;
       color: var(--muted);
     }
-    .toggle {
-      width: 48px;
-      height: 26px;
-      border-radius: 999px;
-      background: #103050;
-      border: 1px solid #24557d;
-      position: relative;
-      flex: 0 0 auto;
+
+    .setting-line b {
+      color: white;
+      text-align: right;
     }
-    .toggle::after {
-      content: "";
-      width: 20px;
-      height: 20px;
-      position: absolute;
-      top: 2px;
-      left: 2px;
-      border-radius: 50%;
-      background: #8c9aaa;
-    }
-    .toggle.on { background: #075fe8; }
-    .toggle.on::after { left: 24px; background: white; }
 
     .composer {
       padding: 14px;
-      position: sticky;
-      bottom: 0;
-      z-index: 5;
-      backdrop-filter: blur(16px);
     }
-    .composer-line { display: flex; gap: 12px; align-items: center; }
+
+    .composer-line {
+      display: flex;
+      gap: 12px;
+    }
+
     .composer input {
-      flex: 1;
-      border: 1px solid var(--blue);
-      background: rgba(4, 17, 29, .96);
-      border-radius: 15px;
-      padding: 18px 20px;
-      color: white;
+      border-color: var(--blue);
+      border-radius: 13px;
+      padding: 17px 20px;
       font-size: 18px;
-      outline: 0;
-      min-width: 0;
     }
+
     .send {
-      width: 60px;
-      height: 60px;
+      width: 58px;
+      height: 58px;
       border-radius: 50%;
+      background: linear-gradient(180deg, #087dff, #064bc2);
       border: 1px solid var(--blue);
-      background: linear-gradient(180deg, #0b7dff, #075fe8);
       color: white;
+      font-size: 25px;
       display: grid;
       place-items: center;
+      box-shadow: 0 0 24px rgba(8, 125, 255, .45);
       flex: 0 0 auto;
     }
-    .actions {
+
+    .tools {
       display: grid;
-      grid-template-columns: 1fr 1fr 110px 1fr 1fr;
+      grid-template-columns: 1fr 1fr 104px 1fr 1fr;
       gap: 18px;
       align-items: center;
       margin-top: 14px;
     }
-    .action {
-      min-height: 54px;
-      border: 1px solid #173c61;
-      background: #071725;
-      color: white;
-      border-radius: 12px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 10px;
-      font-weight: 700;
-      padding: 0 14px;
-    }
-    .big-mic {
-      width: 82px;
-      aspect-ratio: 1;
-      margin: auto;
+
+    .bigmic {
+      width: 78px;
+      height: 78px;
       border-radius: 50%;
+      margin: auto;
       border: 2px solid var(--blue);
-      background: #07355c;
+      background: radial-gradient(circle, #0d5d91, #061f3f);
       display: grid;
       place-items: center;
-      font-size: 38px;
-      box-shadow: 0 0 30px rgba(0, 132, 255, .78);
+      font-size: 42px;
+      box-shadow: 0 0 30px rgba(8, 125, 255, .75);
     }
 
     .toast {
       position: fixed;
       right: 20px;
       bottom: 20px;
-      max-width: min(420px, calc(100vw - 40px));
-      padding: 14px 16px;
-      border-radius: 13px;
+      max-width: min(420px, calc(100% - 40px));
       border: 1px solid var(--line);
-      background: rgba(5, 18, 30, .95);
+      border-radius: 12px;
+      background: rgba(3, 12, 22, .96);
+      color: var(--soft);
+      padding: 14px 16px;
       box-shadow: var(--shadow);
-      color: #dbe9f9;
-      opacity: 0;
-      transform: translateY(18px);
-      pointer-events: none;
-      transition: .22s ease;
-    }
-    .toast.show {
-      opacity: 1;
-      transform: translateY(0);
+      transform: translateY(130%);
+      transition: transform .22s;
+      z-index: 20;
     }
 
-    @media (max-width: 1180px) {
-      .hero { grid-template-columns: 260px 1fr; }
-      .spline-card { grid-column: 1 / -1; }
+    .toast.show { transform: translateY(0); }
+
+    @media (max-width: 1050px) {
+      .workspace,
+      .grid-2,
+      .chat-grid { grid-template-columns: 1fr; }
+      .side { order: 2; }
+      .nav {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+      .nav button {
+        justify-content: center;
+        text-align: center;
+      }
+      .sound-card { display: none; }
       .facts { grid-template-columns: repeat(2, 1fr); }
-      .chat-grid, .grid-2 { grid-template-columns: 1fr; }
     }
 
-    @media (max-width: 900px) {
-      .app { padding: 14px; }
-      .topbar, .section-head { align-items: stretch; flex-direction: column; }
-      .hero, .layout, .car-info, .settings-grid { grid-template-columns: 1fr; }
-      .sidebar { order: 2; }
-      .grid-3 { grid-template-columns: 1fr 1fr; }
-      .quick { grid-template-columns: repeat(2, 1fr); }
-      .row, .service { grid-template-columns: 1fr; }
-      .thumb { height: 140px; }
-      .actions { grid-template-columns: 1fr 1fr; }
-      .big-mic { grid-column: 1 / -1; grid-row: 1; }
+    @media (max-width: 760px) {
+      .app { width: min(100% - 20px, 1320px); padding-top: 14px; }
+      .topbar { align-items: flex-start; }
+      .system-pill { display: none; }
+      .hero { grid-template-columns: 1fr; }
+      .car-visual { min-height: 120px; }
+      .nav { grid-template-columns: repeat(2, 1fr); }
+      .nav button { font-size: 14px; padding: 0 10px; }
+      .row,
+      .service,
+      .dtc-top,
+      .car-info { grid-template-columns: 1fr; }
+      .row .thumb { width: 100%; height: 150px; }
+      .quick-grid,
+      .manuals,
+      .settings,
       .cols { grid-template-columns: 1fr; }
-      .composer { position: static; }
+      .tools { grid-template-columns: 1fr 1fr; gap: 10px; }
+      .bigmic { grid-column: 1 / -1; grid-row: 1; }
+      .bubble.user { margin-left: 0; }
     }
 
-    @media (max-width: 560px) {
-      .status { white-space: normal; }
-      .facts, .grid-3 { grid-template-columns: 1fr; }
-      .bubble.user { margin-left: 0; }
-      .search { flex-direction: column; }
-      .actions { grid-template-columns: 1fr; }
-      .logo { white-space: normal; }
+    @media (max-width: 480px) {
+      .brand-title { white-space: normal; }
+      .facts,
+      .nav { grid-template-columns: 1fr; }
+      .head { flex-direction: column; }
+      .search,
+      .composer-line { flex-direction: column; }
+      .send { width: 100%; border-radius: 12px; }
+      .tools { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -721,103 +857,454 @@
   <div class="app" id="app">
     <header class="topbar">
       <div class="brand">
-        <div class="bot" aria-hidden="true"></div>
+        <div class="bot-logo" aria-hidden="true"></div>
         <div>
-          <div class="logo">CarDiagnostic <span>AI</span></div>
-          <div class="subtitle">Ваш умный помощник для автомобиля</div>
+          <div class="brand-title">CarDiagnostic <span>AI</span></div>
+          <div class="brand-subtitle">Ваш умный помощник для автомобиля</div>
         </div>
       </div>
-      <div class="status">AI работает для вас 24/7</div>
+      <div class="system-pill">AI работает для вас 24/7</div>
     </header>
 
-    <section class="hero">
-      <div class="car-render" aria-label="Nissan X-Trail T32"></div>
+    <section class="hero" aria-label="Автомобиль">
+      <div class="car-visual" aria-hidden="true"></div>
       <div>
-        <div class="vehicle-title">Nissan X-Trail T32</div>
+        <div class="hero-title">Nissan X-Trail T32</div>
         <div class="facts">
-          <div class="fact"><div class="fact-icon">▣</div><div>Год выпуска<b>2016</b></div></div>
-          <div class="fact"><div class="fact-icon">⚙</div><div>Двигатель<b>2.0 dCi</b></div></div>
-          <div class="fact"><div class="fact-icon">⌘</div><div>Привод<b>4WD</b></div></div>
-          <div class="fact"><div class="fact-icon">▯</div><div>Тип топлива<b>Дизель</b></div></div>
+          <div class="fact" data-icon="calendar"><span>Год выпуска<strong>2016</strong></span></div>
+          <div class="fact" data-icon="engine"><span>Двигатель<strong>2.0 dCi</strong></span></div>
+          <div class="fact" data-icon="drivetrain"><span>Привод<strong>4WD</strong></span></div>
+          <div class="fact" data-icon="fuel"><span>Тип топлива<strong>Дизель</strong></span></div>
         </div>
-      </div>
-      <div class="spline-card" id="splineCard">
-        <iframe id="splineFrame" title="Spline animation" loading="lazy"></iframe>
-        <div id="splinePlaceholder">Здесь появится ваша Spline-анимация<br><span class="muted">добавьте ссылку в SPLINE_SCENE_URL</span></div>
       </div>
     </section>
 
-    <div class="layout">
-      <aside class="sidebar">
-        <nav class="panel nav" aria-label="Основные разделы">
-          <button class="active" data-view="assistant">🤖 AI Ассистент</button>
-          <button data-view="car">⌂ Мой автомобиль</button>
-          <button data-view="journal">↺ Журнал запросов</button>
-          <button data-view="history">☰ История запросов</button>
-          <button data-view="dtc">▣ Ошибки (DTC)</button>
-          <button data-view="service">⌘ Сервис и ТО</button>
-          <button data-view="manuals">□ Мануалы</button>
-          <button data-view="video">▷ Видео</button>
-          <button data-view="settings">⚙ Настройки</button>
+    <div class="workspace">
+      <aside class="side">
+        <nav class="panel nav" aria-label="Разделы">
+          <button class="active" data-view="assistant" data-icon="bot">AI Ассистент</button>
+          <button data-view="car" data-icon="home">Мой автомобиль</button>
+          <button data-view="journal" data-icon="journal">Журнал запросов</button>
+          <button data-view="history" data-icon="history">История запросов</button>
+          <button data-view="dtc" data-icon="car">Ошибки (DTC)</button>
+          <button data-view="service" data-icon="service">Сервис и ТО</button>
+          <button data-view="manuals" data-icon="file">Мануалы</button>
+          <button data-view="video" data-icon="play">Видео</button>
+          <button data-view="settings" data-icon="settings">Настройки</button>
         </nav>
 
-        <section class="panel sound">
+        <section class="panel sound-card">
           <h3>Диагностика по шуму</h3>
           <p>Как Shazam, только<br>для вашего авто</p>
           <div class="rings">
             <div>
-              <strong>Слушаю...</strong>
-              <div class="mic-symbol">🎙</div>
+              <div class="listen">Слушаю...</div>
+              <div class="mic">🎙</div>
             </div>
           </div>
-          <div class="wave"></div>
-          <a href="#" data-demo>Запись звука неполадки</a>
-          <p>Говорите или воспроизведите шум, а ассистент поможет определить причину.</p>
+          <div class="wave" aria-hidden="true"></div>
+          <a class="sound-link" href="#assistant">Запись звука неполадки</a>
+          <p>Говорите или воспроизведите шум — я распознаю и помогу</p>
         </section>
       </aside>
 
-      <main class="workspace">
-        <section class="panel main">
-          <div class="view active" id="assistant">
+      <main class="content">
+        <section class="panel main-panel">
+          <section class="view active" id="assistant">
             <div class="chat-grid">
               <div>
-                <div class="section-head">
+                <div class="head">
                   <div>
-                    <h2>AI Ассистент</h2>
+                    <h1>AI Ассистент</h1>
                     <p>Задайте любой вопрос о вашем автомобиле</p>
                   </div>
                 </div>
-                <div id="chatLog">
+                <div class="messages" id="messages">
                   <div class="bubble user">У меня Nissan X-Trail T32, при разгоне появляется гул под капотом, особенно на 2000–3000 оборотах. <small>10:42</small></div>
-                  <div class="bubble"><b>AI Ассистент</b><br>Понял, давайте разберёмся. По описанию это похоже на проблему со вспомогательными узлами двигателя: ролик натяжителя, подшипник генератора, помпа или приводной ремень.<br><br><b>Что проверить:</b><br>• состояние ремня и роликов<br>• люфт подшипников<br>• помпу на наличие течи и люфта<br>• изменение шума при включении нагрузки <small>10:43</small></div>
+                  <div class="bubble">
+                    <strong>AI Ассистент</strong><br>
+                    Похоже на проблему со вспомогательными узлами двигателя. Вероятные причины: износ подшипника генератора, ролик натяжителя ремня, помпа или приводной ремень.
+                    <br><br><strong>Что можно сделать:</strong><br>
+                    • Проверьте состояние ремня и роликов<br>
+                    • Послушайте шум стетоскопом или длинной отверткой<br>
+                    • Проверьте люфт роликов и подшипников
+                    <small>10:43</small>
+                  </div>
                 </div>
                 <div class="card">
                   <h3>Видео по теме</h3>
-                  <p class="muted">Как проверить ролик натяжителя и генератор</p>
-                  <button class="btn primary" data-demo>Смотреть видео ↗</button>
+                  <p>Как проверить ролик натяжителя и генератор. Подключите YouTube или базу материалов через n8n.</p>
+                  <button class="btn blue" data-action="demo">Смотреть видео</button>
                 </div>
               </div>
-              <div>
+              <aside>
                 <div class="card">
-                  <h3>Изображение</h3>
-                  <div class="engine-card"></div>
-                </div>
-                <div class="card" style="margin-top:14px">
-                  <h3>Пошаговая проверка</h3>
-                  <div class="steps">
-                    <div class="step"><span class="num">1</span>Снимите приводной ремень</div>
-                    <div class="step"><span class="num">2</span>Проверьте ролики на люфт и шум</div>
-                    <div class="step"><span class="num">3</span>Проверьте подшипник генератора</div>
-                    <div class="step"><span class="num">4</span>Проверьте помпу на течь и люфт</div>
-                    <div class="step"><span class="num">5</span>Установите ремень и повторите проверку</div>
+                  <h3>Spline / 3D зона</h3>
+                  <div class="spline-box" id="splineBox">
+                    <div>
+                      Вставьте ссылку Spline в переменную<br>
+                      <strong>SPLINE_SCENE_URL</strong>
+                    </div>
                   </div>
                 </div>
-                <div class="card" style="margin-top:14px">
+                <div class="card steps">
+                  <h3>Пошаговая проверка</h3>
+                  <p><span class="num">1</span>Снимите приводной ремень</p>
+                  <p><span class="num">2</span>Проверьте ролики на люфт и шум</p>
+                  <p><span class="num">3</span>Проверьте подшипник генератора</p>
+                  <p><span class="num">4</span>Проверьте помпу на течь и люфт</p>
+                </div>
+                <div class="card">
                   <h3>Совет AI</h3>
-                  <p class="muted">Начните с роликов и генератора. Эти узлы часто дают гул именно на средних оборотах.</p>
+                  <p>Начните с роликов и генератора: эти узлы чаще всего дают гул на указанных оборотах.</p>
+                </div>
+              </aside>
+            </div>
+          </section>
+
+          <section class="view" id="car">
+            <div class="head">
+              <div>
+                <h1>Мой автомобиль</h1>
+                <p>Информация о вашем автомобиле и доступные материалы</p>
+              </div>
+            </div>
+            <div class="grid-2">
+              <div>
+                <div class="card car-info">
+                  <div>
+                    <h3>Информация об автомобиле</h3>
+                    <div class="info-table">
+                      <span>Модель:</span><b>Nissan X-Trail T32</b>
+                      <span>Год выпуска:</span><b>2016</b>
+                      <span>Двигатель:</span><b>2.0 dCi (R9M)</b>
+                      <span>Привод:</span><b>4WD</b>
+                      <span>Топливо:</span><b>Дизель</b>
+                      <span>КПП:</span><b>Механическая</b>
+                      <span>VIN:</span><b>JN1TBAT32U0000000</b>
+                    </div>
+                  </div>
+                  <div class="car-mini" aria-hidden="true"></div>
+                </div>
+                <div class="card">
+                  <h3>Быстрый доступ</h3>
+                  <div class="quick-grid">
+                    <div class="quick" data-icon="service">Регламент ТО</div>
+                    <div class="quick" data-icon="drivetrain">Схемы узлов</div>
+                    <div class="quick" data-icon="settings">Моменты затяжки</div>
+                    <div class="quick" data-icon="journal">Электросхемы</div>
+                    <div class="quick" data-icon="file">Предохранители</div>
+                  </div>
+                </div>
+              </div>
+              <div class="card">
+                <h3>Технические характеристики</h3>
+                <div class="spec-list">
+                  <div><span>Объем двигателя:</span><b>1995 см³</b></div>
+                  <div><span>Мощность:</span><b>177 л.с.</b></div>
+                  <div><span>Крутящий момент:</span><b>380 Н·м</b></div>
+                  <div><span>Тип двигателя:</span><b>Дизель, рядный</b></div>
+                  <div><span>Количество цилиндров:</span><b>4</b></div>
+                  <div><span>Экологический класс:</span><b>Euro 5</b></div>
+                  <div><span>Объем бака:</span><b>60 л</b></div>
                 </div>
               </div>
             </div>
-          </div>
+          </section>
 
-          <div class="view" id="car">
+          <section class="view" id="journal">
+            <div class="head"><div><h1>Журнал запросов</h1><p>История обращений и полученных решений</p></div></div>
+            <div class="search"><input id="journalSearch" placeholder="Поиск по запросам"><button class="btn" data-action="filter">Фильтр</button></div>
+            <div class="list" id="journalList"></div>
+          </section>
+
+          <section class="view" id="history">
+            <div class="head"><div><h1>История запросов</h1><p>Ваши недавние запросы и обращения к AI Ассистенту</p></div></div>
+            <div class="search"><input id="historySearch" placeholder="Поиск по запросам"><button class="btn" data-action="filter">Фильтр</button></div>
+            <div class="list" id="historyList"></div>
+          </section>
+
+          <section class="view" id="dtc">
+            <div class="head"><div><h1>Ошибки (DTC)</h1><p>Диагностические коды неисправностей вашего автомобиля</p></div><button class="btn" data-action="demo">Удалить все</button></div>
+            <div class="card alert"><strong class="warn">Найдено 3 ошибки.</strong> Рекомендуется проверить и устранить ошибки для корректной работы автомобиля.</div>
+            <div id="dtcList"></div>
+          </section>
+
+          <section class="view" id="service">
+            <div class="head"><div><h1>Сервис и ТО</h1><p>История технического обслуживания и выполненных работ</p></div><button class="btn" data-action="demo">Добавить запись</button></div>
+            <div id="serviceList"></div>
+          </section>
+
+          <section class="view" id="manuals">
+            <div class="head"><div><h1>Мануалы и руководства</h1><p>Подробные руководства и рекомендации по обслуживанию</p></div></div>
+            <div class="search"><input id="manualSearch" placeholder="Поиск по мануалам"><button class="btn" data-action="filter">Фильтр</button></div>
+            <div class="manuals" id="manualList"></div>
+          </section>
+
+          <section class="view" id="video">
+            <div class="head"><div><h1>Видео</h1><p>История всех видеороликов, предоставленных в переписке</p></div></div>
+            <div class="search"><input id="videoSearch" placeholder="Поиск по видео"><button class="btn" data-action="filter">Фильтр</button></div>
+            <div class="list" id="videoList"></div>
+          </section>
+
+          <section class="view" id="settings">
+            <div class="head"><div><h1>Настройки</h1><p>Управляйте аккаунтом, подпиской и приложением</p></div></div>
+            <div class="settings">
+              <div class="card">
+                <h3>Профиль</h3>
+                <p><strong>Алексей Иванов</strong><br>alexey.ivanov@mail.ru</p>
+                <button class="btn blue" data-action="demo">Редактировать профиль</button>
+              </div>
+              <div class="card">
+                <h3>Подписка</h3>
+                <p class="ok"><strong>Premium активна</strong></p>
+                <p>AI ассистент без лимитов, диагностика по коду и симптомам, сервисная история и экспорт отчетов.</p>
+              </div>
+              <div class="card">
+                <h3>Уведомления</h3>
+                <div class="setting-line"><span>Напоминания о ТО</span><b>Вкл</b></div>
+                <div class="setting-line"><span>Диагностика и ошибки</span><b>Вкл</b></div>
+                <div class="setting-line"><span>Новые видео и мануалы</span><b>Выкл</b></div>
+                <div class="setting-line"><span>Акции и обновления</span><b>Вкл</b></div>
+              </div>
+              <div class="card">
+                <h3>Язык и регион</h3>
+                <div class="setting-line"><span>Язык приложения</span><b>Русский</b></div>
+                <div class="setting-line"><span>Единицы измерения</span><b>км, °C</b></div>
+                <div class="setting-line"><span>Часовой пояс</span><b>UTC+3</b></div>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <section class="panel composer" aria-label="Запрос AI">
+          <div class="composer-line">
+            <input id="promptInput" placeholder="Опишите проблему или задайте вопрос..." autocomplete="off">
+            <button class="send" id="sendBtn" aria-label="Отправить">➤</button>
+          </div>
+          <div class="tools">
+            <button class="btn" data-action="demo">Прикрепить фото</button>
+            <button class="btn" data-action="demo">Отправить видео</button>
+            <div class="bigmic" aria-hidden="true">🎙</div>
+            <button class="btn" data-action="demo">Голосовой запрос</button>
+            <button class="btn" data-action="dtc">Диагностика по коду</button>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const N8N_WEBHOOK_URL = "";
+    const SPLINE_SCENE_URL = "";
+
+    const iconMap = {
+      bot: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="8" width="14" height="10" rx="3"/><path d="M12 4v4M8 13h.01M16 13h.01M7 21h10M3 11v4M21 11v4"/></svg>',
+      home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>',
+      journal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 7h6M9 11h6M9 15h4"/></svg>',
+      history: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v6h6"/><path d="M12 7v5l3 2"/></svg>',
+      car: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 13l2-5h12l2 5"/><rect x="3" y="13" width="18" height="6" rx="2"/><path d="M7 19v2M17 19v2M7 16h.01M17 16h.01"/></svg>',
+      service: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 7l3-3 3 3-3 3zM4 20l6-6M6 4l14 14M4 10l6-6"/></svg>',
+      file: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h6"/></svg>',
+      play: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M10 8l6 4-6 4z"/></svg>',
+      settings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2 3-.2-.1a1.7 1.7 0 0 0-2 .2 1.7 1.7 0 0 0-.8 1.5V22h-3.6v-.3a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.2.1-2-3 .1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1.1H4v-3.6h.3a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1 2-3 .2.1a1.7 1.7 0 0 0 2-.2A1.7 1.7 0 0 0 10.4 3V2h3.6v1a1.7 1.7 0 0 0 .9 1.5 1.7 1.7 0 0 0 1.9-.3l.2-.1 2 3-.1.1a1.7 1.7 0 0 0-.3 1.9c.2.7.8 1.1 1.5 1.1h.3V14h-.3a1.7 1.7 0 0 0-1.5 1z"/></svg>',
+      calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/></svg>',
+      engine: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 8h8l3 3v5h-3l-2 3H9l-2-3H4v-5h3z"/><path d="M9 5h6M12 5v3M20 12h2M2 12h2"/></svg>',
+      drivetrain: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="6" cy="6" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="18" r="2"/><path d="M8 6h8M8 18h8M6 8v8M18 8v8"/></svg>',
+      fuel: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9v18H6z"/><path d="M15 8h2l2 2v8a2 2 0 0 0 4 0v-6l-3-3"/><path d="M8 7h5"/></svg>'
+    };
+
+    const requests = [
+      ["Гул под капотом на 2000–3000 оборотах", "Возможные причины: износ подшипника генератора, натяжитель ремня, помпа и др.", "Сегодня, 10:42", "Решено"],
+      ["Горит Check Engine", "Ошибка P0420 — эффективность катализатора ниже порога. Рекомендована диагностика выхлопной системы.", "Вчера, 18:15", "Решено"],
+      ["Дым из выхлопной трубы", "Возможные причины: износ маслосъемных колпачков, турбина, система EGR.", "12 мая, 14:30", "Решено"],
+      ["Быстро разряжается аккумулятор", "Проверить генератор, утечки тока и состояние АКБ. Рекомендована нагрузочная проверка.", "8 мая, 09:12", "Решено"],
+      ["Пинки при переключении передач", "Проверить масло в вариаторе, адаптацию CVT, износ ремня или шкивов.", "5 мая, 16:45", "Решено"],
+      ["Стук в подвеске спереди справа", "Рекомендована проверка стойки стабилизатора, опорного подшипника и шаровой опоры.", "2 мая, 11:20", "Решено"]
+    ];
+
+    const services = [
+      ["Замена моторного масла и масляного фильтра", "Масло: 5W-30 Nissan Genuine Oil. Фильтр: оригинальный Nissan", "Сегодня, 10:30", "98 500 км", "violet", "🛢"],
+      ["Замена ремня ГРМ с комплектом", "Ремень ГРМ, ролики, натяжитель, помпа. Производитель: Gates", "24 марта 2024", "90 120 км", "green", "⚙"],
+      ["Замена воздушного фильтра", "Фильтр воздушный двигателя. Производитель: Mann", "24 марта 2024", "90 120 км", "", "▥"],
+      ["Замена передних тормозных колодок", "Колодки передние. Производитель: Brembo", "12 февраля 2024", "86 780 км", "orange", "◎"],
+      ["Замена топливного фильтра", "Фильтр топливный. Производитель: Nissan", "10 ноября 2023", "80 450 км", "violet", "▣"],
+      ["Обслуживание кондиционера", "Заправка фреоном, проверка герметичности", "5 августа 2023", "74 230 км", "cyan", "❄"]
+    ];
+
+    const dtc = [
+      ["P0171", "Слишком бедная смесь (Bank 1)", "Система управления двигателем зафиксировала слишком бедную топливно-воздушную смесь.", "Активная", "danger"],
+      ["P0401", "Недостаточный поток системы рециркуляции ОГ (EGR)", "Обнаружен недостаточный поток выхлопных газов через клапан рециркуляции.", "Сохраненная", "warn"],
+      ["P0202", "Неисправность цепи форсунки цилиндра 2", "Обрыв или короткое замыкание в цепи управления форсункой второго цилиндра.", "Сохраненная", "warn"]
+    ];
+
+    const manuals = ["Сервисный мануал", "Мануал по автохимии", "Мануал по дворникам", "Мануал по расходникам", "Тормозная система", "Руководство по эксплуатации", "Электрооборудование", "Система охлаждения", "Подвеска и рулевое"];
+    const videos = ["Замена воздушного фильтра Nissan X-Trail T32", "Замена моторного масла и фильтра 2.0 dCi", "Замена передних тормозных колодок", "Замена щеток стеклоочистителя", "Замена цепи ГРМ на Nissan X-Trail 2.0 dCi", "Диагностика ошибок с помощью OBD2", "Замена салонного фильтра", "Как снять и заменить аккумулятор"];
+
+    const $ = (selector) => document.querySelector(selector);
+    const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+
+    function injectIcons() {
+      $$("[data-icon]").forEach((node) => {
+        const key = node.dataset.icon;
+        if (!iconMap[key]) return;
+        if (node.tagName === "BUTTON") node.insertAdjacentHTML("afterbegin", iconMap[key]);
+        else node.insertAdjacentHTML("afterbegin", iconMap[key]);
+      });
+    }
+
+    function renderLists() {
+      $("#journalList").innerHTML = requests.map((item, index) => `
+        <article class="row ${index === 0 ? "featured" : ""}">
+          <div class="thumb" aria-hidden="true"></div>
+          <div>
+            <h3>${item[0]}</h3>
+            <span class="tag">Nissan X-Trail T32</span>
+            <p>${item[1]}</p>
+          </div>
+          <div><p>${item[2]}</p><p class="ok">${item[3]} ✓</p></div>
+        </article>
+      `).join("");
+
+      $("#historyList").innerHTML = requests.concat([["Ошибка P0171 слишком бедная смесь", "Nissan X-Trail T32 • 2.0 dCi • Дизель", "28 апр., 20:33", "Код ошибки"]]).map((item, index) => `
+        <article class="row" style="grid-template-columns:64px 1fr 150px">
+          <div class="square ${index % 3 === 0 ? "violet" : ""}">${index % 3 === 0 ? "🎙" : "⌨"}</div>
+          <div><h3>${item[0]}</h3><p>${index < 6 ? "Nissan X-Trail T32 • 2.0 dCi • 4WD" : item[1]}</p></div>
+          <div><p>${item[2]}</p><span class="tag">${index % 3 === 0 ? "Голосовой запрос" : item[3] || "Текстовый запрос"}</span></div>
+        </article>
+      `).join("");
+
+      $("#serviceList").innerHTML = services.map((item) => `
+        <article class="service">
+          <div class="square ${item[4]}">${item[5]}</div>
+          <div><h3>${item[0]}</h3><p>${item[1]}</p><p class="ok">Выполнено</p></div>
+          <div><p>${item[2]}</p><p>Пробег: ${item[3]}</p></div>
+        </article>
+      `).join("");
+
+      $("#dtcList").innerHTML = dtc.map((item) => `
+        <article class="dtc">
+          <div class="dtc-top">
+            <div class="code ${item[4]}">⚙ ${item[0]}</div>
+            <div><h3>${item[1]}</h3><p>${item[2]}</p></div>
+          </div>
+          <div class="cols">
+            <div><strong>Статус:</strong><br><span class="${item[4]}">${item[3]}</span><br><br><strong>Система:</strong><br>Двигатель / топливная система</div>
+            <div><strong>Возможные причины:</strong><br>• Подсос воздуха<br>• Неисправность датчика<br>• Низкое давление топлива<br>• Загрязнение узла</div>
+            <div><strong>Рекомендуемые действия:</strong><br>• Проверить разъемы<br>• Провести диагностику<br>• Очистить или заменить узел<br>• Повторно считать ошибки</div>
+          </div>
+        </article>
+      `).join("");
+
+      $("#manualList").innerHTML = manuals.map((title, index) => `
+        <article class="manual">
+          <h3>${title}</h3>
+          <div class="manual-pic" aria-hidden="true"></div>
+          <p>PDF • ${(6 + index * 2.1).toFixed(1)} MB</p>
+          <p>Материалы адаптированы для Nissan X-Trail T32.</p>
+          <button class="btn blue" data-action="demo">Открыть</button>
+        </article>
+      `).join("");
+
+      $("#videoList").innerHTML = videos.map((title, index) => `
+        <article class="row">
+          <div class="thumb" aria-hidden="true"></div>
+          <div><h3>${title}</h3><p>Пошаговая инструкция по обслуживанию Nissan X-Trail T32.</p></div>
+          <div><p>${index < 2 ? "Сегодня" : "Май 2024"}</p><span class="tag">${index % 3 === 0 ? "Обслуживание" : index % 3 === 1 ? "Двигатель" : "Диагностика"}</span></div>
+        </article>
+      `).join("");
+    }
+
+    function showView(viewId) {
+      $$(".nav button, .view").forEach((node) => node.classList.remove("active"));
+      $(`.nav button[data-view="${viewId}"]`).classList.add("active");
+      $(`#${viewId}`).classList.add("active");
+      if (window.innerWidth < 1050) window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function toast(message) {
+      const box = $("#toast");
+      box.textContent = message;
+      box.classList.add("show");
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => box.classList.remove("show"), 3600);
+    }
+
+    function appendMessage(text, isUser) {
+      const div = document.createElement("div");
+      div.className = `bubble ${isUser ? "user" : ""}`;
+      div.innerHTML = `${escapeHtml(text)} <small>${new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</small>`;
+      $("#messages").appendChild(div);
+      div.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      return div;
+    }
+
+    function escapeHtml(text) {
+      const map = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" };
+      return String(text).replace(/[&<>"']/g, (m) => map[m]);
+    }
+
+    async function sendPrompt() {
+      const input = $("#promptInput");
+      const prompt = input.value.trim();
+      if (!prompt) return;
+      showView("assistant");
+      appendMessage(prompt, true);
+      input.value = "";
+
+      const loading = appendMessage("Думаю над диагностикой...", false);
+      try {
+        let answer;
+        if (N8N_WEBHOOK_URL) {
+          const res = await fetch(N8N_WEBHOOK_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              message: prompt,
+              vehicle: { model: "Nissan X-Trail T32", year: 2016, engine: "2.0 dCi", drive: "4WD", fuel: "Дизель" }
+            })
+          });
+          if (!res.ok) throw new Error("n8n webhook вернул ошибку");
+          const data = await res.json();
+          answer = data.answer || data.message || data.output || JSON.stringify(data, null, 2);
+        } else {
+          answer = "Демо-ответ: для реального AI подключите n8n webhook в переменной N8N_WEBHOOK_URL. По описанию я бы начал с проверки приводного ремня, роликов, генератора и помпы, затем считал ошибки OBD2.";
+        }
+        loading.innerHTML = `<strong>AI Ассистент</strong><br>${escapeHtml(answer).replace(/\n/g, "<br>")} <small>${new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</small>`;
+      } catch (error) {
+        loading.innerHTML = `<strong>AI Ассистент</strong><br>Не получилось получить ответ от n8n. Проверьте URL webhook и CORS-настройки. <small>${new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</small>`;
+      }
+    }
+
+    function connectSpline() {
+      if (!SPLINE_SCENE_URL) return;
+      $("#splineBox").innerHTML = `<iframe title="Spline scene" src="${SPLINE_SCENE_URL}" allow="autoplay; fullscreen; xr-spatial-tracking"></iframe>`;
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      injectIcons();
+      renderLists();
+      connectSpline();
+
+      $$(".nav button").forEach((button) => button.addEventListener("click", () => showView(button.dataset.view)));
+      $("#sendBtn").addEventListener("click", sendPrompt);
+      $("#promptInput").addEventListener("keydown", (event) => {
+        if (event.key === "Enter") sendPrompt();
+      });
+
+      document.addEventListener("click", (event) => {
+        const action = event.target.closest("[data-action]")?.dataset.action;
+        if (!action) return;
+        if (action === "dtc") {
+          showView("dtc");
+          toast("Открыт раздел диагностики по коду.");
+        } else {
+          toast("Это демо-кнопка. Ее можно подключить к n8n, загрузке файлов или базе материалов.");
+        }
+      });
+    });
+  </script>
+</body>
+</html>
