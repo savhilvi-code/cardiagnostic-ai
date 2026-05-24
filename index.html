@@ -863,141 +863,213 @@
       .tools { grid-template-columns: 1fr; }
     }
 
-
-    /* === ChatGPT-like fixed layout overrides === */
-    html, body { height: 100%; overflow: hidden; }
-    body { min-height: 100dvh; }
+    /* ===== Layout fix: ChatGPT-like workspace ===== */
+    body { overflow: hidden; }
     .app {
-      height: 100dvh;
+      width: 100%;
+      height: 100vh;
+      margin: 0;
+      padding: 14px 20px 118px;
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      padding: 16px 0;
     }
-    .topbar { flex: 0 0 auto; margin-bottom: 12px; }
-    .hero {
-      flex: 0 0 auto;
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 60;
       margin-bottom: 12px;
-      padding: 16px 28px;
-      min-height: 128px;
+      padding-left: 0;
+      flex: 0 0 auto;
+      background: linear-gradient(180deg, rgba(2,7,13,.98), rgba(2,7,13,.86));
     }
-    .car-visual {
-      min-height: 96px;
-      border: 1px dashed rgba(19, 217, 255, .45);
-      background:
-        linear-gradient(135deg, rgba(8,125,255,.12), rgba(19,217,255,.05)),
-        rgba(3, 14, 24, .72);
-      clip-path: none;
-      display: grid;
-      place-items: center;
-      filter: none;
-    }
-    .car-visual::after {
-      content: "Фото автомобиля";
-      color: var(--muted);
-      font-weight: 700;
-      letter-spacing: .02em;
-    }
-    .hero-title { margin-bottom: 14px; }
-    .facts { gap: 12px; }
-    .fact strong { font-size: 18px; }
+
+    .brand-title { font-size: clamp(28px, 2.4vw, 36px); }
+    .hero { display: none !important; }
+
     .workspace {
       flex: 1 1 auto;
       min-height: 0;
+      display: grid;
+      grid-template-columns: 255px minmax(0, 1fr);
+      gap: 18px;
       overflow: hidden;
-      grid-template-columns: 220px minmax(0, 1fr);
     }
+
     .side {
       min-height: 0;
-      overflow: hidden;
+      height: 100%;
+      overflow-y: auto;
+      padding-right: 4px;
     }
-    .nav {
-      flex: 0 0 auto;
+
+    .side::-webkit-scrollbar,
+    .assistant-right::-webkit-scrollbar,
+    .messages::-webkit-scrollbar { width: 8px; }
+
+    .side::-webkit-scrollbar-thumb,
+    .assistant-right::-webkit-scrollbar-thumb,
+    .messages::-webkit-scrollbar-thumb {
+      background: #0b6fbb;
+      border-radius: 10px;
     }
-    .sound-card {
-      flex: 1 1 auto;
-      min-height: 0;
-      overflow: hidden;
-    }
+
     .content {
+      min-height: 0;
       height: 100%;
-      min-height: 0;
       overflow: hidden;
-      display: flex;
-      flex-direction: column;
+      padding-bottom: 0;
     }
-    .main-panel {
-      flex: 1 1 auto;
+
+    .content > .main-panel {
       min-height: 0;
-      overflow: hidden;
-      padding: 18px;
-    }
-    .view.active,
-    #assistant {
       height: 100%;
-      min-height: 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      box-shadow: none;
+      overflow: hidden;
     }
-    .chat-grid {
+
+    .view.active { height: 100%; min-height: 0; }
+
+    #assistant .head {
+      margin: 0 0 10px;
+      padding: 0 4px;
+    }
+
+    #assistant .chat-grid {
       height: 100%;
       min-height: 0;
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 350px;
-      gap: 14px;
+      grid-template-columns: minmax(0, 1fr) 340px;
+      gap: 18px;
+      overflow: hidden;
     }
-    .chat-column {
+
+    .assistant-chat {
       min-height: 0;
       display: flex;
       flex-direction: column;
+      overflow: hidden;
+      padding: 4px 0 0;
     }
-    .chat-head {
-      flex: 0 0 auto;
-      margin-bottom: 12px;
-    }
+
     .messages {
       flex: 1 1 auto;
       height: auto;
       min-height: 0;
       max-height: none;
       overflow-y: auto;
-      padding-right: 10px;
-      padding-bottom: 8px;
+      padding: 0 12px 130px 4px;
     }
-    .right-info {
+
+    .bubble {
+      max-width: 76%;
+      font-size: 16px;
+    }
+
+    .bubble.user {
+      margin-left: auto;
+    }
+
+    .assistant-right {
       min-height: 0;
-      display: grid;
-      grid-template-rows: minmax(160px, 1fr) minmax(190px, 1fr);
-      gap: 14px;
-      overflow: hidden;
+      height: 100%;
+      overflow-y: auto;
+      padding: 4px 6px 130px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
-    .summary-card,
-    .video-card {
-      min-height: 0;
-      overflow: auto;
+
+    .assistant-right .card {
+      background: linear-gradient(145deg, rgba(7, 29, 48, .92), rgba(4, 17, 29, .92));
     }
-    .summary-card h3,
-    .video-card h3 { position: sticky; top: 0; background: rgba(7,29,48,.95); padding-bottom: 8px; z-index: 2; }
+
     .composer {
-      flex: 0 0 auto;
-      position: static;
-      bottom: auto;
-      z-index: 12;
+      position: fixed;
+      left: calc(20px + 255px + 18px);
+      right: 20px;
+      bottom: 14px;
+      z-index: 80;
       padding: 12px;
-      backdrop-filter: blur(12px);
+      background: rgba(3, 12, 22, .96);
+      border: 1px solid var(--line-strong);
+      border-radius: 14px;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 -12px 40px rgba(0,0,0,.38);
     }
-    .composer-line input { height: 54px; }
-    .send { width: 54px; height: 54px; }
-    .tools { margin-top: 10px; gap: 12px; }
-    .bigmic { width: 64px; height: 64px; font-size: 34px; }
+
+    .composer-line {
+      align-items: center;
+    }
+
+    .composer input {
+      height: 56px;
+      padding: 0 18px;
+      font-size: 16px;
+    }
+
+    .send {
+      width: 58px;
+      height: 58px;
+    }
+
+    .tools {
+      grid-template-columns: 1fr 1fr 84px 1fr 1fr;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .tools .btn {
+      min-height: 42px;
+      padding: 10px 12px;
+    }
+
+    .bigmic {
+      width: 64px;
+      height: 64px;
+      font-size: 32px;
+    }
+
+    #car .car-info {
+      grid-template-columns: 1fr minmax(210px, 320px);
+    }
+
+    #car .car-mini,
+    .vehicle-photo-box {
+      clip-path: none !important;
+      display: grid;
+      place-items: center;
+      min-height: 180px;
+      border: 1px dashed #0b6fbb;
+      border-radius: 12px;
+      background:
+        radial-gradient(circle at 50% 48%, rgba(8, 125, 255, .16), transparent 35%),
+        linear-gradient(135deg, rgba(7,26,42,.92), rgba(3,11,19,.92)) !important;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    #car .car-mini::before,
+    .vehicle-photo-box::before {
+      content: "Фото автомобиля";
+    }
 
     @media (max-width: 1050px) {
-      html, body { overflow: auto; }
-      .app { height: auto; overflow: visible; }
-      .workspace, .content, .main-panel, .view.active, #assistant { height: auto; overflow: visible; }
-      .chat-grid { height: auto; grid-template-columns: 1fr; }
-      .messages { height: 55vh; }
-      .right-info { grid-template-rows: auto auto; }
-      .composer { position: sticky; bottom: 8px; }
+      body { overflow: auto; }
+      .app { height: auto; overflow: visible; padding: 14px 10px 170px; }
+      .workspace { display: block; overflow: visible; }
+      .side { height: auto; overflow: visible; }
+      .content, .content > .main-panel { height: auto; overflow: visible; }
+      #assistant .chat-grid { height: auto; grid-template-columns: 1fr; overflow: visible; }
+      .messages { min-height: 420px; max-height: 60vh; padding-bottom: 16px; }
+      .assistant-right { height: auto; overflow: visible; padding-bottom: 16px; }
+      .composer { left: 10px; right: 10px; bottom: 10px; }
     }
+
   </style>
 </head>
 <body>
@@ -1059,15 +1131,16 @@
         <section class="panel main-panel">
           <section class="view active" id="assistant">
             <div class="chat-grid">
-              <div class="chat-column">
-                <div class="head chat-head">
+              <div class="assistant-chat">
+                <div class="head">
                   <div>
                     <h1>PULS</h1>
                     <p>Задайте любой вопрос о вашем автомобиле</p>
                   </div>
                 </div>
+
                 <div class="messages" id="messages">
-                  <div class="bubble user">У меня появляется гул под капотом, особенно на 2000–3000 оборотах. <small>10:42</small></div>
+                  <div class="bubble user">У меня при разгоне появляется гул под капотом, особенно на 2000–3000 оборотах. <small>10:42</small></div>
                   <div class="bubble">
                     <strong>PULS</strong><br>
                     Похоже на проблему со вспомогательными узлами двигателя. Вероятные причины: износ подшипника генератора, ролик натяжителя ремня, помпа или приводной ремень.
@@ -1079,19 +1152,19 @@
                   </div>
                 </div>
               </div>
-              <aside class="right-info">
-                <div class="card summary-card">
-                  <h3>Краткий итог ответа</h3>
+
+              <aside class="assistant-right">
+                <div class="card">
+                  <h3>Итог: что проверить</h3>
                   <div id="keyChecks">
-                    <p>После ответа PULS здесь появится короткий список: что проверить в первую очередь.</p>
+                    <p>После ответа PULS здесь появится краткий список ключевых проверок.</p>
                   </div>
                 </div>
-                <div class="card video-card">
+
+                <div class="card">
                   <h3>Видео / ссылки по теме</h3>
-                  <div id="videoLinksBox">
-                    <p>Здесь позже будут появляться ссылки на видео, мануалы и материалы из n8n.</p>
-                    <button class="btn blue" data-action="demo">Смотреть видео</button>
-                  </div>
+                  <p>Здесь позже будут появляться ссылки на видео, мануалы и материалы из n8n.</p>
+                  <button class="btn blue" data-action="demo">Смотреть видео</button>
                 </div>
               </aside>
             </div>
@@ -1110,13 +1183,13 @@
                   <div>
                     <h3>Информация об автомобиле</h3>
                     <div class="info-table">
-                      <span>Модель:</span><b>Nissan X-Trail T32</b>
-                      <span>Год выпуска:</span><b>2016</b>
-                      <span>Двигатель:</span><b>2.0 dCi (R9M)</b>
-                      <span>Привод:</span><b>4WD</b>
-                      <span>Топливо:</span><b>Дизель</b>
-                      <span>КПП:</span><b>Механическая</b>
-                      <span>VIN:</span><b>JN1TBAT32U0000000</b>
+                      <span>Модель:</span><b>Укажите машину</b>
+                      <span>Год выпуска:</span><b>Укажите год</b>
+                      <span>Двигатель:</span><b>Укажите мотор</b>
+                      <span>Привод:</span><b>Укажите привод</b>
+                      <span>Топливо:</span><b>Укажите топливо</b>
+                      <span>КПП:</span><b>Укажите КПП</b>
+                      <span>VIN:</span><b>Укажите VIN</b>
                     </div>
                   </div>
                   <div class="car-mini" aria-hidden="true"></div>
@@ -1135,13 +1208,13 @@
               <div class="card">
                 <h3>Технические характеристики</h3>
                 <div class="spec-list">
-                  <div><span>Объем двигателя:</span><b>1995 см³</b></div>
-                  <div><span>Мощность:</span><b>177 л.с.</b></div>
-                  <div><span>Крутящий момент:</span><b>380 Н·м</b></div>
-                  <div><span>Тип двигателя:</span><b>Дизель, рядный</b></div>
-                  <div><span>Количество цилиндров:</span><b>4</b></div>
-                  <div><span>Экологический класс:</span><b>Euro 5</b></div>
-                  <div><span>Объем бака:</span><b>60 л</b></div>
+                  <div><span>Объем двигателя:</span><b>Укажите объем</b></div>
+                  <div><span>Мощность:</span><b>Укажите мощность</b></div>
+                  <div><span>Крутящий момент:</span><b>Укажите момент</b></div>
+                  <div><span>Тип двигателя:</span><b>Укажите топливо, рядный</b></div>
+                  <div><span>Количество цилиндров:</span><b>Укажите цилиндры</b></div>
+                  <div><span>Экологический класс:</span><b>Укажите класс</b></div>
+                  <div><span>Объем бака:</span><b>Укажите объем бака</b></div>
                 </div>
               </div>
             </div>
@@ -1276,7 +1349,7 @@
     ];
 
     const manuals = ["Сервисный мануал", "Мануал по автохимии", "Мануал по дворникам", "Мануал по расходникам", "Тормозная система", "Руководство по эксплуатации", "Электрооборудование", "Система охлаждения", "Подвеска и рулевое"];
-    const videos = ["Замена воздушного фильтра Nissan X-Trail T32", "Замена моторного масла и фильтра 2.0 dCi", "Замена передних тормозных колодок", "Замена щеток стеклоочистителя", "Замена цепи ГРМ на Nissan X-Trail 2.0 dCi", "Диагностика ошибок с помощью OBD2", "Замена салонного фильтра", "Как снять и заменить аккумулятор"];
+    const videos = ["Замена воздушного фильтра Укажите машину", "Замена моторного масла и фильтра Укажите мотор", "Замена передних тормозных колодок", "Замена щеток стеклоочистителя", "Замена цепи ГРМ на Nissan X-Trail Укажите мотор", "Диагностика ошибок с помощью OBD2", "Замена салонного фильтра", "Как снять и заменить аккумулятор"];
 
     const $ = (selector) => document.querySelector(selector);
     const $$ = (selector) => Array.from(document.querySelectorAll(selector));
@@ -1293,7 +1366,7 @@
     function renderLists() {
       const savedHistory = loadUserHistory();
       const savedRows = savedHistory.map((item) => [item.question, item.answer, item.date, "Сохранено", item.vehicle, item.type]);
-      const baseRows = requests.map((item) => [item[0], item[1], item[2], item[3], "Nissan X-Trail T32", "Демо"]);
+      const baseRows = requests.map((item) => [item[0], item[1], item[2], item[3], "Укажите машину", "Демо"]);
       const allRows = savedRows.concat(baseRows);
 
       $("#journalList").innerHTML = allRows.map((item, index) => `
@@ -1301,17 +1374,17 @@
           <div class="thumb" aria-hidden="true"></div>
           <div>
             <h3>${escapeHtml(item[0])}</h3>
-            <span class="tag">${escapeHtml(item[4] || "Nissan X-Trail T32")}</span>
+            <span class="tag">${escapeHtml(item[4] || "Укажите машину")}</span>
             <p>${escapeHtml(item[1]).slice(0, 220)}${String(item[1]).length > 220 ? "..." : ""}</p>
           </div>
           <div><p>${escapeHtml(item[2])}</p><p class="ok">${escapeHtml(item[3])} ✓</p></div>
         </article>
       `).join("");
 
-      $("#historyList").innerHTML = allRows.concat([["Ошибка P0171 слишком бедная смесь", "Nissan X-Trail T32 • 2.0 dCi • Дизель", "28 апр., 20:33", "Код ошибки", "Nissan X-Trail T32", "Код ошибки"]]).map((item, index) => `
+      $("#historyList").innerHTML = allRows.concat([["Ошибка P0171 слишком бедная смесь", "Укажите машину • Укажите мотор • Укажите топливо", "28 апр., 20:33", "Код ошибки", "Укажите машину", "Код ошибки"]]).map((item, index) => `
         <article class="row" style="grid-template-columns:64px 1fr 150px">
           <div class="square ${item[5] === "Голосовой запрос" ? "violet" : ""}">${item[5] === "Голосовой запрос" ? "🎙" : "⌨"}</div>
-          <div><h3>${escapeHtml(item[0])}</h3><p>${escapeHtml(item[4] || "Nissan X-Trail T32 • 2.0 dCi • 4WD")}</p></div>
+          <div><h3>${escapeHtml(item[0])}</h3><p>${escapeHtml(item[4] || "Укажите машину • Укажите мотор • Укажите привод")}</p></div>
           <div><p>${escapeHtml(item[2])}</p><span class="tag">${escapeHtml(item[5] || item[3] || "Текстовый запрос")}</span></div>
         </article>
       `).join("");
@@ -1343,7 +1416,7 @@
           <h3>${title}</h3>
           <div class="manual-pic" aria-hidden="true"></div>
           <p>PDF • ${(6 + index * 2.1).toFixed(1)} MB</p>
-          <p>Материалы адаптированы для Nissan X-Trail T32.</p>
+          <p>Материалы адаптированы для Укажите машину.</p>
           <button class="btn blue" data-action="demo">Открыть</button>
         </article>
       `).join("");
@@ -1351,7 +1424,7 @@
       $("#videoList").innerHTML = videos.map((title, index) => `
         <article class="row">
           <div class="thumb" aria-hidden="true"></div>
-          <div><h3>${title}</h3><p>Пошаговая инструкция по обслуживанию Nissan X-Trail T32.</p></div>
+          <div><h3>${title}</h3><p>Пошаговая инструкция по обслуживанию Укажите машину.</p></div>
           <div><p>${index < 2 ? "Сегодня" : "Май 2024"}</p><span class="tag">${index % 3 === 0 ? "Обслуживание" : index % 3 === 1 ? "Двигатель" : "Диагностика"}</span></div>
         </article>
       `).join("");
@@ -1404,7 +1477,7 @@
         question,
         answer,
         date: now.toLocaleDateString("ru-RU", { day: "2-digit", month: "short" }) + ", " + now.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }),
-        vehicle: "Автомобиль не указан",
+        vehicle: "Укажите машину • Укажите мотор • Укажите привод",
         type: "Текстовый запрос"
       };
       history.unshift(item);
