@@ -1069,7 +1069,37 @@
       .assistant-right { height: auto; overflow: visible; padding-bottom: 16px; }
       .composer { left: 10px; right: 10px; bottom: 10px; }
     }
+    .bubble a,
+    .topic-links a {
+      color: var(--cyan);
+      text-decoration: underline;
+      word-break: break-all;
+    }
 
+    .topic-links {
+      display: grid;
+      gap: 10px;
+      margin-top: 8px;
+      color: var(--soft);
+      line-height: 1.5;
+    }
+
+    .topic-link-item {
+      display: grid;
+      gap: 4px;
+      border-top: 1px solid var(--line);
+      padding-top: 10px;
+    }
+
+    .topic-link-item:first-child {
+      border-top: 0;
+      padding-top: 0;
+    }
+
+    .topic-link-title {
+      color: var(--text);
+      font-weight: 700;
+    }
   </style>
 </head>
 <body>
@@ -1163,7 +1193,9 @@
 
                 <div class="card">
                   <h3>Видео / ссылки по теме</h3>
-                  <p>Здесь позже будут появляться ссылки на видео, мануалы и материалы из n8n.</p>
+                  <div id="topicLinks" class="topic-links">
+                    <p>Здесь позже будут появляться ссылки на видео, мануалы и материалы из n8n.</p>
+                  </div>
                   <button class="btn blue" data-action="demo">Смотреть видео</button>
                 </div>
               </aside>
@@ -1448,7 +1480,7 @@
     function appendMessage(text, isUser) {
       const div = document.createElement("div");
       div.className = `bubble ${isUser ? "user" : ""}`;
-      div.innerHTML = `${escapeHtml(text)} <small>${new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</small>`;
+      div.innerHTML = `${linkifyText(text)} <small>${new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</small>`;
       const messagesBox = $("#messages");
       messagesBox.appendChild(div);
       messagesBox.scrollTop = messagesBox.scrollHeight;
@@ -1458,6 +1490,66 @@
     function escapeHtml(text) {
       const map = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" };
       return String(text).replace(/[&<>"']/g, (m) => map[m]);
+    }
+    function cleanUrl(url) {
+      return String(url || "").replace(/[),.;:!?}\]]+$/g, "");
+    }
+
+    function linkifyText(text) {
+      return escapeHtml(text || "")
+        .replace(/(https?:\/\/[^\s<>"']+)/g, (match) => {
+          const url = cleanUrl(match);
+          const tail = match.slice(url.length);
+          return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>${tail}`;
+        })
+        .replace(/\n/g, "<br>");
+    }
+
+    function extractLinks(text) {
+      const raw = String(text || "");
+      const matches = raw.match(/https?:\/\/[^\s<>"']+/g) || [];
+      const links = [];
+
+      for (const match of matches) {
+        const url = cleanUrl(match);
+        if (!url || links.some((item) => item.url === url)) continue;
+
+        const index = raw.indexOf(match);
+        const before = raw.slice(Math.max(0, index - 260), index);
+        const titleMatch = before.match(/"title"\s*:\s*"([^"]+)"/i);
+        const forumMatch = before.match(/"forum"\s*:\s*"([^"]+)"/i);
+        const hostMatch = url.match(/^https?:\/\/(?:www\.)?([^/]+)/i);
+        const isVideo = /youtube\.com|youtu\.be|rutube\.ru|vimeo\.com/i.test(url);
+
+        links.push({
+          url,
+          title: titleMatch ? titleMatch[1] : (isVideo ? "Видео по теме" : "Ссылка по теме"),
+          source: forumMatch ? forumMatch[1] : (hostMatch ? hostMatch[1] : "Материал"),
+          isVideo
+        });
+      }
+
+      return links;
+    }
+
+    function updateTopicLinks(answer) {
+      const box = $("#topicLinks");
+      if (!box) return;
+
+      const links = extractLinks(answer);
+
+      if (!links.length) {
+        box.innerHTML = `<p>Ссылки по теме появятся здесь, когда PULS найдет материалы.</p>`;
+        return;
+      }
+
+      box.innerHTML = links.slice(0, 10).map((item) => `
+        <div class="topic-link-item">
+          <div class="topic-link-title">${item.isVideo ? "Видео: " : ""}${escapeHtml(item.title)}</div>
+          <div>${escapeHtml(item.source)}</div>
+          <a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.url)}</a>
+        </div>
+      `).join("");
     }
 
     const HISTORY_STORAGE_KEY = "puls_request_history_v1";
@@ -1552,12 +1644,13 @@
           });
           if (!res.ok) throw new Error("n8n webhook вернул ошибку");
           const data = await res.json();
-          answer = data.answer || data.message || data.output || JSON.stringify(data, null, 2);
+          answer = data.reply || data.answer || data.message || data.output || JSON.stringify(data, null, 2);
         } else {
           answer = "Демо-ответ: для реального AI подключите n8n webhook в переменной N8N_WEBHOOK_URL. По описанию я бы начал с проверки приводного ремня, роликов, генератора и помпы, затем считал ошибки OBD2.";
         }
-        loading.innerHTML = `<strong>PULS</strong><br>${escapeHtml(answer).replace(/\n/g, "<br>")} <small>${new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</small>`;
+        loading.innerHTML = `<strong>PULS</strong><br>${linkifyText(answer)} <small>${new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</small>`;
         updateKeyChecks(answer);
+        updateTopicLinks(answer);
         saveHistoryItem(prompt, answer);
       } catch (error) {
         const errorText = "Не получилось получить ответ от n8n. Проверьте URL webhook, CORS и Respond to Webhook node.";
@@ -1596,3 +1689,7 @@
   </script>
 </body>
 </html>
+
+
+
+
