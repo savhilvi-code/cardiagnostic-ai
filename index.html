@@ -1100,14 +1100,29 @@
       color: var(--text);
       font-weight: 700;
     }
+    .brand-spline-logo{
+  width:52px;
+  height:52px;
+  overflow:hidden;
+  border-radius:15px;
+  flex:0 0 auto;
+}
+
+.brand-spline-logo spline-viewer{
+  width:100%;
+  height:100%;
+  display:block;
+}
   </style>
+  <script type="module" src="https://unpkg.com/@splinetool/viewer@1.12.95/build/spline-viewer.js"></script>
 </head>
 <body>
   <div class="app" id="app">
     <header class="topbar">
       <div class="brand">
-        <div class="bot-logo" aria-hidden="true"></div>
-        <div>
+        <div class="brand-spline-logo">
+         <spline-viewer url="https://prod.spline.design/Icz3NjDurGc84JBO/scene.splinecode"></spline-viewer>
+        </div>
           <div class="brand-title">CarDiagnostic <span>AI</span></div>
           <div class="brand-subtitle">Ваш AI-помощник для диагностики автомобиля</div>
         </div>
