@@ -360,6 +360,12 @@ const SPLINE_SCENE_URL = "";
       $("#promptInput").addEventListener("keydown", (event) => {
         if (event.key === "Enter") sendPrompt();
       });
+      $("#composerMenuBtn").addEventListener("click", (event) => {
+        event.stopPropagation();
+        const menu = $("#composerMenu");
+        const isOpen = menu.classList.toggle("show");
+        $("#composerMenuBtn").setAttribute("aria-expanded", String(isOpen));
+      });
 
       document.addEventListener("click", (event) => {
         const viewButton = event.target.closest(".nav button[data-view]");
@@ -370,9 +376,14 @@ const SPLINE_SCENE_URL = "";
 
         const action = event.target.closest("[data-action]")?.dataset.action;
         if (!action) return;
+        $("#composerMenu")?.classList.remove("show");
+        $("#composerMenuBtn")?.setAttribute("aria-expanded", "false");
+        if (event.target.closest("#composerMenuBtn")) return;
         if (action === "dtc") {
           showView("dtc");
           toast("Открыт раздел диагностики по коду.");
+        } else if (action === "voice") {
+          toast("Голосовой ввод можно подключить к Web Speech API или n8n.");
         } else {
           toast("Это демо-кнопка. Ее можно подключить к n8n, загрузке файлов или базе материалов.");
         }
