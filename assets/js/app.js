@@ -1,5 +1,4 @@
 const API_BASE_URL = "";
-const N8N_WEBHOOK_URL = "https://auto-diagnost.app.n8n.cloud/webhook/a8c9c31d-1ae8-4bea-aae3-fbc30909bca3";
 const SPLINE_SCENE_URL = "";
 
     const iconMap = {
@@ -237,12 +236,11 @@ const SPLINE_SCENE_URL = "";
     }
 
     async function loadUserHistory() {
-      if (!API_BASE_URL) return loadLocalHistory();
-
       try {
         const res = await fetch(`${API_BASE_URL}/api/history?userId=${encodeURIComponent(getWebUserId())}`);
         if (!res.ok) throw new Error("history api error");
         const data = await res.json();
+        updateQuota(data.quota);
         return Array.isArray(data.items) ? data.items : [];
       } catch (error) {
         return loadLocalHistory();
@@ -256,18 +254,6 @@ const SPLINE_SCENE_URL = "";
         vehicle: "Укажите машину • Укажите мотор • Укажите привод",
         type: "Текстовый запрос"
       };
-
-      if (!API_BASE_URL) {
-        const history = loadLocalHistory();
-        const now = new Date();
-        history.unshift({
-          ...item,
-          date: now.toLocaleDateString("ru-RU", { day: "2-digit", month: "short" }) + ", " + now.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })
-        });
-        localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history.slice(0, 50)));
-        await renderLists();
-        return;
-      }
 
       try {
         const res = await fetch(`${API_BASE_URL}/api/history`, {
@@ -287,18 +273,34 @@ const SPLINE_SCENE_URL = "";
             }
           })
         });
-        if (!res.ok) throw new Error("save history api error");
+        if (res.ok) {
+          await renderLists();
+          return;
+        }
       } catch (error) {
-        const history = loadLocalHistory();
-        const now = new Date();
-        history.unshift({
-          ...item,
-          date: now.toLocaleDateString("ru-RU", { day: "2-digit", month: "short" }) + ", " + now.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })
-        });
-        localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history.slice(0, 50)));
+        // Keep a local fallback for file:// testing without the API server.
       }
 
+      const history = loadLocalHistory();
+      const now = new Date();
+      history.unshift({
+        ...item,
+        date: now.toLocaleDateString("ru-RU", { day: "2-digit", month: "short" }) + ", " + now.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })
+      });
+      localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history.slice(0, 50)));
       await renderLists();
+    }
+
+    function updateQuota(quota) {
+      if (!quota) return;
+      const pill = $(".system-pill");
+      if (!pill) return;
+
+      if (quota.unlimited) {
+        pill.textContent = "PULS Premium: без лимита";
+      } else {
+        pill.textContent = `PULS: ${quota.remaining} из ${quota.limit} запросов`;
+      }
     }
 
     function updateKeyChecks(answer) {
@@ -325,65 +327,38 @@ const SPLINE_SCENE_URL = "";
 
       const loading = appendMessage("PULS анализирует запрос...", false);
       try {
-        let data;
+        const res = await fetch(`${API_BASE_URL}/api/chat`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt,
+            userId: getWebUserId(),
+            vehicle: {
+              model: "",
+              year: "",
+              engine: "",
+              drive: "",
+              fuel: ""
+            }
+          })
+        });
 
-        if (API_BASE_URL) {
-          const res = await fetch(`${API_BASE_URL}/api/chat`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              prompt,
-              userId: getWebUserId(),
-              vehicle: {
-                model: "",
-                year: "",
-                engine: "",
-                drive: "",
-                fuel: ""
-              }
-            })
-          });
-          if (!res.ok) throw new Error("api chat вернул ошибку");
-          data = await res.json();
-        } else {
-          const res = await fetch(N8N_WEBHOOK_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              message: prompt,
-              text: prompt,
-              prompt,
-              source: "web",
-              userId: getWebUserId(),
-              user_id: getWebUserId(),
-              raw_user_id: getWebUserId(),
-              chat_id: getWebUserId(),
-              username: "web_user",
-              first_name: "Web",
-              vehicle: {
-                model: "",
-                year: "",
-                engine: "",
-                drive: "",
-                fuel: ""
-              }
-            })
-          });
-          if (!res.ok) throw new Error("n8n webhook вернул ошибку");
-          data = await res.json();
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          if (data.limitReached) updateQuota(data.quota);
+          throw new Error(data.error || "Не получилось получить ответ от API.");
         }
 
         const answer = data.answer || data.reply || data.message || data.output || JSON.stringify(data, null, 2);
         loading.innerHTML = `<strong>PULS</strong><br>${linkifyText(answer)} <small>${new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</small>`;
         updateKeyChecks(answer);
         updateTopicLinks(answer);
-        await saveHistoryItem(prompt, answer);
+        updateQuota(data.quota);
         await renderLists();
       } catch (error) {
-        const errorText = "Не получилось получить ответ от n8n. Проверьте URL webhook, CORS и Respond to Webhook node.";
+        const errorText = error.message || "Не получилось получить ответ от API. Проверьте сервер, Supabase и N8N_WEBHOOK_URL.";
         loading.innerHTML = `<strong>PULS</strong><br>${errorText} <small>${new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</small>`;
         updateKeyChecks(errorText);
-        await saveHistoryItem(prompt, errorText);
       }
     }
 
@@ -398,13 +373,18 @@ const SPLINE_SCENE_URL = "";
       await renderLists();
       connectSpline();
 
-      $$(".nav button").forEach((button) => button.addEventListener("click", () => showView(button.dataset.view)));
       $("#sendBtn").addEventListener("click", sendPrompt);
       $("#promptInput").addEventListener("keydown", (event) => {
         if (event.key === "Enter") sendPrompt();
       });
 
       document.addEventListener("click", (event) => {
+        const viewButton = event.target.closest(".nav button[data-view]");
+        if (viewButton) {
+          showView(viewButton.dataset.view);
+          return;
+        }
+
         const action = event.target.closest("[data-action]")?.dataset.action;
         if (!action) return;
         if (action === "dtc") {
@@ -415,6 +395,7 @@ const SPLINE_SCENE_URL = "";
         }
       });
     });
+
 
 
 
