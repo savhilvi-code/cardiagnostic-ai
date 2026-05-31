@@ -21,7 +21,39 @@
     }
 
     * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; }
+    html {
+      scrollbar-width: thin;
+      scrollbar-color: #0b7ee8 rgba(3, 12, 22, .9);
+    }
+
+    html::-webkit-scrollbar,
+    body::-webkit-scrollbar,
+    *::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+
+    html::-webkit-scrollbar-track,
+    body::-webkit-scrollbar-track,
+    *::-webkit-scrollbar-track {
+      background: rgba(3, 12, 22, .9);
+      border-radius: 999px;
+    }
+
+    html::-webkit-scrollbar-thumb,
+    body::-webkit-scrollbar-thumb,
+    *::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, #0b8dff, #0757bd);
+      border: 2px solid rgba(3, 12, 22, .9);
+      border-radius: 999px;
+    }
+
+    html::-webkit-scrollbar-thumb:hover,
+    body::-webkit-scrollbar-thumb:hover,
+    *::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(180deg, #13d9ff, #087dff);
+    }
     body {
       margin: 0;
       min-height: 100vh;
@@ -1248,7 +1280,7 @@ body.assistant-mode .app {
   position: absolute;
   left: 0;
   bottom: calc(100% + 12px);
-  width: 230px;
+  width: 300px;
   display: none;
   padding: 8px;
   border: 1px solid #14598f;
@@ -1266,6 +1298,7 @@ body.assistant-mode .app {
 .composer-menu button {
   width: 100%;
   min-height: 42px;
+  white-space: nowrap;
   border: 0;
   border-radius: 10px;
   background: transparent;
@@ -1285,6 +1318,7 @@ body.assistant-mode .app {
 .composer-menu span {
   width: 24px;
   height: 24px;
+  flex: 0 0 24px;
   display: grid;
   place-items: center;
   color: var(--cyan);
@@ -1319,6 +1353,26 @@ body.assistant-mode .app {
   }
 
   .composer-menu {
-    width: min(230px, calc(100vw - 36px));
+    width: min(300px, calc(100vw - 36px));
+  }
+}
+
+/* ===== Keep assistant messages above the fixed composer ===== */
+body.assistant-mode .messages {
+  padding-bottom: 34px !important;
+  scroll-padding-bottom: 34px;
+}
+
+body.assistant-mode .bubble:last-child {
+  margin-bottom: 22px;
+}
+
+@media (min-width: 1051px) {
+  body.assistant-mode #assistant .chat-grid {
+    height: calc(100vh - 230px) !important;
+  }
+
+  body.assistant-mode .assistant-right {
+    padding-bottom: 34px !important;
   }
 }
