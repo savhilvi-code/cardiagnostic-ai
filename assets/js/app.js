@@ -129,6 +129,7 @@ const SPLINE_SCENE_URL = "";
       $(`#${viewId}`).classList.add("active");
       document.body.classList.toggle("assistant-mode", viewId === "assistant");
       document.body.classList.toggle("page-mode", viewId !== "assistant");
+      syncAssistantMessageHeight();
       if (window.innerWidth < 1050) window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
@@ -146,8 +147,46 @@ const SPLINE_SCENE_URL = "";
       div.innerHTML = `${linkifyText(text)} <small>${new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</small>`;
       const messagesBox = $("#messages");
       messagesBox.appendChild(div);
-      messagesBox.scrollTop = messagesBox.scrollHeight;
+      scrollMessagesToBottom();
       return div;
+    }
+
+    function scrollMessagesToBottom() {
+      const messagesBox = $("#messages");
+      if (!messagesBox) return;
+      requestAnimationFrame(() => {
+        messagesBox.scrollTop = messagesBox.scrollHeight;
+      });
+    }
+
+    function syncAssistantMessageHeight() {
+      requestAnimationFrame(() => {
+        const messagesBox = $("#messages");
+        const composer = $(".composer");
+        const assistantRight = $(".assistant-right");
+
+        if (!messagesBox || !composer) return;
+
+        if (!document.body.classList.contains("assistant-mode")) {
+          messagesBox.style.height = "";
+          messagesBox.style.maxHeight = "";
+          if (assistantRight) assistantRight.style.maxHeight = "";
+          return;
+        }
+
+        const messagesTop = messagesBox.getBoundingClientRect().top;
+        const composerTop = composer.getBoundingClientRect().top;
+        const availableHeight = Math.max(180, Math.floor(composerTop - messagesTop - 18));
+
+        messagesBox.style.height = `${availableHeight}px`;
+        messagesBox.style.maxHeight = `${availableHeight}px`;
+
+        if (assistantRight) {
+          const rightTop = assistantRight.getBoundingClientRect().top;
+          const rightHeight = Math.max(180, Math.floor(composerTop - rightTop - 18));
+          assistantRight.style.maxHeight = `${rightHeight}px`;
+        }
+      });
     }
 
     function escapeHtml(text) {
@@ -336,11 +375,13 @@ const SPLINE_SCENE_URL = "";
         updateQuota(data.quota);
         await saveHistoryItem(prompt, answer);
         await renderLists();
+        scrollMessagesToBottom();
       } catch (error) {
         const errorText = "Не получилось получить ответ от n8n. Проверьте URL webhook, CORS и Respond to Webhook node.";
         loading.innerHTML = `<strong>PULS</strong><br>${errorText} <small>${new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</small>`;
         updateKeyChecks(errorText);
         await saveHistoryItem(prompt, errorText);
+        scrollMessagesToBottom();
       }
     }
 
@@ -360,14 +401,18 @@ const SPLINE_SCENE_URL = "";
       $("#promptInput").addEventListener("keydown", (event) => {
         if (event.key === "Enter") sendPrompt();
       });
-      $("#composerMenuBtn").addEventListener("click", (event) => {
-        event.stopPropagation();
-        const menu = $("#composerMenu");
-        const isOpen = menu.classList.toggle("show");
-        $("#composerMenuBtn").setAttribute("aria-expanded", String(isOpen));
-      });
-
+      window.addEventListener("resize", syncAssistantMessageHeight);
+      syncAssistantMessageHeight();
       document.addEventListener("click", (event) => {
+        const composerMenuButton = event.target.closest("#composerMenuBtn");
+        if (composerMenuButton) {
+          event.stopPropagation();
+          const menu = $("#composerMenu");
+          const isOpen = menu.classList.toggle("show");
+          composerMenuButton.setAttribute("aria-expanded", String(isOpen));
+          return;
+        }
+
         const viewButton = event.target.closest(".nav button[data-view]");
         if (viewButton) {
           showView(viewButton.dataset.view);
