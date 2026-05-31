@@ -1,1 +1,100 @@
+﻿@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
 
+    :root {
+      --bg: #02070d;
+      --panel: rgba(5, 18, 31, .92);
+      --panel-2: rgba(7, 29, 48, .84);
+      --panel-3: rgba(4, 13, 23, .78);
+      --line: #123a5c;
+      --line-strong: #087dff;
+      --blue: #087dff;
+      --cyan: #13d9ff;
+      --violet: #965cff;
+      --text: #f5f9ff;
+      --muted: #a9b6c9;
+      --soft: #d7ddeb;
+      --ok: #56f07b;
+      --warn: #ffa927;
+      --danger: #ff4c4c;
+      --shadow: 0 22px 70px rgba(0, 0, 0, .45);
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 28% -8%, rgba(0, 128, 255, .22), transparent 34%),
+        radial-gradient(circle at 88% 14%, rgba(0, 217, 255, .12), transparent 28%),
+        linear-gradient(135deg, #02070d 0%, #010409 48%, #000 100%);
+    }
+
+    button, input, textarea { font: inherit; }
+    button { cursor: pointer; }
+    a { color: inherit; }
+
+    .app {
+      width: min(1320px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 24px 0 28px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .bot-logo {
+      position: relative;
+      width: 52px;
+      height: 52px;
+      border: 2px solid var(--blue);
+      border-radius: 15px;
+      display: grid;
+      place-items: center;
+      color: var(--blue);
+      box-shadow: 0 0 24px rgba(8, 125, 255, .42);
+      flex: 0 0 auto;
+    }
+
+    .bot-logo::before {
+      content: "";
+      width: 28px;
+      height: 22px;
+      border: 2px solid currentColor;
+      border-radius: 7px;
+      background:
+        radial-gradient(circle at 8px 10px, currentColor 0 2px, transparent 2.5px),
+        radial-gradient(circle at 20px 10px, currentColor 0 2px, transparent 2.5px);
+    }
+
+    .bot-logo::after {
+      content: "";
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      top: 4px;
+      box-shadow: -18px 36px 0 currentColor, 0 36px 0 currentColor, 18px 36px 0 currentColor;
+    }
+
+    .brand-title {
+      font-size: clamp(24px, 3vw, 32px);
+      line-height: 1.05;
+      font-weight: 800;
+      white-space: nowrap;
