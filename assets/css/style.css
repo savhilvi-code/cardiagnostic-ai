@@ -24,7 +24,7 @@
 html { scroll-behavior: smooth; }
     html {
       scrollbar-width: thin;
-      scrollbar-color: #0b7ee8 rgba(3, 12, 22, .9);
+      scrollbar-color: #0b7ee8 transparent;
     }
 
     html::-webkit-scrollbar,
@@ -37,7 +37,7 @@ html { scroll-behavior: smooth; }
     html::-webkit-scrollbar-track,
     body::-webkit-scrollbar-track,
     *::-webkit-scrollbar-track {
-      background: rgba(3, 12, 22, .9);
+      background: transparent;
       border-radius: 999px;
     }
 
@@ -45,7 +45,8 @@ html { scroll-behavior: smooth; }
     body::-webkit-scrollbar-thumb,
     *::-webkit-scrollbar-thumb {
       background: linear-gradient(180deg, #0b8dff, #0757bd);
-      border: 2px solid rgba(3, 12, 22, .9);
+      border: 2px solid transparent;
+      background-clip: padding-box;
       border-radius: 999px;
     }
 
@@ -1374,5 +1375,98 @@ body.assistant-mode .bubble:last-child {
 
   body.assistant-mode .assistant-right {
     padding-bottom: 34px !important;
+  }
+}
+
+/* ===== PULS page: no clipped text or side card ===== */
+body.assistant-mode {
+  overflow-y: auto !important;
+}
+
+body.assistant-mode .app {
+  height: auto !important;
+  min-height: 100vh;
+  overflow: visible !important;
+  padding-bottom: 150px;
+}
+
+body.assistant-mode .workspace {
+  height: auto !important;
+  min-height: 0;
+  overflow: visible !important;
+  align-items: start;
+}
+
+body.assistant-mode .side {
+  position: sticky;
+  top: 90px;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+body.assistant-mode .content,
+body.assistant-mode .content > .main-panel,
+body.assistant-mode #assistant.view.active,
+body.assistant-mode #assistant .chat-grid,
+body.assistant-mode .assistant-chat {
+  height: auto !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+}
+
+body.assistant-mode #assistant.view.active {
+  padding: 4px 4px 170px;
+}
+
+body.assistant-mode #assistant .chat-grid {
+  align-items: start;
+}
+
+body.assistant-mode .messages {
+  height: auto !important;
+  max-height: none !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+  padding: 0 12px 34px 4px !important;
+}
+
+body.assistant-mode .assistant-right {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+  padding-bottom: 34px !important;
+}
+
+/* ===== Center composer in the main workspace ===== */
+@media (min-width: 1051px) {
+  .composer {
+    width: min(1240px, calc(100vw - 270px)) !important;
+    left: calc(252px + ((100vw - 270px - min(1240px, calc(100vw - 270px))) / 2)) !important;
+    right: auto !important;
+    transform: none;
+  }
+}
+
+@media (min-width: 1051px) {
+body.assistant-mode .composer {
+    width: min(1040px, calc(100vw - 680px)) !important;
+    left: calc(296px + ((100vw - 680px) / 2)) !important;
+    right: auto !important;
+    transform: translateX(-50%);
+  }
+}
+
+/* ===== Header blends with page background ===== */
+.topbar {
+  background: transparent !important;
+}
+
+@media (max-width: 1050px) {
+  .composer {
+    width: auto !important;
+    left: 10px !important;
+    right: 10px !important;
+    transform: none;
   }
 }
