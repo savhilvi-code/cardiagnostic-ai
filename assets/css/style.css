@@ -22,7 +22,9 @@
 
     * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
-    html {
+    html,
+    body {
+      background-color: #02070d;
       scrollbar-width: thin;
       scrollbar-color: #0b7ee8 transparent;
     }
@@ -37,8 +39,14 @@ html { scroll-behavior: smooth; }
     html::-webkit-scrollbar-track,
     body::-webkit-scrollbar-track,
     *::-webkit-scrollbar-track {
-      background: transparent;
+      background: transparent !important;
       border-radius: 999px;
+    }
+
+    html::-webkit-scrollbar-corner,
+    body::-webkit-scrollbar-corner,
+    *::-webkit-scrollbar-corner {
+      background: transparent !important;
     }
 
     html::-webkit-scrollbar-thumb,
@@ -127,10 +135,10 @@ html { scroll-behavior: smooth; }
     }
 
     .brand-logo {
-      width: 56px;
-      height: 56px;
-      border-radius: 15px;
-      object-fit: contain;
+      width: 82px;
+      height: 82px;
+      border-radius: 18px;
+      object-fit: cover;
       flex: 0 0 auto;
       filter: drop-shadow(0 0 18px rgba(8, 125, 255, .36));
     }
@@ -1431,6 +1439,7 @@ body.assistant-mode .content > .main-panel {
   overflow-y: auto !important;
   overflow-x: hidden !important;
   padding: 4px 4px 170px;
+  scroll-padding-bottom: 130px;
 }
 
 body.assistant-mode #assistant.view.active {
