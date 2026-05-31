@@ -1,4 +1,4 @@
-const API_BASE_URL = "";
+const N8N_WEBHOOK_URL = "https://auto-diagnost.app.n8n.cloud/webhook/a8c9c31d-1ae8-4bea-aae3-fbc30909bca3";
 const SPLINE_SCENE_URL = "";
 
     const iconMap = {
@@ -238,15 +238,7 @@ const SPLINE_SCENE_URL = "";
     }
 
     async function loadUserHistory() {
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/history?userId=${encodeURIComponent(getWebUserId())}`);
-        if (!res.ok) throw new Error("history api error");
-        const data = await res.json();
-        updateQuota(data.quota);
-        return Array.isArray(data.items) ? data.items : [];
-      } catch (error) {
-        return loadLocalHistory();
-      }
+      return loadLocalHistory();
     }
 
     async function saveHistoryItem(question, answer) {
@@ -256,32 +248,6 @@ const SPLINE_SCENE_URL = "";
         vehicle: "Укажите машину • Укажите мотор • Укажите привод",
         type: "Текстовый запрос"
       };
-
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/history`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            userId: getWebUserId(),
-            question,
-            answer,
-            type: item.type,
-            vehicle: {
-              model: "",
-              year: "",
-              engine: "",
-              drive: "",
-              fuel: ""
-            }
-          })
-        });
-        if (res.ok) {
-          await renderLists();
-          return;
-        }
-      } catch (error) {
-        // Keep a local fallback for file:// testing without the API server.
-      }
 
       const history = loadLocalHistory();
       const now = new Date();
@@ -329,12 +295,20 @@ const SPLINE_SCENE_URL = "";
 
       const loading = appendMessage("PULS анализирует запрос...", false);
       try {
-        const res = await fetch(`${API_BASE_URL}/api/chat`, {
+        const res = await fetch(N8N_WEBHOOK_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            message: prompt,
+            text: prompt,
             prompt,
+            source: "web",
             userId: getWebUserId(),
+            user_id: getWebUserId(),
+            raw_user_id: getWebUserId(),
+            chat_id: getWebUserId(),
+            username: "web_user",
+            first_name: "Web",
             vehicle: {
               model: "",
               year: "",
@@ -345,22 +319,28 @@ const SPLINE_SCENE_URL = "";
           })
         });
 
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          if (data.limitReached) updateQuota(data.quota);
-          throw new Error(data.error || "Не получилось получить ответ от API.");
+        if (!res.ok) throw new Error("n8n webhook вернул ошибку");
+
+        const rawAnswer = await res.text();
+        let data;
+        try {
+          data = JSON.parse(rawAnswer);
+        } catch (error) {
+          data = { answer: rawAnswer };
         }
 
-        const answer = data.answer || data.reply || data.message || data.output || JSON.stringify(data, null, 2);
+        const answer = data.answer || data.reply || data.message || data.output || rawAnswer || JSON.stringify(data, null, 2);
         loading.innerHTML = `<strong>PULS</strong><br>${linkifyText(answer)} <small>${new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</small>`;
         updateKeyChecks(answer);
         updateTopicLinks(answer);
         updateQuota(data.quota);
+        await saveHistoryItem(prompt, answer);
         await renderLists();
       } catch (error) {
-        const errorText = error.message || "Не получилось получить ответ от API. Проверьте сервер, Supabase и N8N_WEBHOOK_URL.";
+        const errorText = "Не получилось получить ответ от n8n. Проверьте URL webhook, CORS и Respond to Webhook node.";
         loading.innerHTML = `<strong>PULS</strong><br>${errorText} <small>${new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</small>`;
         updateKeyChecks(errorText);
+        await saveHistoryItem(prompt, errorText);
       }
     }
 
@@ -398,6 +378,7 @@ const SPLINE_SCENE_URL = "";
         }
       });
     });
+
 
 
 
