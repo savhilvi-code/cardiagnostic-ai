@@ -155,7 +155,12 @@ const SPLINE_SCENE_URL = "";
       const messagesBox = $("#messages");
       if (!messagesBox) return;
       requestAnimationFrame(() => {
-        if (getComputedStyle(messagesBox).overflowY !== "visible") {
+        const isAssistantMode = document.body.classList.contains("assistant-mode");
+        const scrollBox = document.body.classList.contains("assistant-mode")
+          ? $(".content > .main-panel")
+          : messagesBox;
+
+        if (!isAssistantMode && getComputedStyle(messagesBox).overflowY !== "visible") {
           messagesBox.scrollTop = messagesBox.scrollHeight;
           return;
         }
@@ -165,13 +170,23 @@ const SPLINE_SCENE_URL = "";
 
         if (!lastBubble || !composer) return;
 
-        const bubbleBottom = lastBubble.getBoundingClientRect().bottom;
-        const composerTop = composer.getBoundingClientRect().top;
-        const hiddenByComposer = bubbleBottom - composerTop + 26;
-
-        if (hiddenByComposer > 0) {
-          window.scrollBy({ top: hiddenByComposer, behavior: "smooth" });
+        if (scrollBox && scrollBox !== messagesBox) {
+          scrollBox.scrollTo({ top: scrollBox.scrollHeight, behavior: "smooth" });
         }
+
+        requestAnimationFrame(() => {
+          const bubbleBottom = lastBubble.getBoundingClientRect().bottom;
+          const composerTop = composer.getBoundingClientRect().top;
+          const hiddenByComposer = bubbleBottom - composerTop + 52;
+
+          if (hiddenByComposer <= 0) return;
+
+          if (scrollBox && scrollBox !== messagesBox) {
+            scrollBox.scrollBy({ top: hiddenByComposer, behavior: "smooth" });
+          } else {
+            window.scrollBy({ top: hiddenByComposer, behavior: "smooth" });
+          }
+        });
       });
     }
 
