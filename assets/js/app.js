@@ -1,5 +1,6 @@
-import { SPLINE_SCENE_URL } from "./config.js";
-import { loadHistoryFromApi, saveHistoryToApi, sendChatMessage } from "./api.js";
+const API_BASE_URL = "";
+const N8N_WEBHOOK_URL = "https://auto-diagnost.app.n8n.cloud/webhook/a8c9c31d-1ae8-4bea-aae3-fbc30909bca3";
+const SPLINE_SCENE_URL = "";
 
     const iconMap = {
       bot: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="8" width="14" height="10" rx="3"/><path d="M12 4v4M8 13h.01M16 13h.01M7 21h10M3 11v4M21 11v4"/></svg>',
@@ -236,8 +237,13 @@ import { loadHistoryFromApi, saveHistoryToApi, sendChatMessage } from "./api.js"
     }
 
     async function loadUserHistory() {
+      if (!API_BASE_URL) return loadLocalHistory();
+
       try {
-        return await loadHistoryFromApi(getWebUserId());
+        const res = await fetch(`${API_BASE_URL}/api/history?userId=${encodeURIComponent(getWebUserId())}`);
+        if (!res.ok) throw new Error("history api error");
+        const data = await res.json();
+        return Array.isArray(data.items) ? data.items : [];
       } catch (error) {
         return loadLocalHistory();
       }
@@ -251,20 +257,37 @@ import { loadHistoryFromApi, saveHistoryToApi, sendChatMessage } from "./api.js"
         type: "Текстовый запрос"
       };
 
-      try {
-        await saveHistoryToApi({
-          userId: getWebUserId(),
-          question,
-          answer,
-          type: item.type,
-          vehicle: {
-            model: "",
-            year: "",
-            engine: "",
-            drive: "",
-            fuel: ""
-          }
+      if (!API_BASE_URL) {
+        const history = loadLocalHistory();
+        const now = new Date();
+        history.unshift({
+          ...item,
+          date: now.toLocaleDateString("ru-RU", { day: "2-digit", month: "short" }) + ", " + now.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })
         });
+        localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history.slice(0, 50)));
+        await renderLists();
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/history`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: getWebUserId(),
+            question,
+            answer,
+            type: item.type,
+            vehicle: {
+              model: "",
+              year: "",
+              engine: "",
+              drive: "",
+              fuel: ""
+            }
+          })
+        });
+        if (!res.ok) throw new Error("save history api error");
       } catch (error) {
         const history = loadLocalHistory();
         const now = new Date();
@@ -302,24 +325,62 @@ import { loadHistoryFromApi, saveHistoryToApi, sendChatMessage } from "./api.js"
 
       const loading = appendMessage("PULS анализирует запрос...", false);
       try {
-        const data = await sendChatMessage({
-          prompt,
-          userId: getWebUserId(),
-          vehicle: {
-            model: "",
-            year: "",
-            engine: "",
-            drive: "",
-            fuel: ""
-          }
-        });
+        let data;
+
+        if (API_BASE_URL) {
+          const res = await fetch(`${API_BASE_URL}/api/chat`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              prompt,
+              userId: getWebUserId(),
+              vehicle: {
+                model: "",
+                year: "",
+                engine: "",
+                drive: "",
+                fuel: ""
+              }
+            })
+          });
+          if (!res.ok) throw new Error("api chat вернул ошибку");
+          data = await res.json();
+        } else {
+          const res = await fetch(N8N_WEBHOOK_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              message: prompt,
+              text: prompt,
+              prompt,
+              source: "web",
+              userId: getWebUserId(),
+              user_id: getWebUserId(),
+              raw_user_id: getWebUserId(),
+              chat_id: getWebUserId(),
+              username: "web_user",
+              first_name: "Web",
+              vehicle: {
+                model: "",
+                year: "",
+                engine: "",
+                drive: "",
+                fuel: ""
+              }
+            })
+          });
+          if (!res.ok) throw new Error("n8n webhook вернул ошибку");
+          data = await res.json();
+        }
+
         const answer = data.answer || data.reply || data.message || data.output || JSON.stringify(data, null, 2);
         loading.innerHTML = `<strong>PULS</strong><br>${linkifyText(answer)} <small>${new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</small>`;
         updateKeyChecks(answer);
         updateTopicLinks(answer);
+        await saveHistoryItem(prompt, answer);
         await renderLists();
       } catch (error) {
-        const errorText = "Не получилось получить ответ от API. Проверьте, что Node-сервер запущен, DATABASE_URL подключен к PostgreSQL, а N8N_WEBHOOK_URL указан в .env.";
+        const errorText = "Не получилось получить ответ от n8n. Проверьте URL webhook, CORS и Respond to Webhook node.";
         loading.innerHTML = `<strong>PULS</strong><br>${errorText} <small>${new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</small>`;
         updateKeyChecks(errorText);
         await saveHistoryItem(prompt, errorText);
@@ -328,6 +389,7 @@ import { loadHistoryFromApi, saveHistoryToApi, sendChatMessage } from "./api.js"
 
     function connectSpline() {
       if (!SPLINE_SCENE_URL) return;
+      if (!$("#splineBox")) return;
       $("#splineBox").innerHTML = `<iframe title="Spline scene" src="${SPLINE_SCENE_URL}" allow="autoplay; fullscreen; xr-spatial-tracking"></iframe>`;
     }
 
@@ -353,4 +415,6 @@ import { loadHistoryFromApi, saveHistoryToApi, sendChatMessage } from "./api.js"
         }
       });
     });
+
+
 
