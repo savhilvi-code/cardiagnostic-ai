@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CarDiagnostic AI</title>
   <meta name="description" content="PULS для диагностики автомобиля, сервисной истории, ошибок DTC и мануалов.">
-  <link rel="stylesheet" href="assets/css/style.css?v=20260531-6">
+  <link rel="stylesheet" href="assets/css/style.css?v=20260531-7">
 </head>
 <body>
   <div class="app" id="app">
@@ -224,15 +224,17 @@
 
         <section class="panel composer" aria-label="Запрос AI">
           <div class="composer-line">
+            <div class="composer-menu-wrap">
+              <button class="composer-icon-btn" id="composerMenuBtn" type="button" aria-label="Открыть меню вложений" aria-expanded="false">+</button>
+              <div class="composer-menu" id="composerMenu" aria-label="Меню действий">
+                <button type="button" data-action="demo"><span>▧</span>Прикрепить фото</button>
+                <button type="button" data-action="demo"><span>▣</span>Отправить видео</button>
+                <button type="button" data-action="dtc"><span>⌁</span>Диагностика по коду</button>
+              </div>
+            </div>
             <input id="promptInput" placeholder="Опишите проблему или задайте вопрос..." autocomplete="off">
+            <button class="composer-icon-btn voice-btn" type="button" data-action="voice" aria-label="Голосовой ввод">🎙</button>
             <button class="send" id="sendBtn" aria-label="Отправить">➤</button>
-          </div>
-          <div class="tools">
-            <button class="btn" data-action="demo">Прикрепить фото</button>
-            <button class="btn" data-action="demo">Отправить видео</button>
-            <div class="bigmic" aria-hidden="true">🎙</div>
-            <button class="btn" data-action="demo">Голосовой запрос</button>
-            <button class="btn" data-action="dtc">Диагностика по коду</button>
           </div>
         </section>
       </main>
@@ -240,7 +242,7 @@
   </div>
 
   <div class="toast" id="toast"></div>
-  <script src="assets/js/app.js?v=20260531-6"></script>
+  <script src="assets/js/app.js?v=20260531-7"></script>
 </body>
 </html>
 
