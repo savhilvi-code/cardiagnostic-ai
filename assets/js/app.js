@@ -160,33 +160,15 @@ const SPLINE_SCENE_URL = "";
     }
 
     function syncAssistantMessageHeight() {
-      requestAnimationFrame(() => {
-        const messagesBox = $("#messages");
-        const composer = $(".composer");
-        const assistantRight = $(".assistant-right");
+      const messagesBox = $("#messages");
+      const assistantRight = $(".assistant-right");
 
-        if (!messagesBox || !composer) return;
+      if (messagesBox) {
+        messagesBox.style.height = "";
+        messagesBox.style.maxHeight = "";
+      }
 
-        if (!document.body.classList.contains("assistant-mode")) {
-          messagesBox.style.height = "";
-          messagesBox.style.maxHeight = "";
-          if (assistantRight) assistantRight.style.maxHeight = "";
-          return;
-        }
-
-        const messagesTop = messagesBox.getBoundingClientRect().top;
-        const composerTop = composer.getBoundingClientRect().top;
-        const availableHeight = Math.max(180, Math.floor(composerTop - messagesTop - 18));
-
-        messagesBox.style.height = `${availableHeight}px`;
-        messagesBox.style.maxHeight = `${availableHeight}px`;
-
-        if (assistantRight) {
-          const rightTop = assistantRight.getBoundingClientRect().top;
-          const rightHeight = Math.max(180, Math.floor(composerTop - rightTop - 18));
-          assistantRight.style.maxHeight = `${rightHeight}px`;
-        }
-      });
+      if (assistantRight) assistantRight.style.maxHeight = "";
     }
 
     function escapeHtml(text) {
