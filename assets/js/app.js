@@ -155,7 +155,23 @@ const SPLINE_SCENE_URL = "";
       const messagesBox = $("#messages");
       if (!messagesBox) return;
       requestAnimationFrame(() => {
-        messagesBox.scrollTop = messagesBox.scrollHeight;
+        if (getComputedStyle(messagesBox).overflowY !== "visible") {
+          messagesBox.scrollTop = messagesBox.scrollHeight;
+          return;
+        }
+
+        const lastBubble = messagesBox.querySelector(".bubble:last-child");
+        const composer = $(".composer");
+
+        if (!lastBubble || !composer) return;
+
+        const bubbleBottom = lastBubble.getBoundingClientRect().bottom;
+        const composerTop = composer.getBoundingClientRect().top;
+        const hiddenByComposer = bubbleBottom - composerTop + 26;
+
+        if (hiddenByComposer > 0) {
+          window.scrollBy({ top: hiddenByComposer, behavior: "smooth" });
+        }
       });
     }
 
