@@ -127,8 +127,8 @@ html { scroll-behavior: smooth; }
     }
 
     .brand-logo {
-      width: 52px;
-      height: 52px;
+      width: 56px;
+      height: 56px;
       border-radius: 15px;
       object-fit: contain;
       flex: 0 0 auto;
@@ -1389,14 +1389,14 @@ body.assistant-mode .bubble:last-child {
 
 /* ===== PULS page: no clipped text or side card ===== */
 body.assistant-mode {
-  overflow-y: auto !important;
+  overflow: hidden !important;
 }
 
 body.assistant-mode .app {
-  height: auto !important;
+  height: 100vh !important;
   min-height: 100vh;
-  overflow: visible !important;
-  padding-bottom: 150px;
+  overflow: hidden !important;
+  padding-bottom: 0;
 }
 
 body.assistant-mode .workspace {
@@ -1410,12 +1410,13 @@ body.assistant-mode .side {
   position: sticky;
   top: 90px;
   height: auto !important;
-  max-height: none !important;
-  overflow: visible !important;
+  max-height: calc(100vh - 110px) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  scrollbar-color: #0b7ee8 transparent;
 }
 
 body.assistant-mode .content,
-body.assistant-mode .content > .main-panel,
 body.assistant-mode #assistant.view.active,
 body.assistant-mode #assistant .chat-grid,
 body.assistant-mode .assistant-chat {
@@ -1424,8 +1425,16 @@ body.assistant-mode .assistant-chat {
   overflow: visible !important;
 }
 
-body.assistant-mode #assistant.view.active {
+body.assistant-mode .content > .main-panel {
+  height: calc(100vh - 132px) !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
   padding: 4px 4px 170px;
+}
+
+body.assistant-mode #assistant.view.active {
+  padding: 0;
 }
 
 body.assistant-mode #assistant .chat-grid {
@@ -1478,6 +1487,25 @@ body.assistant-mode .composer {
     linear-gradient(135deg, #02070d 0%, #010409 48%, #000 100%) !important;
   margin-bottom: 18px !important;
   padding-bottom: 10px;
+}
+
+/* ===== Transparent menu scrollbar track ===== */
+.side,
+.content > .main-panel {
+  scrollbar-color: #0b7ee8 transparent;
+}
+
+.side::-webkit-scrollbar-track,
+.content > .main-panel::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.side::-webkit-scrollbar-thumb,
+.content > .main-panel::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #0b8dff, #0757bd) !important;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 999px;
 }
 
 @media (max-width: 1050px) {
