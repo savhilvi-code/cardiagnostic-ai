@@ -104,11 +104,32 @@ function readAuthCredentials() {
   };
 }
 
+function validateAuthCredentials(email, password) {
+  if (!email) {
+    setAuthStatus("Введите email.", true);
+    return false;
+  }
+
+  if (!password) {
+    setAuthStatus("Введите пароль.", true);
+    return false;
+  }
+
+  if (password.length < 6) {
+    setAuthStatus("Пароль должен быть минимум 6 символов.", true);
+    return false;
+  }
+
+  return true;
+}
+
 async function registerUser(email, password) {
   if (!window.supabaseClient) {
     setAuthStatus(AUTH_STATUS_CONFIG, true);
     return;
   }
+
+  if (!validateAuthCredentials(email, password)) return;
 
   const { data, error } = await window.supabaseClient.auth.signUp({
     email,
@@ -130,6 +151,8 @@ async function loginUser(email, password) {
     setAuthStatus(AUTH_STATUS_CONFIG, true);
     return;
   }
+
+  if (!validateAuthCredentials(email, password)) return;
 
   const { data, error } = await window.supabaseClient.auth.signInWithPassword({
     email,
@@ -188,4 +211,3 @@ document.addEventListener("DOMContentLoaded", () => {
     updateProfileBlock();
   });
 });
-
