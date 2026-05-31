@@ -1092,3 +1092,92 @@
       color: var(--text);
       font-weight: 700;
     }
+
+/* ===== Stable navigation and scroll fix ===== */
+.content > .main-panel {
+  overflow-y: auto;
+  padding-bottom: 150px;
+}
+
+.view.active:not(#assistant) {
+  min-height: 100%;
+  overflow-y: auto;
+  padding: 4px 4px 150px;
+}
+
+#assistant.view.active {
+  overflow: hidden;
+}
+
+@media (min-width: 1051px) {
+  .messages {
+    max-height: calc(100vh - 290px);
+  }
+}
+
+@media (max-width: 1050px) {
+  body {
+    overflow: auto !important;
+  }
+
+  .app,
+  .workspace,
+  .content,
+  .content > .main-panel,
+  .view.active {
+    overflow: visible !important;
+  }
+}
+
+/* ===== Page mode: normal scrolling outside PULS chat ===== */
+body.page-mode {
+  overflow-y: auto !important;
+}
+
+body.page-mode .app {
+  height: auto !important;
+  min-height: 100vh;
+  overflow: visible !important;
+  padding-bottom: 150px;
+}
+
+body.page-mode .workspace {
+  height: auto !important;
+  min-height: 0;
+  overflow: visible !important;
+  align-items: start;
+}
+
+body.page-mode .side {
+  position: sticky;
+  top: 90px;
+  max-height: calc(100vh - 110px);
+  overflow-y: auto;
+}
+
+body.page-mode .content,
+body.page-mode .content > .main-panel {
+  height: auto !important;
+  min-height: calc(100vh - 120px);
+  overflow: visible !important;
+}
+
+body.page-mode .view.active {
+  height: auto !important;
+  min-height: calc(100vh - 160px);
+  overflow: visible !important;
+  padding: 4px 4px 170px;
+}
+
+body.page-mode #assistant.view {
+  display: none !important;
+}
+
+body.assistant-mode {
+  overflow: hidden;
+}
+
+body.assistant-mode .app {
+  height: 100vh;
+  overflow: hidden;
+}
