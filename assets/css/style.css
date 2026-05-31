@@ -1450,16 +1450,25 @@ body.assistant-mode .assistant-right {
 
 @media (min-width: 1051px) {
 body.assistant-mode .composer {
-    width: min(1040px, calc(100vw - 680px)) !important;
-    left: calc(296px + ((100vw - 680px) / 2)) !important;
-    right: auto !important;
-    transform: translateX(-50%);
+    width: auto !important;
+    max-width: none !important;
+    left: clamp(252px, 19vw, 370px) !important;
+    right: 24px !important;
+    transform: none;
   }
 }
 
-/* ===== Header blends with page background ===== */
+/* ===== Header stays fixed to the page without a black strip ===== */
 .topbar {
-  background: transparent !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 90;
+  background:
+    radial-gradient(circle at 28% -8%, rgba(0, 128, 255, .18), transparent 34%),
+    radial-gradient(circle at 88% 14%, rgba(0, 217, 255, .10), transparent 28%),
+    linear-gradient(135deg, #02070d 0%, #010409 48%, #000 100%) !important;
+  margin-bottom: 18px !important;
+  padding-bottom: 10px;
 }
 
 @media (max-width: 1050px) {
