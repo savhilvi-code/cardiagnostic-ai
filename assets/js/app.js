@@ -127,6 +127,8 @@ const SPLINE_SCENE_URL = "";
       $$(".nav button, .view").forEach((node) => node.classList.remove("active"));
       $(`.nav button[data-view="${viewId}"]`).classList.add("active");
       $(`#${viewId}`).classList.add("active");
+      document.body.classList.toggle("assistant-mode", viewId === "assistant");
+      document.body.classList.toggle("page-mode", viewId !== "assistant");
       if (window.innerWidth < 1050) window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
@@ -369,6 +371,7 @@ const SPLINE_SCENE_URL = "";
     }
 
     document.addEventListener("DOMContentLoaded", async () => {
+      document.body.classList.add("assistant-mode");
       injectIcons();
       await renderLists();
       connectSpline();
