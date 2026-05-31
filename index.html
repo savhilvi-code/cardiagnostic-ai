@@ -197,8 +197,14 @@
             <div class="settings">
               <div class="card">
                 <h3>Профиль</h3>
-                <p><strong>Алексей Иванов</strong><br>alexey.ivanov@mail.ru</p>
-                <button class="btn blue" data-action="demo">Редактировать профиль</button>
+                <p>
+                  <strong id="profileName">Гость</strong><br>
+                  <span id="profileEmail">Войдите в аккаунт</span>
+                </p>
+                <div class="profile-actions">
+                  <button class="btn blue" id="authBtn" type="button">Войти / Регистрация</button>
+                  <button class="btn" id="logoutBtn" type="button" style="display:none;">Выйти</button>
+                </div>
               </div>
               <div class="card">
                 <h3>Подписка</h3>
@@ -241,7 +247,33 @@
     </div>
   </div>
 
+  <div class="auth-modal" id="authModal" aria-hidden="true">
+    <div class="auth-dialog" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+      <button class="auth-close" id="authCloseBtn" type="button" aria-label="Закрыть">×</button>
+      <h2 id="authTitle">Аккаунт PULS</h2>
+      <p>Войдите или зарегистрируйтесь по email, чтобы привязать историю, подписку и устройства.</p>
+      <form class="auth-form" id="authForm">
+        <label>
+          Email
+          <input id="authEmail" type="email" autocomplete="email" placeholder="you@example.com" required>
+        </label>
+        <label>
+          Пароль
+          <input id="authPassword" type="password" autocomplete="current-password" placeholder="Минимум 6 символов" required>
+        </label>
+        <div class="auth-actions">
+          <button class="btn blue" id="loginBtn" type="button">Вход</button>
+          <button class="btn" id="registerBtn" type="button">Регистрация</button>
+        </div>
+      </form>
+      <div class="auth-status" id="authStatus" role="status"></div>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/supabaseClient.js?v=20260531-22"></script>
+  <script src="assets/js/auth.js?v=20260531-22"></script>
   <script src="assets/js/app.js?v=20260531-19"></script>
 </body>
 </html>
