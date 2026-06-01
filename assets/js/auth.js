@@ -14,8 +14,14 @@ function getAuthElements() {
     name: document.getElementById("profileName"),
     profileEmail: document.getElementById("profileEmail"),
     authBtn: document.getElementById("authBtn"),
-    logoutBtn: document.getElementById("logoutBtn")
+    logoutBtn: document.getElementById("logoutBtn"),
+    deleteProfileBtn: document.getElementById("deleteProfileBtn")
   };
+}
+
+function publishAuthState(user) {
+  window.pulsCurrentUser = user || null;
+  window.dispatchEvent(new CustomEvent("puls-auth-change", { detail: { user: window.pulsCurrentUser } }));
 }
 
 function setAuthStatus(message, isError = false) {
@@ -47,14 +53,16 @@ function closeAuthModal() {
 }
 
 async function updateProfileBlock() {
-  const { name, profileEmail, authBtn, logoutBtn } = getAuthElements();
+  const { name, profileEmail, authBtn, logoutBtn, deleteProfileBtn } = getAuthElements();
   if (!name || !profileEmail || !authBtn || !logoutBtn) return;
 
   if (!window.supabaseClient) {
+    publishAuthState(null);
     name.textContent = authText("profile.guest", "Гость");
     profileEmail.textContent = authText("profile.supabaseMissing", "Supabase не настроен");
     authBtn.style.display = "inline-flex";
     logoutBtn.style.display = "none";
+    if (deleteProfileBtn) deleteProfileBtn.style.display = "none";
     return;
   }
 
@@ -62,17 +70,21 @@ async function updateProfileBlock() {
   const user = error ? null : data.user;
 
   if (!user) {
+    publishAuthState(null);
     name.textContent = authText("profile.guest", "Гость");
     profileEmail.textContent = authText("profile.signIn", "Войдите в аккаунт");
     authBtn.style.display = "inline-flex";
     logoutBtn.style.display = "none";
+    if (deleteProfileBtn) deleteProfileBtn.style.display = "none";
     return;
   }
 
+  publishAuthState(user);
   name.textContent = user.user_metadata?.full_name || authText("profile.user", "Пользователь PULS");
   profileEmail.textContent = user.email || authText("profile.emailMissing", "Email не указан");
   authBtn.style.display = "none";
   logoutBtn.style.display = "inline-flex";
+  if (deleteProfileBtn) deleteProfileBtn.style.display = "inline-flex";
   await syncAuthUserProfile(user);
 }
 
@@ -181,12 +193,51 @@ async function loginUser(email, password) {
 async function logoutUser() {
   if (!window.supabaseClient) return;
   await window.supabaseClient.auth.signOut();
+  publishAuthState(null);
+  await updateProfileBlock();
+}
+
+async function deleteProfileUser() {
+  if (!window.supabaseClient) return;
+
+  const { data, error } = await window.supabaseClient.auth.getUser();
+  const user = error ? null : data.user;
+  if (!user?.email) {
+    setAuthStatus(authText("auth.signInToDelete", "Sign in before deleting profile."), true);
+    window.alert(authText("auth.signInToDelete", "Sign in before deleting profile."));
+    return;
+  }
+
+  const confirmation = window.prompt(authText("auth.deleteConfirmPrompt", "Type your email to confirm profile deletion."));
+  if (confirmation !== user.email) {
+    setAuthStatus(authText("auth.deleteCancelled", "Profile deletion cancelled."), true);
+    if (confirmation !== null) window.alert(authText("auth.deleteCancelled", "Profile deletion cancelled."));
+    return;
+  }
+
+  await window.supabaseClient.auth.updateUser({
+    data: {
+      deletion_requested: true,
+      deletion_requested_at: new Date().toISOString()
+    }
+  });
+
+  await window.supabaseClient
+    .from("users")
+    .delete()
+    .eq("auth_user_id", user.id);
+
+  setAuthStatus(authText("auth.deleteRequested", "Profile deletion request saved. Check your email if confirmation is required."));
+  window.alert(authText("auth.deleteRequested", "Profile deletion request saved. Check your email if confirmation is required."));
+  await window.supabaseClient.auth.signOut();
+  publishAuthState(null);
   await updateProfileBlock();
 }
 
 window.registerUser = registerUser;
 window.loginUser = loginUser;
 window.logoutUser = logoutUser;
+window.deleteProfileUser = deleteProfileUser;
 window.updateProfileBlock = updateProfileBlock;
 window.openAuthModal = openAuthModal;
 window.closeAuthModal = closeAuthModal;
@@ -197,6 +248,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("authBtn")?.addEventListener("click", openAuthModal);
   document.getElementById("authCloseBtn")?.addEventListener("click", closeAuthModal);
   document.getElementById("logoutBtn")?.addEventListener("click", logoutUser);
+  document.getElementById("deleteProfileBtn")?.addEventListener("click", deleteProfileUser);
 
   document.getElementById("authModal")?.addEventListener("click", (event) => {
     if (event.target.id === "authModal") closeAuthModal();

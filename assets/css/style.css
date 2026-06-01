@@ -972,6 +972,28 @@ html { scroll-behavior: smooth; }
       outline: none;
     }
 
+    .settings-select:disabled,
+    .auth-required.locked {
+      cursor: not-allowed;
+      opacity: .52;
+      filter: grayscale(.25);
+    }
+
+    .auth-required.locked.car-photo-upload {
+      pointer-events: auto;
+    }
+
+    .danger-btn {
+      border-color: rgba(255, 76, 76, .55);
+      color: #ffdede;
+      background: rgba(255, 76, 76, .08);
+    }
+
+    .danger-btn:hover {
+      border-color: var(--danger);
+      background: rgba(255, 76, 76, .16);
+    }
+
     .toggle-switch {
       width: 58px;
       height: 32px;

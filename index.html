@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CarDiagnostic AI</title>
   <meta name="description" content="PULS для диагностики автомобиля, сервисной истории, ошибок DTC и мануалов.">
-  <link rel="stylesheet" href="assets/css/style.css?v=20260602-02">
+  <link rel="stylesheet" href="assets/css/style.css?v=20260602-03">
 </head>
 <body>
   <div class="app" id="app">
@@ -127,7 +127,7 @@
                       <span>VIN:</span><b data-i18n="car.vinValue">Укажите VIN</b>
                     </div>
                   </div>
-                  <label class="car-photo-upload">
+                  <label class="car-photo-upload auth-required">
                     <input id="carPhotoInput" type="file" accept="image/*">
                     <span class="car-photo-label" data-i18n="car.photoUpload">Attach car photo</span>
                   </label>
@@ -210,40 +210,41 @@
                 <div class="profile-actions">
                   <button class="btn blue" id="authBtn" type="button" data-i18n="auth.open">Войти / Регистрация</button>
                   <button class="btn" id="logoutBtn" type="button" style="display:none;" data-i18n="auth.logout">Выйти</button>
+                  <button class="btn danger-btn auth-required" id="deleteProfileBtn" type="button" style="display:none;" data-i18n="auth.deleteProfile">Delete profile</button>
                 </div>
               </div>
               <div class="card">
                 <h3 data-i18n="settings.subscription">Подписка</h3>
                 <p class="ok"><strong data-i18n="subscription.freeStatus">Статус: Free — 5 запросов</strong></p>
                 <p data-i18n="subscription.plan">Подписка PULS Pro: 100 запросов за $15.</p>
-                <button class="btn blue" type="button" data-action="pay" data-i18n="subscription.pay">Pay $15</button>
+                <button class="btn blue auth-required" type="button" data-action="pay" data-i18n="subscription.pay">Pay $15</button>
               </div>
               <div class="card">
                 <h3 data-i18n="settings.notifications">Уведомления</h3>
-                <div class="setting-line"><span data-i18n="notifications.service">Напоминания о ТО</span><button class="toggle-switch active" type="button" data-toggle="notification" aria-pressed="true"><span></span></button></div>
-                <div class="setting-line"><span data-i18n="notifications.diagnostics">Диагностика и ошибки</span><button class="toggle-switch active" type="button" data-toggle="notification" aria-pressed="true"><span></span></button></div>
-                <div class="setting-line"><span data-i18n="notifications.content">Новые видео и мануалы</span><button class="toggle-switch" type="button" data-toggle="notification" aria-pressed="false"><span></span></button></div>
-                <div class="setting-line"><span data-i18n="notifications.updates">Акции и обновления</span><button class="toggle-switch active" type="button" data-toggle="notification" aria-pressed="true"><span></span></button></div>
+                <div class="setting-line"><span data-i18n="notifications.service">Напоминания о ТО</span><button class="toggle-switch active auth-required" type="button" data-toggle="notification" aria-pressed="true"><span></span></button></div>
+                <div class="setting-line"><span data-i18n="notifications.diagnostics">Диагностика и ошибки</span><button class="toggle-switch active auth-required" type="button" data-toggle="notification" aria-pressed="true"><span></span></button></div>
+                <div class="setting-line"><span data-i18n="notifications.content">Новые видео и мануалы</span><button class="toggle-switch auth-required" type="button" data-toggle="notification" aria-pressed="false"><span></span></button></div>
+                <div class="setting-line"><span data-i18n="notifications.updates">Акции и обновления</span><button class="toggle-switch active auth-required" type="button" data-toggle="notification" aria-pressed="true"><span></span></button></div>
               </div>
               <div class="card">
                 <h3 data-i18n="settings.languageRegion">Язык и регион</h3>
                 <div class="setting-line language-setting">
                   <span data-i18n="settings.appLanguage">Язык приложения</span>
-                  <div class="language-toggle" role="group" aria-label="Language">
-                    <button class="language-btn" type="button" data-lang="en">English</button>
-                    <button class="language-btn" type="button" data-lang="ru">Русский</button>
-                  </div>
+                  <select class="settings-select" id="languageSelect" aria-label="Language">
+                    <option value="en">English</option>
+                    <option value="ru">Русский</option>
+                  </select>
                 </div>
                 <div class="setting-line language-setting">
                   <span data-i18n="settings.units">Единицы измерения</span>
-                  <div class="language-toggle" role="group" aria-label="Units">
-                    <button class="language-btn unit-btn active" type="button" data-units="metric" data-i18n="settings.metric">km, °C</button>
-                    <button class="language-btn unit-btn" type="button" data-units="imperial" data-i18n="settings.imperial">mi, °F</button>
-                  </div>
+                  <select class="settings-select auth-required" id="unitsSelect" aria-label="Units">
+                    <option value="metric" data-i18n="settings.metric">km, °C</option>
+                    <option value="imperial" data-i18n="settings.imperial">mi, °F</option>
+                  </select>
                 </div>
                 <div class="setting-line language-setting">
                   <span data-i18n="settings.timezone">Часовой пояс</span>
-                  <select class="settings-select" id="timezoneSelect" aria-label="Time zone">
+                  <select class="settings-select auth-required" id="timezoneSelect" aria-label="Time zone">
                     <option value="UTC+3">UTC+3</option>
                     <option value="UTC+0">UTC+0</option>
                     <option value="UTC+1">UTC+1</option>
@@ -304,8 +305,8 @@
   <div class="toast" id="toast"></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/supabaseClient.js?v=20260531-22"></script>
-  <script src="assets/js/auth.js?v=20260602-02"></script>
-  <script src="assets/js/app.js?v=20260602-02"></script>
+  <script src="assets/js/auth.js?v=20260602-03"></script>
+  <script src="assets/js/app.js?v=20260602-03"></script>
 </body>
 </html>
 

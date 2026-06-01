@@ -186,6 +186,7 @@ const SPLINE_SCENE_URL = "";
         "profile.emailMissing": "Email is missing",
         "auth.open": "Sign in / Register",
         "auth.logout": "Log out",
+        "auth.deleteProfile": "Delete profile",
         "auth.title": "PULS account",
         "auth.description": "Sign in or register by email to connect your history, subscription, and devices.",
         "auth.newUserHint": "New user? Enter your email and password, then click Register.",
@@ -199,6 +200,11 @@ const SPLINE_SCENE_URL = "";
         "auth.enterPassword": "Enter password.",
         "auth.shortPassword": "Password must be at least 6 characters.",
         "auth.registerSuccess": "Registration successful. Check your email to confirm.",
+        "auth.signInToDelete": "Sign in before deleting profile.",
+        "auth.deleteConfirmPrompt": "Type your email to confirm profile deletion.",
+        "auth.deleteCancelled": "Profile deletion cancelled.",
+        "auth.deleteRequested": "Profile deletion request saved. Check your email if confirmation is required.",
+        "auth.lockedAction": "Sign in or register to use this setting.",
         "toast.dtc": "Code diagnostics section opened.",
         "toast.voice": "Voice input can be connected to Web Speech API or n8n.",
         "toast.demo": "This is a demo button. It can be connected to n8n, uploads, or a materials database.",
@@ -341,6 +347,7 @@ const SPLINE_SCENE_URL = "";
         "profile.emailMissing": "Email не указан",
         "auth.open": "Войти / Регистрация",
         "auth.logout": "Выйти",
+        "auth.deleteProfile": "Удалить профиль",
         "auth.title": "Аккаунт PULS",
         "auth.description": "Войдите или зарегистрируйтесь по email, чтобы привязать историю, подписку и устройства.",
         "auth.newUserHint": "Если вы новый пользователь, напишите свою почту и пароль, затем нажмите «Регистрация».",
@@ -354,6 +361,11 @@ const SPLINE_SCENE_URL = "";
         "auth.enterPassword": "Введите пароль.",
         "auth.shortPassword": "Пароль должен быть минимум 6 символов.",
         "auth.registerSuccess": "Регистрация успешна. Проверьте почту для подтверждения.",
+        "auth.signInToDelete": "Войдите в аккаунт перед удалением профиля.",
+        "auth.deleteConfirmPrompt": "Введите свою почту, чтобы подтвердить удаление профиля.",
+        "auth.deleteCancelled": "Удаление профиля отменено.",
+        "auth.deleteRequested": "Запрос на удаление профиля сохранен. Проверьте почту, если требуется подтверждение.",
+        "auth.lockedAction": "Войдите или зарегистрируйтесь, чтобы использовать эту настройку.",
         "toast.dtc": "Открыт раздел диагностики по коду.",
         "toast.voice": "Голосовой ввод можно подключить к Web Speech API или n8n.",
         "toast.demo": "Это демо-кнопка. Ее можно подключить к n8n, загрузке файлов или базе материалов.",
@@ -399,10 +411,10 @@ const SPLINE_SCENE_URL = "";
       $$("[data-i18n-aria-label]").forEach((node) => {
         node.setAttribute("aria-label", t(node.dataset.i18nAriaLabel));
       });
-      $$(".language-btn[data-lang]").forEach((button) => {
-        button.classList.toggle("active", button.dataset.lang === lang);
-      });
+      const languageSelect = $("#languageSelect");
+      if (languageSelect) languageSelect.value = lang;
       window.updateProfileBlock?.();
+      applyAuthLockedState();
     }
 
     function setLanguage(lang) {
@@ -427,6 +439,28 @@ const SPLINE_SCENE_URL = "";
       const url = URL.createObjectURL(file);
       box.style.backgroundImage = `linear-gradient(rgba(2, 13, 22, .22), rgba(2, 13, 22, .72)), url("${url}")`;
       box.classList.add("has-photo");
+    }
+
+    function isSignedIn() {
+      return Boolean(window.pulsCurrentUser);
+    }
+
+    function applyAuthLockedState() {
+      const signedIn = isSignedIn();
+      $$(".auth-required").forEach((node) => {
+        node.classList.toggle("locked", !signedIn);
+        if ("disabled" in node) node.disabled = !signedIn;
+        const input = node.matches(".car-photo-upload") ? node.querySelector("input") : null;
+        if (input) input.disabled = !signedIn;
+        node.setAttribute("aria-disabled", String(!signedIn));
+      });
+    }
+
+    function guardAuthAction(target) {
+      if (!target.closest(".auth-required") || isSignedIn()) return false;
+      toast(t("auth.lockedAction"));
+      window.openAuthModal?.();
+      return true;
     }
 
     function injectIcons() {
@@ -883,9 +917,19 @@ const SPLINE_SCENE_URL = "";
       $("#carPhotoInput")?.addEventListener("change", (event) => {
         updateCarPhoto(event.target.files?.[0]);
       });
+      $("#languageSelect")?.addEventListener("change", (event) => {
+        setLanguage(event.target.value);
+      });
+      window.addEventListener("puls-auth-change", applyAuthLockedState);
+      applyAuthLockedState();
       window.addEventListener("resize", syncAssistantMessageHeight);
       syncAssistantMessageHeight();
       document.addEventListener("click", (event) => {
+        if (guardAuthAction(event.target)) {
+          event.preventDefault();
+          return;
+        }
+
         const composerMenuButton = event.target.closest("#composerMenuBtn");
         if (composerMenuButton) {
           event.stopPropagation();
@@ -898,18 +942,6 @@ const SPLINE_SCENE_URL = "";
         const viewButton = event.target.closest(".nav button[data-view]");
         if (viewButton) {
           showView(viewButton.dataset.view);
-          return;
-        }
-
-        const languageButton = event.target.closest(".language-btn[data-lang]");
-        if (languageButton) {
-          setLanguage(languageButton.dataset.lang);
-          return;
-        }
-
-        const unitButton = event.target.closest(".unit-btn[data-units]");
-        if (unitButton) {
-          $$(".unit-btn").forEach((button) => button.classList.toggle("active", button === unitButton));
           return;
         }
 
