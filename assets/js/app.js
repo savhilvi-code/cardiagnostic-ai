@@ -77,6 +77,7 @@ const SPLINE_SCENE_URL = "";
         "sound.link": "Record problem sound",
         "sound.text": "Speak or play the noise and I will help identify it",
         "assistant.subtitle": "Ask any question about your car",
+        "assistant.demoQuestion": "I hear a humming noise under the hood during acceleration, especially around 2000-3000 rpm.",
         "assistant.demoAnswer": "This looks like a problem with auxiliary engine components. Possible causes: alternator bearing wear, belt tensioner pulley, water pump, or drive belt.",
         "assistant.demoActions": "What you can do:",
         "assistant.demoChecks": "• Check the belt and pulleys<br>• Listen with a stethoscope or long screwdriver<br>• Check pulley and bearing play",
@@ -107,10 +108,32 @@ const SPLINE_SCENE_URL = "";
         "car.quickElectrical": "Wiring diagrams",
         "car.quickFuses": "Fuses",
         "car.specTitle": "Technical specifications",
+        "car.photoUpload": "Attach car photo",
+        "spec.displacement": "Engine displacement:",
+        "spec.note": "These fields are filled automatically from vehicle data after the user enters the car information.",
+        "spec.displacementValue": "Auto-filled after car selection",
+        "spec.power": "Power:",
+        "spec.powerValue": "Auto-filled after car selection",
+        "spec.torque": "Torque:",
+        "spec.torqueValue": "Auto-filled after car selection",
+        "spec.engineType": "Engine type:",
+        "spec.engineTypeValue": "Auto-filled after car selection",
+        "spec.cylinders": "Cylinders:",
+        "spec.cylindersValue": "Auto-filled after car selection",
+        "spec.emissions": "Emissions class:",
+        "spec.emissionsValue": "Auto-filled after car selection",
+        "spec.tank": "Fuel tank:",
+        "spec.tankValue": "Auto-filled after car selection",
         "journal.title": "Request log",
         "journal.subtitle": "History of questions and received solutions",
+        "journal.help": "This page stores completed cases only: PULS asked a follow-up, the user confirmed the problem was solved, and the final solution was saved.",
+        "journal.empty": "No completed cases yet. A case appears here after the user confirms the issue was solved.",
+        "journal.sampleQuestion": "Humming under the hood at 2000-3000 rpm",
+        "journal.sampleSolution": "Solved: the alternator belt tensioner pulley was worn. The user replaced the pulley and belt, then confirmed the noise disappeared.",
         "history.title": "Request history",
         "history.subtitle": "Your recent PULS requests",
+        "history.help": "This page keeps all of the user's PULS questions. New users start with an empty history.",
+        "history.empty": "No request history yet. New PULS questions will appear here after the user signs in and sends them.",
         "dtc.title": "Errors (DTC)",
         "dtc.subtitle": "Diagnostic trouble codes for your car",
         "dtc.clear": "Clear all",
@@ -121,8 +144,10 @@ const SPLINE_SCENE_URL = "";
         "service.add": "Add record",
         "manuals.title": "Manuals and guides",
         "manuals.subtitle": "Detailed service guides and recommendations",
+        "manuals.help": "Manuals collected from search requests, repair cases, and relevant product documentation for the selected car will appear here.",
         "video.title": "Video",
         "video.subtitle": "History of all videos provided in the chat",
+        "video.help": "All videos that appeared in PULS answers are saved here so the user can find them again later.",
         "settings.title": "Settings",
         "settings.subtitle": "Manage your account, subscription, and app",
         "settings.profile": "Profile",
@@ -132,9 +157,12 @@ const SPLINE_SCENE_URL = "";
         "settings.appLanguage": "App language",
         "settings.units": "Units",
         "settings.unitsValue": "km, °C",
+        "settings.metric": "km, °C",
+        "settings.imperial": "mi, °F",
         "settings.timezone": "Time zone",
         "subscription.freeStatus": "Status: Free — 5 requests",
         "subscription.plan": "PULS Pro subscription: 100 requests for $15.",
+        "subscription.pay": "Pay $15",
         "notifications.service": "Service reminders",
         "notifications.diagnostics": "Diagnostics and errors",
         "notifications.content": "New videos and manuals",
@@ -142,6 +170,7 @@ const SPLINE_SCENE_URL = "";
         "common.on": "On",
         "common.off": "Off",
         "common.filter": "Filter",
+        "common.noMatches": "Nothing found for this search.",
         "common.close": "Close",
         "search.requests": "Search requests",
         "search.manuals": "Search manuals",
@@ -172,7 +201,8 @@ const SPLINE_SCENE_URL = "";
         "auth.registerSuccess": "Registration successful. Check your email to confirm.",
         "toast.dtc": "Code diagnostics section opened.",
         "toast.voice": "Voice input can be connected to Web Speech API or n8n.",
-        "toast.demo": "This is a demo button. It can be connected to n8n, uploads, or a materials database."
+        "toast.demo": "This is a demo button. It can be connected to n8n, uploads, or a materials database.",
+        "toast.pay": "Payment will be connected to your checkout provider."
       },
       ru: {
         "brand.subtitle": "Ваш AI-помощник для диагностики автомобиля",
@@ -202,6 +232,7 @@ const SPLINE_SCENE_URL = "";
         "sound.link": "Запись звука неполадки",
         "sound.text": "Говорите или воспроизведите шум — я распознаю и помогу",
         "assistant.subtitle": "Задайте любой вопрос о вашем автомобиле",
+        "assistant.demoQuestion": "У меня при разгоне появляется гул под капотом, особенно на 2000–3000 оборотах.",
         "assistant.demoAnswer": "Похоже на проблему со вспомогательными узлами двигателя. Вероятные причины: износ подшипника генератора, ролик натяжителя ремня, помпа или приводной ремень.",
         "assistant.demoActions": "Что можно сделать:",
         "assistant.demoChecks": "• Проверьте состояние ремня и роликов<br>• Послушайте шум стетоскопом или длинной отверткой<br>• Проверьте люфт роликов и подшипников",
@@ -232,10 +263,32 @@ const SPLINE_SCENE_URL = "";
         "car.quickElectrical": "Электросхемы",
         "car.quickFuses": "Предохранители",
         "car.specTitle": "Технические характеристики",
+        "car.photoUpload": "Прикрепить фото авто",
+        "spec.displacement": "Объем двигателя:",
+        "spec.note": "Эти поля заполняются автоматически по данным автомобиля после того, как пользователь укажет машину.",
+        "spec.displacementValue": "Заполнится автоматически после выбора авто",
+        "spec.power": "Мощность:",
+        "spec.powerValue": "Заполнится автоматически после выбора авто",
+        "spec.torque": "Крутящий момент:",
+        "spec.torqueValue": "Заполнится автоматически после выбора авто",
+        "spec.engineType": "Тип двигателя:",
+        "spec.engineTypeValue": "Заполнится автоматически после выбора авто",
+        "spec.cylinders": "Количество цилиндров:",
+        "spec.cylindersValue": "Заполнится автоматически после выбора авто",
+        "spec.emissions": "Экологический класс:",
+        "spec.emissionsValue": "Заполнится автоматически после выбора авто",
+        "spec.tank": "Объем бака:",
+        "spec.tankValue": "Заполнится автоматически после выбора авто",
         "journal.title": "Журнал запросов",
         "journal.subtitle": "История обращений и полученных решений",
+        "journal.help": "Здесь хранятся только завершенные кейсы: PULS напомнил о проблеме, пользователь подтвердил, что она решена, и финальное решение сохранено.",
+        "journal.empty": "Завершенных кейсов пока нет. Кейс появится здесь после подтверждения решения пользователем.",
+        "journal.sampleQuestion": "Гул под капотом на 2000–3000 оборотах",
+        "journal.sampleSolution": "Решено: износился ролик натяжителя ремня генератора. Пользователь заменил ролик и ремень, затем подтвердил, что гул исчез.",
         "history.title": "История запросов",
         "history.subtitle": "Ваши недавние запросы и обращения к PULSу",
+        "history.help": "Здесь хранится вся история вопросов пользователя к PULS. У нового пользователя история пустая.",
+        "history.empty": "Истории запросов пока нет. Новые вопросы появятся здесь после входа и отправки запроса.",
         "dtc.title": "Ошибки (DTC)",
         "dtc.subtitle": "Диагностические коды неисправностей вашего автомобиля",
         "dtc.clear": "Удалить все",
@@ -246,8 +299,10 @@ const SPLINE_SCENE_URL = "";
         "service.add": "Добавить запись",
         "manuals.title": "Мануалы и руководства",
         "manuals.subtitle": "Подробные руководства и рекомендации по обслуживанию",
+        "manuals.help": "Здесь собираются общие мануалы по машине, материалы из поисковых запросов, ремонтные инструкции и актуальная продукция для выбранного авто.",
         "video.title": "Видео",
         "video.subtitle": "История всех видеороликов, предоставленных в переписке",
+        "video.help": "Здесь сохраняются все видео, которые появлялись в ответах PULS, чтобы пользователь мог быстро найти их снова.",
         "settings.title": "Настройки",
         "settings.subtitle": "Управляйте аккаунтом, подпиской и приложением",
         "settings.profile": "Профиль",
@@ -257,9 +312,12 @@ const SPLINE_SCENE_URL = "";
         "settings.appLanguage": "Язык приложения",
         "settings.units": "Единицы измерения",
         "settings.unitsValue": "км, °C",
+        "settings.metric": "км, °C",
+        "settings.imperial": "мили, °F",
         "settings.timezone": "Часовой пояс",
         "subscription.freeStatus": "Статус: Free — 5 запросов",
         "subscription.plan": "Подписка PULS Pro: 100 запросов за $15.",
+        "subscription.pay": "Оплатить $15",
         "notifications.service": "Напоминания о ТО",
         "notifications.diagnostics": "Диагностика и ошибки",
         "notifications.content": "Новые видео и мануалы",
@@ -267,6 +325,7 @@ const SPLINE_SCENE_URL = "";
         "common.on": "Вкл",
         "common.off": "Выкл",
         "common.filter": "Фильтр",
+        "common.noMatches": "По этому поиску ничего не найдено.",
         "common.close": "Закрыть",
         "search.requests": "Поиск по запросам",
         "search.manuals": "Поиск по мануалам",
@@ -297,7 +356,8 @@ const SPLINE_SCENE_URL = "";
         "auth.registerSuccess": "Регистрация успешна. Проверьте почту для подтверждения.",
         "toast.dtc": "Открыт раздел диагностики по коду.",
         "toast.voice": "Голосовой ввод можно подключить к Web Speech API или n8n.",
-        "toast.demo": "Это демо-кнопка. Ее можно подключить к n8n, загрузке файлов или базе материалов."
+        "toast.demo": "Это демо-кнопка. Ее можно подключить к n8n, загрузке файлов или базе материалов.",
+        "toast.pay": "Оплату можно подключить к вашему платежному провайдеру."
       }
     };
 
@@ -339,7 +399,7 @@ const SPLINE_SCENE_URL = "";
       $$("[data-i18n-aria-label]").forEach((node) => {
         node.setAttribute("aria-label", t(node.dataset.i18nAriaLabel));
       });
-      $$(".language-btn").forEach((button) => {
+      $$(".language-btn[data-lang]").forEach((button) => {
         button.classList.toggle("active", button.dataset.lang === lang);
       });
       window.updateProfileBlock?.();
@@ -355,6 +415,20 @@ const SPLINE_SCENE_URL = "";
       renderLists();
     }
 
+    function toggleHelp(name) {
+      const help = document.getElementById(`${name}Help`);
+      if (!help) return;
+      help.classList.toggle("show");
+    }
+
+    function updateCarPhoto(file) {
+      const box = $(".car-photo-upload");
+      if (!box || !file) return;
+      const url = URL.createObjectURL(file);
+      box.style.backgroundImage = `linear-gradient(rgba(2, 13, 22, .22), rgba(2, 13, 22, .72)), url("${url}")`;
+      box.classList.add("has-photo");
+    }
+
     function injectIcons() {
       $$("[data-icon]").forEach((node) => {
         const key = node.dataset.icon;
@@ -364,16 +438,21 @@ const SPLINE_SCENE_URL = "";
       });
     }
 
+    function getSearchValue(id) {
+      return ($(id)?.value || "").trim().toLowerCase();
+    }
+
+    function matchesSearch(values, query) {
+      if (!query) return true;
+      return values.some((value) => String(value || "").toLowerCase().includes(query));
+    }
+
+    function emptyState(message) {
+      return `<div class="empty-state">${escapeHtml(message)}</div>`;
+    }
+
     async function renderLists() {
       const english = getLanguage() === "en";
-      const requestRows = english ? [
-        ["Humming under the hood at 2000-3000 rpm", "Possible causes: alternator bearing wear, belt tensioner, water pump, and other auxiliary components.", "Today, 10:42", "Solved"],
-        ["Check Engine light is on", "Code P0420 — catalyst efficiency below threshold. Exhaust system diagnostics recommended.", "Yesterday, 18:15", "Solved"],
-        ["Smoke from the exhaust pipe", "Possible causes: valve stem seals, turbocharger, or EGR system.", "May 12, 14:30", "Solved"],
-        ["Battery drains quickly", "Check the alternator, parasitic draw, and battery condition. Load testing is recommended.", "May 8, 09:12", "Solved"],
-        ["Jerks when shifting gears", "Check CVT fluid, CVT adaptation, belt wear, or pulley condition.", "May 5, 16:45", "Solved"],
-        ["Knock in front right suspension", "Check stabilizer link, strut mount bearing, and ball joint.", "May 2, 11:20", "Solved"]
-      ] : requests;
       const serviceRows = english ? [
         ["Engine oil and oil filter replacement", "Oil: 5W-30 Nissan Genuine Oil. Filter: original Nissan", "Today, 10:30", "98,500 km", "violet", "🛢"],
         ["Timing belt kit replacement", "Timing belt, rollers, tensioner, water pump. Manufacturer: Gates", "March 24, 2024", "90,120 km", "green", "⚙"],
@@ -390,40 +469,52 @@ const SPLINE_SCENE_URL = "";
       const manualRows = english ? ["Service manual", "Car chemicals manual", "Wiper manual", "Consumables guide", "Brake system", "Owner's manual", "Electrical system", "Cooling system", "Suspension and steering"] : manuals;
       const videoRows = english ? ["Air filter replacement Select car", "Engine oil and filter replacement Select engine", "Front brake pad replacement", "Wiper blade replacement", "Timing chain replacement on Nissan X-Trail Select engine", "OBD2 error diagnostics", "Cabin filter replacement", "How to remove and replace a battery"] : videos;
       const selectCar = t("hero.car");
-      const demoLabel = english ? "Demo" : "Демо";
-      const savedLabel = english ? "Saved" : "Сохранено";
       const textRequestLabel = english ? "Text request" : "Текстовый запрос";
       const voiceRequestLabel = english ? "Voice request" : "Голосовой запрос";
-      const codeErrorLabel = english ? "Error code" : "Код ошибки";
       const completedLabel = english ? "Completed" : "Выполнено";
       const systemLabel = english ? "System:" : "Система:";
       const possibleCausesLabel = english ? "Possible causes:" : "Возможные причины:";
       const actionsLabel = english ? "Recommended actions:" : "Рекомендуемые действия:";
 
       const savedHistory = await loadUserHistory();
-      const savedRows = savedHistory.map((item) => [item.question, item.answer, item.date, savedLabel, item.vehicle, item.type]);
-      const baseRows = requestRows.map((item) => [item[0], item[1], item[2], item[3], selectCar, demoLabel]);
-      const allRows = savedRows.concat(baseRows);
+      const historyRows = savedHistory.map((item) => ({
+        question: item.question,
+        answer: item.answer,
+        date: item.date,
+        vehicle: item.vehicle || `${selectCar} • ${t("hero.engineValue")} • ${t("hero.driveValue")}`,
+        type: item.type || textRequestLabel
+      }));
+      const closedCases = [{
+        question: t("journal.sampleQuestion"),
+        answer: t("journal.sampleSolution"),
+        date: english ? "Example" : "Пример",
+        vehicle: selectCar,
+        status: completedLabel
+      }];
 
-      $("#journalList").innerHTML = allRows.map((item, index) => `
+      const journalQuery = getSearchValue("#journalSearch");
+      const visibleCases = closedCases.filter((item) => matchesSearch([item.question, item.answer, item.vehicle, item.status], journalQuery));
+      $("#journalList").innerHTML = visibleCases.length ? visibleCases.map((item, index) => `
         <article class="row ${index === 0 ? "featured" : ""}">
           <div class="thumb" aria-hidden="true"></div>
           <div>
-            <h3>${escapeHtml(item[0])}</h3>
-            <span class="tag">${escapeHtml(item[4] || selectCar)}</span>
-            <p>${escapeHtml(item[1]).slice(0, 220)}${String(item[1]).length > 220 ? "..." : ""}</p>
+            <h3>${escapeHtml(item.question)}</h3>
+            <span class="tag">${escapeHtml(item.vehicle)}</span>
+            <p>${escapeHtml(item.answer)}</p>
           </div>
-          <div><p>${escapeHtml(item[2])}</p><p class="ok">${escapeHtml(item[3])} ✓</p></div>
+          <div><p>${escapeHtml(item.date)}</p><p class="ok">${escapeHtml(item.status)} ✓</p></div>
         </article>
-      `).join("");
+      `).join("") : emptyState(journalQuery ? t("common.noMatches") : t("journal.empty"));
 
-      $("#historyList").innerHTML = allRows.concat([[english ? "P0171 system too lean" : "Ошибка P0171 слишком бедная смесь", `${selectCar} • ${t("hero.engineValue")} • ${t("hero.fuelValue")}`, english ? "Apr 28, 20:33" : "28 апр., 20:33", codeErrorLabel, selectCar, codeErrorLabel]]).map((item, index) => `
+      const historyQuery = getSearchValue("#historySearch");
+      const visibleHistory = historyRows.filter((item) => matchesSearch([item.question, item.answer, item.vehicle, item.type, item.date], historyQuery));
+      $("#historyList").innerHTML = visibleHistory.length ? visibleHistory.map((item) => `
         <article class="row" style="grid-template-columns:64px 1fr 150px">
-          <div class="square ${item[5] === voiceRequestLabel ? "violet" : ""}">${item[5] === voiceRequestLabel ? "🎙" : "⌨"}</div>
-          <div><h3>${escapeHtml(item[0])}</h3><p>${escapeHtml(item[4] || `${selectCar} • ${t("hero.engineValue")} • ${t("hero.driveValue")}`)}</p></div>
-          <div><p>${escapeHtml(item[2])}</p><span class="tag">${escapeHtml(item[5] || item[3] || textRequestLabel)}</span></div>
+          <div class="square ${item.type === voiceRequestLabel ? "violet" : ""}">${item.type === voiceRequestLabel ? "🎙" : "⌨"}</div>
+          <div><h3>${escapeHtml(item.question)}</h3><p>${escapeHtml(item.vehicle)}</p></div>
+          <div><p>${escapeHtml(item.date)}</p><span class="tag">${escapeHtml(item.type)}</span></div>
         </article>
-      `).join("");
+      `).join("") : emptyState(historyQuery ? t("common.noMatches") : t("history.empty"));
 
       $("#serviceList").innerHTML = serviceRows.map((item) => `
         <article class="service">
@@ -447,7 +538,11 @@ const SPLINE_SCENE_URL = "";
         </article>
       `).join("");
 
-      $("#manualList").innerHTML = manualRows.map((title, index) => `
+      const manualQuery = getSearchValue("#manualSearch");
+      const visibleManuals = manualRows
+        .map((title, index) => ({ title, index }))
+        .filter((item) => matchesSearch([item.title], manualQuery));
+      $("#manualList").innerHTML = visibleManuals.length ? visibleManuals.map(({ title, index }) => `
         <article class="manual">
           <h3>${title}</h3>
           <div class="manual-pic" aria-hidden="true"></div>
@@ -455,15 +550,19 @@ const SPLINE_SCENE_URL = "";
           <p>${english ? `Materials adapted for ${selectCar}.` : `Материалы адаптированы для ${selectCar}.`}</p>
           <button class="btn blue" data-action="demo">${english ? "Open" : "Открыть"}</button>
         </article>
-      `).join("");
+      `).join("") : emptyState(t("common.noMatches"));
 
-      $("#videoList").innerHTML = videoRows.map((title, index) => `
+      const videoQuery = getSearchValue("#videoSearch");
+      const visibleVideos = videoRows
+        .map((title, index) => ({ title, index }))
+        .filter((item) => matchesSearch([item.title], videoQuery));
+      $("#videoList").innerHTML = visibleVideos.length ? visibleVideos.map(({ title, index }) => `
         <article class="row">
           <div class="thumb" aria-hidden="true"></div>
           <div><h3>${title}</h3><p>${english ? `Step-by-step service guide for ${selectCar}.` : `Пошаговая инструкция по обслуживанию ${selectCar}.`}</p></div>
           <div><p>${index < 2 ? (english ? "Today" : "Сегодня") : (english ? "May 2024" : "Май 2024")}</p><span class="tag">${index % 3 === 0 ? (english ? "Service" : "Обслуживание") : index % 3 === 1 ? t("hero.engine") : (english ? "Diagnostics" : "Диагностика")}</span></div>
         </article>
-      `).join("");
+      `).join("") : emptyState(t("common.noMatches"));
     }
 
     function showView(viewId) {
@@ -487,7 +586,7 @@ const SPLINE_SCENE_URL = "";
     function appendMessage(text, isUser) {
       const div = document.createElement("div");
       div.className = `bubble ${isUser ? "user" : ""}`;
-      div.innerHTML = `${linkifyText(text)} <small>${new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</small>`;
+      div.innerHTML = `${linkifyText(text)} <small>${new Date().toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" })}</small>`;
       const messagesBox = $("#messages");
       messagesBox.appendChild(div);
       scrollMessagesToBottom();
@@ -563,6 +662,10 @@ const SPLINE_SCENE_URL = "";
         .replace(/\n/g, "<br>");
     }
 
+    function currentLocale() {
+      return getLanguage() === "en" ? "en-US" : "ru-RU";
+    }
+
     function extractLinks(text) {
       const raw = String(text || "");
       const matches = raw.match(/https?:\/\/[^\s<>"']+/g) || [];
@@ -581,8 +684,8 @@ const SPLINE_SCENE_URL = "";
 
         links.push({
           url,
-          title: titleMatch ? titleMatch[1] : (isVideo ? "Видео по теме" : "Ссылка по теме"),
-          source: forumMatch ? forumMatch[1] : (hostMatch ? hostMatch[1] : "Материал"),
+          title: titleMatch ? titleMatch[1] : (isVideo ? (getLanguage() === "en" ? "Related video" : "Видео по теме") : (getLanguage() === "en" ? "Related link" : "Ссылка по теме")),
+          source: forumMatch ? forumMatch[1] : (hostMatch ? hostMatch[1] : (getLanguage() === "en" ? "Material" : "Материал")),
           isVideo
         });
       }
@@ -603,14 +706,14 @@ const SPLINE_SCENE_URL = "";
 
       box.innerHTML = links.slice(0, 10).map((item) => `
         <div class="topic-link-item">
-          <div class="topic-link-title">${item.isVideo ? "Видео: " : ""}${escapeHtml(item.title)}</div>
+          <div class="topic-link-title">${item.isVideo ? (getLanguage() === "en" ? "Video: " : "Видео: ") : ""}${escapeHtml(item.title)}</div>
           <div>${escapeHtml(item.source)}</div>
           <a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.url)}</a>
         </div>
       `).join("");
     }
 
-    const HISTORY_STORAGE_KEY = "puls_request_history_v1";
+    const HISTORY_STORAGE_KEY = "puls_request_history_v2";
     const USER_STORAGE_KEY = "puls_web_user_id_v1";
 
     function getWebUserId() {
@@ -648,7 +751,7 @@ const SPLINE_SCENE_URL = "";
       const now = new Date();
       history.unshift({
         ...item,
-        date: now.toLocaleDateString("ru-RU", { day: "2-digit", month: "short" }) + ", " + now.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })
+        date: now.toLocaleDateString(currentLocale(), { day: "2-digit", month: "short" }) + ", " + now.toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" })
       });
       localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history.slice(0, 50)));
       await renderLists();
@@ -673,7 +776,7 @@ const SPLINE_SCENE_URL = "";
         .split(/\n|•|-|\d+[.)]/)
         .map((line) => line.trim())
         .filter(Boolean);
-      const important = lines.filter((line) => /проверь|проверить|начни|датчик|ремень|ролик|генератор|масло|ошиб|obd|свеч|катуш|насос|давлен|egr|турбин|фильтр/i.test(line)).slice(0, 5);
+      const important = lines.filter((line) => /проверь|проверить|начни|датчик|ремень|ролик|генератор|масло|ошиб|check|inspect|start|sensor|belt|pulley|alternator|oil|error|obd|spark|coil|pump|pressure|egr|turbo|filter/i.test(line)).slice(0, 5);
       const finalLines = important.length ? important : lines.slice(0, 4);
       box.innerHTML = finalLines.length
         ? `<ul style="margin:8px 0 0; padding-left:20px; color:var(--soft); line-height:1.6">${finalLines.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ul>`
@@ -741,7 +844,7 @@ const SPLINE_SCENE_URL = "";
         }
 
         const answer = data.answer || data.reply || data.message || data.output || rawAnswer || JSON.stringify(data, null, 2);
-        loading.innerHTML = `<strong>PULS</strong><br>${linkifyText(answer)} <small>${new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</small>`;
+        loading.innerHTML = `<strong>PULS</strong><br>${linkifyText(answer)} <small>${new Date().toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" })}</small>`;
         updateKeyChecks(answer);
         updateTopicLinks(answer);
         updateQuota(data.quota);
@@ -750,7 +853,7 @@ const SPLINE_SCENE_URL = "";
         scrollMessagesToBottom();
       } catch (error) {
         const errorText = t("assistant.error");
-        loading.innerHTML = `<strong>PULS</strong><br>${errorText} <small>${new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</small>`;
+        loading.innerHTML = `<strong>PULS</strong><br>${errorText} <small>${new Date().toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" })}</small>`;
         updateKeyChecks(errorText);
         await saveHistoryItem(prompt, errorText);
         scrollMessagesToBottom();
@@ -773,6 +876,12 @@ const SPLINE_SCENE_URL = "";
       $("#sendBtn").addEventListener("click", sendPrompt);
       $("#promptInput").addEventListener("keydown", (event) => {
         if (event.key === "Enter") sendPrompt();
+      });
+      ["#journalSearch", "#historySearch", "#manualSearch", "#videoSearch"].forEach((selector) => {
+        $(selector)?.addEventListener("input", () => renderLists());
+      });
+      $("#carPhotoInput")?.addEventListener("change", (event) => {
+        updateCarPhoto(event.target.files?.[0]);
       });
       window.addEventListener("resize", syncAssistantMessageHeight);
       syncAssistantMessageHeight();
@@ -798,12 +907,36 @@ const SPLINE_SCENE_URL = "";
           return;
         }
 
+        const unitButton = event.target.closest(".unit-btn[data-units]");
+        if (unitButton) {
+          $$(".unit-btn").forEach((button) => button.classList.toggle("active", button === unitButton));
+          return;
+        }
+
+        const toggleButton = event.target.closest(".toggle-switch[data-toggle]");
+        if (toggleButton) {
+          const active = !toggleButton.classList.contains("active");
+          toggleButton.classList.toggle("active", active);
+          toggleButton.setAttribute("aria-pressed", String(active));
+          return;
+        }
+
+        const infoButton = event.target.closest(".info-btn[data-info]");
+        if (infoButton) {
+          toggleHelp(infoButton.dataset.info);
+          return;
+        }
+
         const action = event.target.closest("[data-action]")?.dataset.action;
         if (!action) return;
         $("#composerMenu")?.classList.remove("show");
         $("#composerMenuBtn")?.setAttribute("aria-expanded", "false");
         if (event.target.closest("#composerMenuBtn")) return;
-        if (action === "dtc") {
+        if (action === "filter") {
+          renderLists();
+        } else if (action === "pay") {
+          toast(t("toast.pay"));
+        } else if (action === "dtc") {
           showView("dtc");
           toast(t("toast.dtc"));
         } else if (action === "voice") {

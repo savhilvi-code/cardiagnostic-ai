@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CarDiagnostic AI</title>
   <meta name="description" content="PULS для диагностики автомобиля, сервисной истории, ошибок DTC и мануалов.">
-  <link rel="stylesheet" href="assets/css/style.css?v=20260531-19">
+  <link rel="stylesheet" href="assets/css/style.css?v=20260602-02">
 </head>
 <body>
   <div class="app" id="app">
@@ -75,7 +75,7 @@
                 </div>
 
                 <div class="messages" id="messages">
-                  <div class="bubble user">У меня при разгоне появляется гул под капотом, особенно на 2000–3000 оборотах. <small>10:42</small></div>
+                  <div class="bubble user"><span data-i18n="assistant.demoQuestion">I hear a humming noise under the hood during acceleration, especially around 2000-3000 rpm.</span> <small>10:42</small></div>
                   <div class="bubble">
                     <strong>PULS</strong><br>
                     <span data-i18n="assistant.demoAnswer">Похоже на проблему со вспомогательными узлами двигателя. Вероятные причины: износ подшипника генератора, ролик натяжителя ремня, помпа или приводной ремень.</span>
@@ -127,7 +127,10 @@
                       <span>VIN:</span><b data-i18n="car.vinValue">Укажите VIN</b>
                     </div>
                   </div>
-                  <div class="car-mini" aria-hidden="true"></div>
+                  <label class="car-photo-upload">
+                    <input id="carPhotoInput" type="file" accept="image/*">
+                    <span class="car-photo-label" data-i18n="car.photoUpload">Attach car photo</span>
+                  </label>
                 </div>
                 <div class="card">
                   <h3 data-i18n="car.quickTitle">Быстрый доступ</h3>
@@ -142,27 +145,30 @@
               </div>
               <div class="card">
                 <h3 data-i18n="car.specTitle">Технические характеристики</h3>
+                <p class="card-note" data-i18n="spec.note">These fields are filled automatically from vehicle data after the user enters the car information.</p>
                 <div class="spec-list">
-                  <div><span>Объем двигателя:</span><b>Укажите объем</b></div>
-                  <div><span>Мощность:</span><b>Укажите мощность</b></div>
-                  <div><span>Крутящий момент:</span><b>Укажите момент</b></div>
-                  <div><span>Тип двигателя:</span><b>Укажите топливо, рядный</b></div>
-                  <div><span>Количество цилиндров:</span><b>Укажите цилиндры</b></div>
-                  <div><span>Экологический класс:</span><b>Укажите класс</b></div>
-                  <div><span>Объем бака:</span><b>Укажите объем бака</b></div>
+                  <div><span data-i18n="spec.displacement">Engine displacement:</span><b data-i18n="spec.displacementValue">Auto-filled after car selection</b></div>
+                  <div><span data-i18n="spec.power">Power:</span><b data-i18n="spec.powerValue">Auto-filled after car selection</b></div>
+                  <div><span data-i18n="spec.torque">Torque:</span><b data-i18n="spec.torqueValue">Auto-filled after car selection</b></div>
+                  <div><span data-i18n="spec.engineType">Engine type:</span><b data-i18n="spec.engineTypeValue">Auto-filled after car selection</b></div>
+                  <div><span data-i18n="spec.cylinders">Cylinders:</span><b data-i18n="spec.cylindersValue">Auto-filled after car selection</b></div>
+                  <div><span data-i18n="spec.emissions">Emissions class:</span><b data-i18n="spec.emissionsValue">Auto-filled after car selection</b></div>
+                  <div><span data-i18n="spec.tank">Fuel tank:</span><b data-i18n="spec.tankValue">Auto-filled after car selection</b></div>
                 </div>
               </div>
             </div>
           </section>
 
           <section class="view" id="journal">
-            <div class="head"><div><h1 data-i18n="journal.title">Журнал запросов</h1><p data-i18n="journal.subtitle">История обращений и полученных решений</p></div></div>
+            <div class="head"><div><h1 data-i18n="journal.title">Журнал запросов</h1><p data-i18n="journal.subtitle">История обращений и полученных решений</p></div><button class="info-btn" type="button" data-info="journal" aria-label="Info">?</button></div>
+            <div class="page-help" id="journalHelp" data-i18n="journal.help">This page stores completed cases only: PULS asked a follow-up, the user confirmed the problem was solved, and the final solution was saved.</div>
             <div class="search"><input id="journalSearch" data-i18n-placeholder="search.requests" placeholder="Поиск по запросам"><button class="btn" data-action="filter" data-i18n="common.filter">Фильтр</button></div>
             <div class="list" id="journalList"></div>
           </section>
 
           <section class="view" id="history">
-            <div class="head"><div><h1 data-i18n="history.title">История запросов</h1><p data-i18n="history.subtitle">Ваши недавние запросы и обращения к PULSу</p></div></div>
+            <div class="head"><div><h1 data-i18n="history.title">История запросов</h1><p data-i18n="history.subtitle">Ваши недавние запросы и обращения к PULSу</p></div><button class="info-btn" type="button" data-info="history" aria-label="Info">?</button></div>
+            <div class="page-help" id="historyHelp" data-i18n="history.help">This page keeps all of the user's PULS questions. New users start with an empty history.</div>
             <div class="search"><input id="historySearch" data-i18n-placeholder="search.requests" placeholder="Поиск по запросам"><button class="btn" data-action="filter" data-i18n="common.filter">Фильтр</button></div>
             <div class="list" id="historyList"></div>
           </section>
@@ -179,13 +185,15 @@
           </section>
 
           <section class="view" id="manuals">
-            <div class="head"><div><h1 data-i18n="manuals.title">Мануалы и руководства</h1><p data-i18n="manuals.subtitle">Подробные руководства и рекомендации по обслуживанию</p></div></div>
+            <div class="head"><div><h1 data-i18n="manuals.title">Мануалы и руководства</h1><p data-i18n="manuals.subtitle">Подробные руководства и рекомендации по обслуживанию</p></div><button class="info-btn" type="button" data-info="manuals" aria-label="Info">?</button></div>
+            <div class="page-help" id="manualsHelp" data-i18n="manuals.help">Manuals collected from search requests, repair cases, and relevant product documentation for the selected car will appear here.</div>
             <div class="search"><input id="manualSearch" data-i18n-placeholder="search.manuals" placeholder="Поиск по мануалам"><button class="btn" data-action="filter" data-i18n="common.filter">Фильтр</button></div>
             <div class="manuals" id="manualList"></div>
           </section>
 
           <section class="view" id="video">
-            <div class="head"><div><h1 data-i18n="video.title">Видео</h1><p data-i18n="video.subtitle">История всех видеороликов, предоставленных в переписке</p></div></div>
+            <div class="head"><div><h1 data-i18n="video.title">Видео</h1><p data-i18n="video.subtitle">История всех видеороликов, предоставленных в переписке</p></div><button class="info-btn" type="button" data-info="video" aria-label="Info">?</button></div>
+            <div class="page-help" id="videoHelp" data-i18n="video.help">All videos that appeared in PULS answers are saved here so the user can find them again later.</div>
             <div class="search"><input id="videoSearch" data-i18n-placeholder="search.video" placeholder="Поиск по видео"><button class="btn" data-action="filter" data-i18n="common.filter">Фильтр</button></div>
             <div class="list" id="videoList"></div>
           </section>
@@ -208,13 +216,14 @@
                 <h3 data-i18n="settings.subscription">Подписка</h3>
                 <p class="ok"><strong data-i18n="subscription.freeStatus">Статус: Free — 5 запросов</strong></p>
                 <p data-i18n="subscription.plan">Подписка PULS Pro: 100 запросов за $15.</p>
+                <button class="btn blue" type="button" data-action="pay" data-i18n="subscription.pay">Pay $15</button>
               </div>
               <div class="card">
                 <h3 data-i18n="settings.notifications">Уведомления</h3>
-                <div class="setting-line"><span data-i18n="notifications.service">Напоминания о ТО</span><b data-i18n="common.on">Вкл</b></div>
-                <div class="setting-line"><span data-i18n="notifications.diagnostics">Диагностика и ошибки</span><b data-i18n="common.on">Вкл</b></div>
-                <div class="setting-line"><span data-i18n="notifications.content">Новые видео и мануалы</span><b data-i18n="common.off">Выкл</b></div>
-                <div class="setting-line"><span data-i18n="notifications.updates">Акции и обновления</span><b data-i18n="common.on">Вкл</b></div>
+                <div class="setting-line"><span data-i18n="notifications.service">Напоминания о ТО</span><button class="toggle-switch active" type="button" data-toggle="notification" aria-pressed="true"><span></span></button></div>
+                <div class="setting-line"><span data-i18n="notifications.diagnostics">Диагностика и ошибки</span><button class="toggle-switch active" type="button" data-toggle="notification" aria-pressed="true"><span></span></button></div>
+                <div class="setting-line"><span data-i18n="notifications.content">Новые видео и мануалы</span><button class="toggle-switch" type="button" data-toggle="notification" aria-pressed="false"><span></span></button></div>
+                <div class="setting-line"><span data-i18n="notifications.updates">Акции и обновления</span><button class="toggle-switch active" type="button" data-toggle="notification" aria-pressed="true"><span></span></button></div>
               </div>
               <div class="card">
                 <h3 data-i18n="settings.languageRegion">Язык и регион</h3>
@@ -225,8 +234,25 @@
                     <button class="language-btn" type="button" data-lang="ru">Русский</button>
                   </div>
                 </div>
-                <div class="setting-line"><span data-i18n="settings.units">Единицы измерения</span><b data-i18n="settings.unitsValue">км, °C</b></div>
-                <div class="setting-line"><span data-i18n="settings.timezone">Часовой пояс</span><b>UTC+3</b></div>
+                <div class="setting-line language-setting">
+                  <span data-i18n="settings.units">Единицы измерения</span>
+                  <div class="language-toggle" role="group" aria-label="Units">
+                    <button class="language-btn unit-btn active" type="button" data-units="metric" data-i18n="settings.metric">km, °C</button>
+                    <button class="language-btn unit-btn" type="button" data-units="imperial" data-i18n="settings.imperial">mi, °F</button>
+                  </div>
+                </div>
+                <div class="setting-line language-setting">
+                  <span data-i18n="settings.timezone">Часовой пояс</span>
+                  <select class="settings-select" id="timezoneSelect" aria-label="Time zone">
+                    <option value="UTC+3">UTC+3</option>
+                    <option value="UTC+0">UTC+0</option>
+                    <option value="UTC+1">UTC+1</option>
+                    <option value="UTC+2">UTC+2</option>
+                    <option value="UTC+4">UTC+4</option>
+                    <option value="UTC-5">UTC-5</option>
+                    <option value="UTC-8">UTC-8</option>
+                  </select>
+                </div>
               </div>
             </div>
           </section>
@@ -278,8 +304,8 @@
   <div class="toast" id="toast"></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/supabaseClient.js?v=20260531-22"></script>
-  <script src="assets/js/auth.js?v=20260531-22"></script>
-  <script src="assets/js/app.js?v=20260531-19"></script>
+  <script src="assets/js/auth.js?v=20260602-02"></script>
+  <script src="assets/js/app.js?v=20260602-02"></script>
 </body>
 </html>
 
