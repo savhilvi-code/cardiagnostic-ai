@@ -516,9 +516,18 @@ const SPLINE_SCENE_URL = "";
         answer: item.answer,
         date: item.date,
         vehicle: item.vehicle || `${selectCar} • ${t("hero.engineValue")} • ${t("hero.driveValue")}`,
-        type: item.type || textRequestLabel
+        type: item.type || textRequestLabel,
+        status: item.status || "new"
       }));
-      const closedCases = [{
+      const solvedStatuses = ["solved", "resolved", "closed", "done", "completed", "решено", "закрыто"];
+      const solvedHistory = historyRows.filter((item) => solvedStatuses.includes(String(item.status).toLowerCase()));
+      const closedCases = solvedHistory.length ? solvedHistory.map((item) => ({
+        question: item.question,
+        answer: item.answer,
+        date: item.date,
+        vehicle: item.vehicle,
+        status: completedLabel
+      })) : [{
         question: t("journal.sampleQuestion"),
         answer: t("journal.sampleSolution"),
         date: english ? "Example" : "Пример",
@@ -770,7 +779,36 @@ const SPLINE_SCENE_URL = "";
     }
 
     async function loadUserHistory() {
-      return loadLocalHistory();
+      const appUser = window.pulsAppUser;
+      if (!window.supabaseClient || !appUser?.id) return [];
+
+      const { data, error } = await window.supabaseClient
+        .from("diagnostic_requests")
+        .select("id,question,answer,language,request_type,status,created_at,vehicle_id")
+        .eq("user_id", appUser.id)
+        .order("created_at", { ascending: false })
+        .limit(100);
+
+      if (error) {
+        console.warn("Не удалось загрузить diagnostic_requests:", error.message);
+        return loadLocalHistory();
+      }
+
+      return (data || []).map((row) => {
+        const createdAt = row.created_at ? new Date(row.created_at) : new Date();
+        return {
+          id: row.id,
+          question: row.question,
+          answer: row.answer || "",
+          date: createdAt.toLocaleDateString(currentLocale(), { day: "2-digit", month: "short" }) + ", " +
+            createdAt.toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" }),
+          vehicle: `${t("hero.car")} • ${t("hero.engineValue")} • ${t("hero.driveValue")}`,
+          type: row.request_type === "voice"
+            ? (getLanguage() === "en" ? "Voice request" : "Голосовой запрос")
+            : (getLanguage() === "en" ? "Text request" : "Текстовый запрос"),
+          status: row.status || "new"
+        };
+      });
     }
 
     async function saveHistoryItem(question, answer) {
@@ -781,12 +819,33 @@ const SPLINE_SCENE_URL = "";
         type: getLanguage() === "en" ? "Text request" : "Текстовый запрос"
       };
 
-      const history = loadLocalHistory();
       const now = new Date();
-      history.unshift({
+      const localItem = {
         ...item,
         date: now.toLocaleDateString(currentLocale(), { day: "2-digit", month: "short" }) + ", " + now.toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" })
-      });
+      };
+
+      const appUser = window.pulsAppUser;
+      if (window.supabaseClient && appUser?.id) {
+        const { error } = await window.supabaseClient
+          .from("diagnostic_requests")
+          .insert({
+            user_id: appUser.id,
+            question,
+            answer,
+            language: getLanguage(),
+            request_type: "text",
+            status: "new",
+            source: "web"
+          });
+
+        if (error) {
+          console.warn("Не удалось сохранить diagnostic_requests:", error.message);
+        }
+      }
+
+      const history = loadLocalHistory();
+      history.unshift(localItem);
       localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history.slice(0, 50)));
       await renderLists();
     }
@@ -836,6 +895,8 @@ const SPLINE_SCENE_URL = "";
         return;
       }
 
+      const appUser = window.pulsAppUser;
+
       appendMessage(prompt, true);
       input.value = "";
 
@@ -849,13 +910,18 @@ const SPLINE_SCENE_URL = "";
             text: prompt,
             prompt,
             source: "web",
-            userId: user.id,
-            user_id: user.id,
+            userId: appUser?.id || user.id,
+            user_id: appUser?.id || user.id,
+            app_user_id: appUser?.id || null,
+            public_user_id: appUser?.id || null,
             raw_user_id: user.id,
+            auth_user_id: user.id,
             chat_id: user.id,
             username: user.email || "web_user",
             first_name: user.user_metadata?.full_name || "Web",
             email: user.email,
+            subscription_plan: appUser?.subscription_plan || "free",
+            requests_left: appUser?.requests_left ?? null,
             language: getLanguage(),
             vehicle: {
               model: "",
@@ -920,7 +986,10 @@ const SPLINE_SCENE_URL = "";
       $("#languageSelect")?.addEventListener("change", (event) => {
         setLanguage(event.target.value);
       });
-      window.addEventListener("puls-auth-change", applyAuthLockedState);
+      window.addEventListener("puls-auth-change", () => {
+        applyAuthLockedState();
+        renderLists();
+      });
       applyAuthLockedState();
       window.addEventListener("resize", syncAssistantMessageHeight);
       syncAssistantMessageHeight();

@@ -19,9 +19,15 @@ function getAuthElements() {
   };
 }
 
-function publishAuthState(user) {
+function publishAuthState(user, appUser = null) {
   window.pulsCurrentUser = user || null;
-  window.dispatchEvent(new CustomEvent("puls-auth-change", { detail: { user: window.pulsCurrentUser } }));
+  window.pulsAppUser = appUser || null;
+  window.dispatchEvent(new CustomEvent("puls-auth-change", {
+    detail: {
+      user: window.pulsCurrentUser,
+      appUser: window.pulsAppUser
+    }
+  }));
 }
 
 function setAuthStatus(message, isError = false) {
@@ -79,42 +85,93 @@ async function updateProfileBlock() {
     return;
   }
 
-  publishAuthState(user);
-  name.textContent = user.user_metadata?.full_name || authText("profile.user", "Пользователь PULS");
+  const appUser = await syncAuthUserProfile(user);
+  publishAuthState(user, appUser);
+  name.textContent = appUser?.name || user.user_metadata?.full_name || authText("profile.user", "Пользователь PULS");
   profileEmail.textContent = user.email || authText("profile.emailMissing", "Email не указан");
   authBtn.style.display = "none";
   logoutBtn.style.display = "inline-flex";
   if (deleteProfileBtn) deleteProfileBtn.style.display = "inline-flex";
-  await syncAuthUserProfile(user);
 }
 
 async function syncAuthUserProfile(user) {
-  if (!window.supabaseClient || !user?.id) return;
+  if (!window.supabaseClient || !user?.id) return null;
 
   const payload = {
     auth_user_id: user.id,
     email: user.email,
-    name: user.user_metadata?.full_name || authText("profile.user", "Пользователь PULS"),
     last_login: new Date().toISOString()
   };
+  const authName = user.user_metadata?.full_name;
+  if (authName) payload.name = authName;
 
-  const { error } = await window.supabaseClient
+  const selectColumns = "id,email,telegram_id,google_id,name,language,country,city,subscription_plan,subscription_status,requests_left,conversation_history,car_info,auth_user_id,last_login";
+
+  const { data: byAuth, error: byAuthError } = await window.supabaseClient
     .from("users")
-    .upsert(payload, { onConflict: "auth_user_id" });
+    .select(selectColumns)
+    .eq("auth_user_id", user.id)
+    .maybeSingle();
 
-  if (!error) return;
-
-  const duplicateEmail = error.code === "23505" && user.email;
-  if (duplicateEmail) {
-    const { error: updateError } = await window.supabaseClient
-      .from("users")
-      .update(payload)
-      .eq("email", user.email);
-
-    if (!updateError) return;
+  if (byAuthError) {
+    console.warn("Не удалось найти профиль по auth_user_id:", byAuthError.message);
   }
 
-  console.warn("Не удалось синхронизировать профиль users.auth_user_id:", error.message);
+  if (user.email) {
+    const { data: byEmail, error: byEmailError } = await window.supabaseClient
+      .from("users")
+      .select(selectColumns)
+      .eq("email", user.email)
+      .maybeSingle();
+
+    if (byEmailError) {
+      console.warn("Не удалось найти профиль по email:", byEmailError.message);
+    }
+
+    if (byEmail) {
+      if (byAuth && byAuth.id !== byEmail.id) {
+        await window.supabaseClient
+          .from("users")
+          .update({ auth_user_id: null })
+          .eq("id", byAuth.id);
+      }
+
+      const { data, error } = await window.supabaseClient
+        .from("users")
+        .update(payload)
+        .eq("id", byEmail.id)
+        .select(selectColumns)
+        .single();
+
+      if (!error) return data;
+      console.warn("Не удалось привязать auth_user_id к существующему email:", error.message);
+      return byEmail;
+    }
+  }
+
+  if (byAuth) {
+    const { data, error } = await window.supabaseClient
+      .from("users")
+      .update(payload)
+      .eq("id", byAuth.id)
+      .select(selectColumns)
+      .single();
+
+    if (!error) return data;
+    console.warn("Не удалось обновить профиль по auth_user_id:", error.message);
+    return byAuth;
+  }
+
+  const { data, error } = await window.supabaseClient
+    .from("users")
+    .insert(payload)
+    .select(selectColumns)
+    .single();
+
+  if (!error) return data;
+
+  console.warn("Не удалось создать профиль users:", error.message);
+  return null;
 }
 
 function readAuthCredentials() {
@@ -162,7 +219,7 @@ async function registerUser(email, password) {
     return;
   }
 
-  if (data.user) await syncAuthUserProfile(data.user);
+  if (data.user) publishAuthState(data.user, await syncAuthUserProfile(data.user));
   setAuthStatus(authText("auth.registerSuccess", "Регистрация успешна. Проверьте почту для подтверждения."));
   await updateProfileBlock();
 }
@@ -185,7 +242,7 @@ async function loginUser(email, password) {
     return;
   }
 
-  if (data.user) await syncAuthUserProfile(data.user);
+  if (data.user) publishAuthState(data.user, await syncAuthUserProfile(data.user));
   closeAuthModal();
   await updateProfileBlock();
 }
