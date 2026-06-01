@@ -1,6 +1,10 @@
 const AUTH_STATUS_READY = "Введите email и пароль.";
 const AUTH_STATUS_CONFIG = "Добавьте Supabase URL и anon key в assets/js/supabaseClient.js.";
 
+function authText(key, fallback) {
+  return window.pulsT ? window.pulsT(key) : fallback;
+}
+
 function getAuthElements() {
   return {
     modal: document.getElementById("authModal"),
@@ -26,7 +30,12 @@ function openAuthModal() {
   if (!modal) return;
   modal.classList.add("show");
   modal.setAttribute("aria-hidden", "false");
-  setAuthStatus(window.supabaseClient ? AUTH_STATUS_READY : AUTH_STATUS_CONFIG, !window.supabaseClient);
+  setAuthStatus(
+    window.supabaseClient
+      ? authText("auth.statusReady", AUTH_STATUS_READY)
+      : authText("auth.statusConfig", AUTH_STATUS_CONFIG),
+    !window.supabaseClient
+  );
   setTimeout(() => email?.focus(), 0);
 }
 
@@ -42,8 +51,8 @@ async function updateProfileBlock() {
   if (!name || !profileEmail || !authBtn || !logoutBtn) return;
 
   if (!window.supabaseClient) {
-    name.textContent = "Гость";
-    profileEmail.textContent = "Supabase не настроен";
+    name.textContent = authText("profile.guest", "Гость");
+    profileEmail.textContent = authText("profile.supabaseMissing", "Supabase не настроен");
     authBtn.style.display = "inline-flex";
     logoutBtn.style.display = "none";
     return;
@@ -53,15 +62,15 @@ async function updateProfileBlock() {
   const user = error ? null : data.user;
 
   if (!user) {
-    name.textContent = "Гость";
-    profileEmail.textContent = "Войдите в аккаунт";
+    name.textContent = authText("profile.guest", "Гость");
+    profileEmail.textContent = authText("profile.signIn", "Войдите в аккаунт");
     authBtn.style.display = "inline-flex";
     logoutBtn.style.display = "none";
     return;
   }
 
-  name.textContent = user.user_metadata?.full_name || "Пользователь PULS";
-  profileEmail.textContent = user.email || "Email не указан";
+  name.textContent = user.user_metadata?.full_name || authText("profile.user", "Пользователь PULS");
+  profileEmail.textContent = user.email || authText("profile.emailMissing", "Email не указан");
   authBtn.style.display = "none";
   logoutBtn.style.display = "inline-flex";
   await syncAuthUserProfile(user);
@@ -73,7 +82,7 @@ async function syncAuthUserProfile(user) {
   const payload = {
     auth_user_id: user.id,
     email: user.email,
-    name: user.user_metadata?.full_name || "Пользователь PULS",
+    name: user.user_metadata?.full_name || authText("profile.user", "Пользователь PULS"),
     last_login: new Date().toISOString()
   };
 
@@ -106,17 +115,17 @@ function readAuthCredentials() {
 
 function validateAuthCredentials(email, password) {
   if (!email) {
-    setAuthStatus("Введите email.", true);
+    setAuthStatus(authText("auth.enterEmail", "Введите email."), true);
     return false;
   }
 
   if (!password) {
-    setAuthStatus("Введите пароль.", true);
+    setAuthStatus(authText("auth.enterPassword", "Введите пароль."), true);
     return false;
   }
 
   if (password.length < 6) {
-    setAuthStatus("Пароль должен быть минимум 6 символов.", true);
+    setAuthStatus(authText("auth.shortPassword", "Пароль должен быть минимум 6 символов."), true);
     return false;
   }
 
@@ -125,7 +134,7 @@ function validateAuthCredentials(email, password) {
 
 async function registerUser(email, password) {
   if (!window.supabaseClient) {
-    setAuthStatus(AUTH_STATUS_CONFIG, true);
+    setAuthStatus(authText("auth.statusConfig", AUTH_STATUS_CONFIG), true);
     return;
   }
 
@@ -142,13 +151,13 @@ async function registerUser(email, password) {
   }
 
   if (data.user) await syncAuthUserProfile(data.user);
-  setAuthStatus("Регистрация успешна. Проверьте почту для подтверждения.");
+  setAuthStatus(authText("auth.registerSuccess", "Регистрация успешна. Проверьте почту для подтверждения."));
   await updateProfileBlock();
 }
 
 async function loginUser(email, password) {
   if (!window.supabaseClient) {
-    setAuthStatus(AUTH_STATUS_CONFIG, true);
+    setAuthStatus(authText("auth.statusConfig", AUTH_STATUS_CONFIG), true);
     return;
   }
 
@@ -179,6 +188,8 @@ window.registerUser = registerUser;
 window.loginUser = loginUser;
 window.logoutUser = logoutUser;
 window.updateProfileBlock = updateProfileBlock;
+window.openAuthModal = openAuthModal;
+window.closeAuthModal = closeAuthModal;
 
 document.addEventListener("DOMContentLoaded", () => {
   updateProfileBlock();

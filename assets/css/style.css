@@ -812,6 +812,16 @@ html { scroll-behavior: smooth; }
       line-height: 1.5;
     }
 
+    .auth-dialog .auth-hint {
+      margin-top: -8px;
+      padding: 10px 12px;
+      border: 1px solid rgba(8, 125, 255, .38);
+      border-radius: 10px;
+      background: rgba(8, 125, 255, .1);
+      color: #e9f3ff;
+      font-weight: 600;
+    }
+
     .auth-close {
       position: absolute;
       top: 12px;
@@ -876,6 +886,36 @@ html { scroll-behavior: smooth; }
     .setting-line b {
       color: white;
       text-align: right;
+    }
+
+    .language-setting {
+      align-items: center;
+    }
+
+    .language-toggle {
+      display: inline-flex;
+      gap: 6px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(3, 12, 22, .72);
+      flex: 0 0 auto;
+    }
+
+    .language-btn {
+      min-width: 86px;
+      min-height: 36px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--soft);
+      font-weight: 800;
+    }
+
+    .language-btn.active {
+      background: linear-gradient(180deg, #087dff, #0757bd);
+      color: #fff;
+      box-shadow: 0 0 18px rgba(8, 125, 255, .34);
     }
 
     .composer {

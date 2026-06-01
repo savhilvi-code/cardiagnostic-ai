@@ -46,6 +46,314 @@ const SPLINE_SCENE_URL = "";
 
     const $ = (selector) => document.querySelector(selector);
     const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+    const LANGUAGE_STORAGE_KEY = "puls_language_v1";
+
+    const i18n = {
+      en: {
+        "brand.subtitle": "Your AI assistant for car diagnostics",
+        "system.ready": "PULS works for you 24/7",
+        "system.freeQuota": "PULS: {remaining} of {limit} requests",
+        "system.premium": "PULS Premium: no limit",
+        "hero.car": "Select car",
+        "hero.year": "Year",
+        "hero.yearValue": "Select year",
+        "hero.engine": "Engine",
+        "hero.engineValue": "Select engine",
+        "hero.drive": "Drive",
+        "hero.driveValue": "Select drive",
+        "hero.fuel": "Fuel type",
+        "hero.fuelValue": "Select fuel",
+        "nav.car": "My car",
+        "nav.journal": "Request log",
+        "nav.history": "Request history",
+        "nav.dtc": "Errors (DTC)",
+        "nav.service": "Service",
+        "nav.manuals": "Manuals",
+        "nav.video": "Video",
+        "nav.settings": "Settings",
+        "sound.title": "Noise diagnostics",
+        "sound.subtitle": "Like Shazam,<br>but for your car",
+        "sound.listening": "Listening...",
+        "sound.link": "Record problem sound",
+        "sound.text": "Speak or play the noise and I will help identify it",
+        "assistant.subtitle": "Ask any question about your car",
+        "assistant.demoAnswer": "This looks like a problem with auxiliary engine components. Possible causes: alternator bearing wear, belt tensioner pulley, water pump, or drive belt.",
+        "assistant.demoActions": "What you can do:",
+        "assistant.demoChecks": "• Check the belt and pulleys<br>• Listen with a stethoscope or long screwdriver<br>• Check pulley and bearing play",
+        "assistant.checksTitle": "Summary: what to check",
+        "assistant.checksEmpty": "After PULS answers, key checks will appear here.",
+        "assistant.linksTitle": "Videos / related links",
+        "assistant.linksEmpty": "Links to videos, manuals, and n8n materials will appear here later.",
+        "assistant.linksFoundEmpty": "Related links will appear here when PULS finds materials.",
+        "assistant.watchVideo": "Watch video",
+        "assistant.loading": "PULS is analyzing your request...",
+        "assistant.authRequired": "Please sign in or register to ask PULS questions.",
+        "assistant.error": "Could not get a response from n8n. Check the webhook URL, CORS, and Respond to Webhook node.",
+        "car.title": "My car",
+        "car.subtitle": "Information about your car and available materials",
+        "car.infoTitle": "Car information",
+        "car.model": "Model:",
+        "car.year": "Year:",
+        "car.engine": "Engine:",
+        "car.drive": "Drive:",
+        "car.fuel": "Fuel:",
+        "car.transmission": "Transmission:",
+        "car.transmissionValue": "Select transmission",
+        "car.vinValue": "Enter VIN",
+        "car.quickTitle": "Quick access",
+        "car.quickService": "Maintenance schedule",
+        "car.quickSchemes": "Component diagrams",
+        "car.quickTorque": "Torque specs",
+        "car.quickElectrical": "Wiring diagrams",
+        "car.quickFuses": "Fuses",
+        "car.specTitle": "Technical specifications",
+        "journal.title": "Request log",
+        "journal.subtitle": "History of questions and received solutions",
+        "history.title": "Request history",
+        "history.subtitle": "Your recent PULS requests",
+        "dtc.title": "Errors (DTC)",
+        "dtc.subtitle": "Diagnostic trouble codes for your car",
+        "dtc.clear": "Clear all",
+        "dtc.found": "3 errors found.",
+        "dtc.warning": "It is recommended to check and fix errors for correct vehicle operation.",
+        "service.title": "Service",
+        "service.subtitle": "Maintenance history and completed work",
+        "service.add": "Add record",
+        "manuals.title": "Manuals and guides",
+        "manuals.subtitle": "Detailed service guides and recommendations",
+        "video.title": "Video",
+        "video.subtitle": "History of all videos provided in the chat",
+        "settings.title": "Settings",
+        "settings.subtitle": "Manage your account, subscription, and app",
+        "settings.profile": "Profile",
+        "settings.subscription": "Subscription",
+        "settings.notifications": "Notifications",
+        "settings.languageRegion": "Language and region",
+        "settings.appLanguage": "App language",
+        "settings.units": "Units",
+        "settings.unitsValue": "km, °C",
+        "settings.timezone": "Time zone",
+        "subscription.freeStatus": "Status: Free — 5 requests",
+        "subscription.plan": "PULS Pro subscription: 100 requests for $15.",
+        "notifications.service": "Service reminders",
+        "notifications.diagnostics": "Diagnostics and errors",
+        "notifications.content": "New videos and manuals",
+        "notifications.updates": "Promotions and updates",
+        "common.on": "On",
+        "common.off": "Off",
+        "common.filter": "Filter",
+        "common.close": "Close",
+        "search.requests": "Search requests",
+        "search.manuals": "Search manuals",
+        "search.video": "Search videos",
+        "composer.placeholder": "Describe the problem or ask a question...",
+        "composer.attachPhoto": "Attach photo",
+        "composer.sendVideo": "Send video",
+        "composer.dtc": "Code diagnostics",
+        "profile.guest": "Guest",
+        "profile.signIn": "Sign in to your account",
+        "profile.supabaseMissing": "Supabase is not configured",
+        "profile.user": "PULS user",
+        "profile.emailMissing": "Email is missing",
+        "auth.open": "Sign in / Register",
+        "auth.logout": "Log out",
+        "auth.title": "PULS account",
+        "auth.description": "Sign in or register by email to connect your history, subscription, and devices.",
+        "auth.newUserHint": "New user? Enter your email and password, then click Register.",
+        "auth.password": "Password",
+        "auth.passwordPlaceholder": "Minimum 6 characters",
+        "auth.login": "Sign in",
+        "auth.register": "Register",
+        "auth.statusReady": "Enter email and password.",
+        "auth.statusConfig": "Add Supabase URL and anon key in assets/js/supabaseClient.js.",
+        "auth.enterEmail": "Enter email.",
+        "auth.enterPassword": "Enter password.",
+        "auth.shortPassword": "Password must be at least 6 characters.",
+        "auth.registerSuccess": "Registration successful. Check your email to confirm.",
+        "toast.dtc": "Code diagnostics section opened.",
+        "toast.voice": "Voice input can be connected to Web Speech API or n8n.",
+        "toast.demo": "This is a demo button. It can be connected to n8n, uploads, or a materials database."
+      },
+      ru: {
+        "brand.subtitle": "Ваш AI-помощник для диагностики автомобиля",
+        "system.ready": "PULS работает для вас 24/7",
+        "system.freeQuota": "PULS: {remaining} из {limit} запросов",
+        "system.premium": "PULS Premium: без лимита",
+        "hero.car": "Укажите машину",
+        "hero.year": "Год выпуска",
+        "hero.yearValue": "Укажите год",
+        "hero.engine": "Двигатель",
+        "hero.engineValue": "Укажите мотор",
+        "hero.drive": "Привод",
+        "hero.driveValue": "Укажите привод",
+        "hero.fuel": "Тип топлива",
+        "hero.fuelValue": "Укажите топливо",
+        "nav.car": "Мой автомобиль",
+        "nav.journal": "Журнал запросов",
+        "nav.history": "История запросов",
+        "nav.dtc": "Ошибки (DTC)",
+        "nav.service": "Сервис и ТО",
+        "nav.manuals": "Мануалы",
+        "nav.video": "Видео",
+        "nav.settings": "Настройки",
+        "sound.title": "Диагностика по шуму",
+        "sound.subtitle": "Как Shazam, только<br>для вашего авто",
+        "sound.listening": "Слушаю...",
+        "sound.link": "Запись звука неполадки",
+        "sound.text": "Говорите или воспроизведите шум — я распознаю и помогу",
+        "assistant.subtitle": "Задайте любой вопрос о вашем автомобиле",
+        "assistant.demoAnswer": "Похоже на проблему со вспомогательными узлами двигателя. Вероятные причины: износ подшипника генератора, ролик натяжителя ремня, помпа или приводной ремень.",
+        "assistant.demoActions": "Что можно сделать:",
+        "assistant.demoChecks": "• Проверьте состояние ремня и роликов<br>• Послушайте шум стетоскопом или длинной отверткой<br>• Проверьте люфт роликов и подшипников",
+        "assistant.checksTitle": "Итог: что проверить",
+        "assistant.checksEmpty": "После ответа PULS здесь появится краткий список ключевых проверок.",
+        "assistant.linksTitle": "Видео / ссылки по теме",
+        "assistant.linksEmpty": "Здесь позже будут появляться ссылки на видео, мануалы и материалы из n8n.",
+        "assistant.linksFoundEmpty": "Ссылки по теме появятся здесь, когда PULS найдет материалы.",
+        "assistant.watchVideo": "Смотреть видео",
+        "assistant.loading": "PULS анализирует запрос...",
+        "assistant.authRequired": "Войдите или зарегистрируйтесь, чтобы задавать вопросы PULS.",
+        "assistant.error": "Не получилось получить ответ от n8n. Проверьте URL webhook, CORS и Respond to Webhook node.",
+        "car.title": "Мой автомобиль",
+        "car.subtitle": "Информация о вашем автомобиле и доступные материалы",
+        "car.infoTitle": "Информация об автомобиле",
+        "car.model": "Модель:",
+        "car.year": "Год выпуска:",
+        "car.engine": "Двигатель:",
+        "car.drive": "Привод:",
+        "car.fuel": "Топливо:",
+        "car.transmission": "КПП:",
+        "car.transmissionValue": "Укажите КПП",
+        "car.vinValue": "Укажите VIN",
+        "car.quickTitle": "Быстрый доступ",
+        "car.quickService": "Регламент ТО",
+        "car.quickSchemes": "Схемы узлов",
+        "car.quickTorque": "Моменты затяжки",
+        "car.quickElectrical": "Электросхемы",
+        "car.quickFuses": "Предохранители",
+        "car.specTitle": "Технические характеристики",
+        "journal.title": "Журнал запросов",
+        "journal.subtitle": "История обращений и полученных решений",
+        "history.title": "История запросов",
+        "history.subtitle": "Ваши недавние запросы и обращения к PULSу",
+        "dtc.title": "Ошибки (DTC)",
+        "dtc.subtitle": "Диагностические коды неисправностей вашего автомобиля",
+        "dtc.clear": "Удалить все",
+        "dtc.found": "Найдено 3 ошибки.",
+        "dtc.warning": "Рекомендуется проверить и устранить ошибки для корректной работы автомобиля.",
+        "service.title": "Сервис и ТО",
+        "service.subtitle": "История технического обслуживания и выполненных работ",
+        "service.add": "Добавить запись",
+        "manuals.title": "Мануалы и руководства",
+        "manuals.subtitle": "Подробные руководства и рекомендации по обслуживанию",
+        "video.title": "Видео",
+        "video.subtitle": "История всех видеороликов, предоставленных в переписке",
+        "settings.title": "Настройки",
+        "settings.subtitle": "Управляйте аккаунтом, подпиской и приложением",
+        "settings.profile": "Профиль",
+        "settings.subscription": "Подписка",
+        "settings.notifications": "Уведомления",
+        "settings.languageRegion": "Язык и регион",
+        "settings.appLanguage": "Язык приложения",
+        "settings.units": "Единицы измерения",
+        "settings.unitsValue": "км, °C",
+        "settings.timezone": "Часовой пояс",
+        "subscription.freeStatus": "Статус: Free — 5 запросов",
+        "subscription.plan": "Подписка PULS Pro: 100 запросов за $15.",
+        "notifications.service": "Напоминания о ТО",
+        "notifications.diagnostics": "Диагностика и ошибки",
+        "notifications.content": "Новые видео и мануалы",
+        "notifications.updates": "Акции и обновления",
+        "common.on": "Вкл",
+        "common.off": "Выкл",
+        "common.filter": "Фильтр",
+        "common.close": "Закрыть",
+        "search.requests": "Поиск по запросам",
+        "search.manuals": "Поиск по мануалам",
+        "search.video": "Поиск по видео",
+        "composer.placeholder": "Опишите проблему или задайте вопрос...",
+        "composer.attachPhoto": "Прикрепить фото",
+        "composer.sendVideo": "Отправить видео",
+        "composer.dtc": "Диагностика по коду",
+        "profile.guest": "Гость",
+        "profile.signIn": "Войдите в аккаунт",
+        "profile.supabaseMissing": "Supabase не настроен",
+        "profile.user": "Пользователь PULS",
+        "profile.emailMissing": "Email не указан",
+        "auth.open": "Войти / Регистрация",
+        "auth.logout": "Выйти",
+        "auth.title": "Аккаунт PULS",
+        "auth.description": "Войдите или зарегистрируйтесь по email, чтобы привязать историю, подписку и устройства.",
+        "auth.newUserHint": "Если вы новый пользователь, напишите свою почту и пароль, затем нажмите «Регистрация».",
+        "auth.password": "Пароль",
+        "auth.passwordPlaceholder": "Минимум 6 символов",
+        "auth.login": "Вход",
+        "auth.register": "Регистрация",
+        "auth.statusReady": "Введите email и пароль.",
+        "auth.statusConfig": "Добавьте Supabase URL и anon key в assets/js/supabaseClient.js.",
+        "auth.enterEmail": "Введите email.",
+        "auth.enterPassword": "Введите пароль.",
+        "auth.shortPassword": "Пароль должен быть минимум 6 символов.",
+        "auth.registerSuccess": "Регистрация успешна. Проверьте почту для подтверждения.",
+        "toast.dtc": "Открыт раздел диагностики по коду.",
+        "toast.voice": "Голосовой ввод можно подключить к Web Speech API или n8n.",
+        "toast.demo": "Это демо-кнопка. Ее можно подключить к n8n, загрузке файлов или базе материалов."
+      }
+    };
+
+    function getLanguage() {
+      try {
+        return localStorage.getItem(LANGUAGE_STORAGE_KEY) || "en";
+      } catch (error) {
+        return "en";
+      }
+    }
+
+    function t(key, params = {}) {
+      const lang = getLanguage();
+      const template = i18n[lang]?.[key] || i18n.en[key] || key;
+      return Object.entries(params).reduce((text, [name, value]) => text.replaceAll(`{${name}}`, value), template);
+    }
+
+    window.pulsT = t;
+
+    function setTranslatedContent(node, value) {
+      if (node.firstElementChild?.tagName?.toLowerCase() === "svg") {
+        Array.from(node.childNodes).forEach((child) => {
+          if (child !== node.firstElementChild) child.remove();
+        });
+        node.appendChild(document.createTextNode(value));
+        return;
+      }
+
+      node.innerHTML = value;
+    }
+
+    function applyLanguage() {
+      const lang = getLanguage();
+      document.documentElement.lang = lang;
+      $$("[data-i18n]").forEach((node) => setTranslatedContent(node, t(node.dataset.i18n)));
+      $$("[data-i18n-placeholder]").forEach((node) => {
+        node.setAttribute("placeholder", t(node.dataset.i18nPlaceholder));
+      });
+      $$("[data-i18n-aria-label]").forEach((node) => {
+        node.setAttribute("aria-label", t(node.dataset.i18nAriaLabel));
+      });
+      $$(".language-btn").forEach((button) => {
+        button.classList.toggle("active", button.dataset.lang === lang);
+      });
+      window.updateProfileBlock?.();
+    }
+
+    function setLanguage(lang) {
+      try {
+        localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
+      } catch (error) {
+        console.warn("Could not save language preference:", error);
+      }
+      applyLanguage();
+      renderLists();
+    }
 
     function injectIcons() {
       $$("[data-icon]").forEach((node) => {
@@ -57,9 +365,44 @@ const SPLINE_SCENE_URL = "";
     }
 
     async function renderLists() {
+      const english = getLanguage() === "en";
+      const requestRows = english ? [
+        ["Humming under the hood at 2000-3000 rpm", "Possible causes: alternator bearing wear, belt tensioner, water pump, and other auxiliary components.", "Today, 10:42", "Solved"],
+        ["Check Engine light is on", "Code P0420 — catalyst efficiency below threshold. Exhaust system diagnostics recommended.", "Yesterday, 18:15", "Solved"],
+        ["Smoke from the exhaust pipe", "Possible causes: valve stem seals, turbocharger, or EGR system.", "May 12, 14:30", "Solved"],
+        ["Battery drains quickly", "Check the alternator, parasitic draw, and battery condition. Load testing is recommended.", "May 8, 09:12", "Solved"],
+        ["Jerks when shifting gears", "Check CVT fluid, CVT adaptation, belt wear, or pulley condition.", "May 5, 16:45", "Solved"],
+        ["Knock in front right suspension", "Check stabilizer link, strut mount bearing, and ball joint.", "May 2, 11:20", "Solved"]
+      ] : requests;
+      const serviceRows = english ? [
+        ["Engine oil and oil filter replacement", "Oil: 5W-30 Nissan Genuine Oil. Filter: original Nissan", "Today, 10:30", "98,500 km", "violet", "🛢"],
+        ["Timing belt kit replacement", "Timing belt, rollers, tensioner, water pump. Manufacturer: Gates", "March 24, 2024", "90,120 km", "green", "⚙"],
+        ["Air filter replacement", "Engine air filter. Manufacturer: Mann", "March 24, 2024", "90,120 km", "", "▥"],
+        ["Front brake pad replacement", "Front brake pads. Manufacturer: Brembo", "February 12, 2024", "86,780 km", "orange", "◎"],
+        ["Fuel filter replacement", "Fuel filter. Manufacturer: Nissan", "November 10, 2023", "80,450 km", "violet", "▣"],
+        ["A/C service", "Freon refill and leak check", "August 5, 2023", "74,230 km", "cyan", "❄"]
+      ] : services;
+      const dtcRows = english ? [
+        ["P0171", "System too lean (Bank 1)", "The engine control system detected a lean air-fuel mixture.", "Active", "danger"],
+        ["P0401", "EGR flow insufficient", "Insufficient exhaust gas flow through the EGR valve was detected.", "Stored", "warn"],
+        ["P0202", "Cylinder 2 injector circuit malfunction", "Open or short circuit in the second cylinder injector control circuit.", "Stored", "warn"]
+      ] : dtc;
+      const manualRows = english ? ["Service manual", "Car chemicals manual", "Wiper manual", "Consumables guide", "Brake system", "Owner's manual", "Electrical system", "Cooling system", "Suspension and steering"] : manuals;
+      const videoRows = english ? ["Air filter replacement Select car", "Engine oil and filter replacement Select engine", "Front brake pad replacement", "Wiper blade replacement", "Timing chain replacement on Nissan X-Trail Select engine", "OBD2 error diagnostics", "Cabin filter replacement", "How to remove and replace a battery"] : videos;
+      const selectCar = t("hero.car");
+      const demoLabel = english ? "Demo" : "Демо";
+      const savedLabel = english ? "Saved" : "Сохранено";
+      const textRequestLabel = english ? "Text request" : "Текстовый запрос";
+      const voiceRequestLabel = english ? "Voice request" : "Голосовой запрос";
+      const codeErrorLabel = english ? "Error code" : "Код ошибки";
+      const completedLabel = english ? "Completed" : "Выполнено";
+      const systemLabel = english ? "System:" : "Система:";
+      const possibleCausesLabel = english ? "Possible causes:" : "Возможные причины:";
+      const actionsLabel = english ? "Recommended actions:" : "Рекомендуемые действия:";
+
       const savedHistory = await loadUserHistory();
-      const savedRows = savedHistory.map((item) => [item.question, item.answer, item.date, "Сохранено", item.vehicle, item.type]);
-      const baseRows = requests.map((item) => [item[0], item[1], item[2], item[3], "Укажите машину", "Демо"]);
+      const savedRows = savedHistory.map((item) => [item.question, item.answer, item.date, savedLabel, item.vehicle, item.type]);
+      const baseRows = requestRows.map((item) => [item[0], item[1], item[2], item[3], selectCar, demoLabel]);
       const allRows = savedRows.concat(baseRows);
 
       $("#journalList").innerHTML = allRows.map((item, index) => `
@@ -67,58 +410,58 @@ const SPLINE_SCENE_URL = "";
           <div class="thumb" aria-hidden="true"></div>
           <div>
             <h3>${escapeHtml(item[0])}</h3>
-            <span class="tag">${escapeHtml(item[4] || "Укажите машину")}</span>
+            <span class="tag">${escapeHtml(item[4] || selectCar)}</span>
             <p>${escapeHtml(item[1]).slice(0, 220)}${String(item[1]).length > 220 ? "..." : ""}</p>
           </div>
           <div><p>${escapeHtml(item[2])}</p><p class="ok">${escapeHtml(item[3])} ✓</p></div>
         </article>
       `).join("");
 
-      $("#historyList").innerHTML = allRows.concat([["Ошибка P0171 слишком бедная смесь", "Укажите машину • Укажите мотор • Укажите топливо", "28 апр., 20:33", "Код ошибки", "Укажите машину", "Код ошибки"]]).map((item, index) => `
+      $("#historyList").innerHTML = allRows.concat([[english ? "P0171 system too lean" : "Ошибка P0171 слишком бедная смесь", `${selectCar} • ${t("hero.engineValue")} • ${t("hero.fuelValue")}`, english ? "Apr 28, 20:33" : "28 апр., 20:33", codeErrorLabel, selectCar, codeErrorLabel]]).map((item, index) => `
         <article class="row" style="grid-template-columns:64px 1fr 150px">
-          <div class="square ${item[5] === "Голосовой запрос" ? "violet" : ""}">${item[5] === "Голосовой запрос" ? "🎙" : "⌨"}</div>
-          <div><h3>${escapeHtml(item[0])}</h3><p>${escapeHtml(item[4] || "Укажите машину • Укажите мотор • Укажите привод")}</p></div>
-          <div><p>${escapeHtml(item[2])}</p><span class="tag">${escapeHtml(item[5] || item[3] || "Текстовый запрос")}</span></div>
+          <div class="square ${item[5] === voiceRequestLabel ? "violet" : ""}">${item[5] === voiceRequestLabel ? "🎙" : "⌨"}</div>
+          <div><h3>${escapeHtml(item[0])}</h3><p>${escapeHtml(item[4] || `${selectCar} • ${t("hero.engineValue")} • ${t("hero.driveValue")}`)}</p></div>
+          <div><p>${escapeHtml(item[2])}</p><span class="tag">${escapeHtml(item[5] || item[3] || textRequestLabel)}</span></div>
         </article>
       `).join("");
 
-      $("#serviceList").innerHTML = services.map((item) => `
+      $("#serviceList").innerHTML = serviceRows.map((item) => `
         <article class="service">
           <div class="square ${item[4]}">${item[5]}</div>
-          <div><h3>${item[0]}</h3><p>${item[1]}</p><p class="ok">Выполнено</p></div>
-          <div><p>${item[2]}</p><p>Пробег: ${item[3]}</p></div>
+          <div><h3>${item[0]}</h3><p>${item[1]}</p><p class="ok">${completedLabel}</p></div>
+          <div><p>${item[2]}</p><p>${english ? "Mileage" : "Пробег"}: ${item[3]}</p></div>
         </article>
       `).join("");
 
-      $("#dtcList").innerHTML = dtc.map((item) => `
+      $("#dtcList").innerHTML = dtcRows.map((item) => `
         <article class="dtc">
           <div class="dtc-top">
             <div class="code ${item[4]}">⚙ ${item[0]}</div>
             <div><h3>${item[1]}</h3><p>${item[2]}</p></div>
           </div>
           <div class="cols">
-            <div><strong>Статус:</strong><br><span class="${item[4]}">${item[3]}</span><br><br><strong>Система:</strong><br>Двигатель / топливная система</div>
-            <div><strong>Возможные причины:</strong><br>• Подсос воздуха<br>• Неисправность датчика<br>• Низкое давление топлива<br>• Загрязнение узла</div>
-            <div><strong>Рекомендуемые действия:</strong><br>• Проверить разъемы<br>• Провести диагностику<br>• Очистить или заменить узел<br>• Повторно считать ошибки</div>
+            <div><strong>${english ? "Status:" : "Статус:"}</strong><br><span class="${item[4]}">${item[3]}</span><br><br><strong>${systemLabel}</strong><br>${english ? "Engine / fuel system" : "Двигатель / топливная система"}</div>
+            <div><strong>${possibleCausesLabel}</strong><br>${english ? "• Air leak<br>• Sensor malfunction<br>• Low fuel pressure<br>• Dirty component" : "• Подсос воздуха<br>• Неисправность датчика<br>• Низкое давление топлива<br>• Загрязнение узла"}</div>
+            <div><strong>${actionsLabel}</strong><br>${english ? "• Check connectors<br>• Run diagnostics<br>• Clean or replace component<br>• Read errors again" : "• Проверить разъемы<br>• Провести диагностику<br>• Очистить или заменить узел<br>• Повторно считать ошибки"}</div>
           </div>
         </article>
       `).join("");
 
-      $("#manualList").innerHTML = manuals.map((title, index) => `
+      $("#manualList").innerHTML = manualRows.map((title, index) => `
         <article class="manual">
           <h3>${title}</h3>
           <div class="manual-pic" aria-hidden="true"></div>
           <p>PDF • ${(6 + index * 2.1).toFixed(1)} MB</p>
-          <p>Материалы адаптированы для Укажите машину.</p>
-          <button class="btn blue" data-action="demo">Открыть</button>
+          <p>${english ? `Materials adapted for ${selectCar}.` : `Материалы адаптированы для ${selectCar}.`}</p>
+          <button class="btn blue" data-action="demo">${english ? "Open" : "Открыть"}</button>
         </article>
       `).join("");
 
-      $("#videoList").innerHTML = videos.map((title, index) => `
+      $("#videoList").innerHTML = videoRows.map((title, index) => `
         <article class="row">
           <div class="thumb" aria-hidden="true"></div>
-          <div><h3>${title}</h3><p>Пошаговая инструкция по обслуживанию Укажите машину.</p></div>
-          <div><p>${index < 2 ? "Сегодня" : "Май 2024"}</p><span class="tag">${index % 3 === 0 ? "Обслуживание" : index % 3 === 1 ? "Двигатель" : "Диагностика"}</span></div>
+          <div><h3>${title}</h3><p>${english ? `Step-by-step service guide for ${selectCar}.` : `Пошаговая инструкция по обслуживанию ${selectCar}.`}</p></div>
+          <div><p>${index < 2 ? (english ? "Today" : "Сегодня") : (english ? "May 2024" : "Май 2024")}</p><span class="tag">${index % 3 === 0 ? (english ? "Service" : "Обслуживание") : index % 3 === 1 ? t("hero.engine") : (english ? "Diagnostics" : "Диагностика")}</span></div>
         </article>
       `).join("");
     }
@@ -254,7 +597,7 @@ const SPLINE_SCENE_URL = "";
       const links = extractLinks(answer);
 
       if (!links.length) {
-        box.innerHTML = `<p>Ссылки по теме появятся здесь, когда PULS найдет материалы.</p>`;
+        box.innerHTML = `<p>${t("assistant.linksFoundEmpty")}</p>`;
         return;
       }
 
@@ -297,8 +640,8 @@ const SPLINE_SCENE_URL = "";
       const item = {
         question,
         answer,
-        vehicle: "Укажите машину • Укажите мотор • Укажите привод",
-        type: "Текстовый запрос"
+        vehicle: `${t("hero.car")} • ${t("hero.engineValue")} • ${t("hero.driveValue")}`,
+        type: getLanguage() === "en" ? "Text request" : "Текстовый запрос"
       };
 
       const history = loadLocalHistory();
@@ -317,9 +660,9 @@ const SPLINE_SCENE_URL = "";
       if (!pill) return;
 
       if (quota.unlimited) {
-        pill.textContent = "PULS Premium: без лимита";
+        pill.textContent = t("system.premium");
       } else {
-        pill.textContent = `PULS: ${quota.remaining} из ${quota.limit} запросов`;
+        pill.textContent = t("system.freeQuota", { remaining: quota.remaining, limit: quota.limit });
       }
     }
 
@@ -334,7 +677,13 @@ const SPLINE_SCENE_URL = "";
       const finalLines = important.length ? important : lines.slice(0, 4);
       box.innerHTML = finalLines.length
         ? `<ul style="margin:8px 0 0; padding-left:20px; color:var(--soft); line-height:1.6">${finalLines.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ul>`
-        : `<p>Ключевые проверки появятся после ответа PULS.</p>`;
+        : `<p>${t("assistant.checksEmpty")}</p>`;
+    }
+
+    async function getCurrentAuthUser() {
+      if (!window.supabaseClient) return null;
+      const { data, error } = await window.supabaseClient.auth.getUser();
+      return error ? null : data.user;
     }
 
     async function sendPrompt() {
@@ -342,10 +691,18 @@ const SPLINE_SCENE_URL = "";
       const prompt = input.value.trim();
       if (!prompt) return;
       showView("assistant");
+
+      const user = await getCurrentAuthUser();
+      if (!user) {
+        toast(t("assistant.authRequired"));
+        window.openAuthModal?.();
+        return;
+      }
+
       appendMessage(prompt, true);
       input.value = "";
 
-      const loading = appendMessage("PULS анализирует запрос...", false);
+      const loading = appendMessage(t("assistant.loading"), false);
       try {
         const res = await fetch(N8N_WEBHOOK_URL, {
           method: "POST",
@@ -355,12 +712,14 @@ const SPLINE_SCENE_URL = "";
             text: prompt,
             prompt,
             source: "web",
-            userId: getWebUserId(),
-            user_id: getWebUserId(),
-            raw_user_id: getWebUserId(),
-            chat_id: getWebUserId(),
-            username: "web_user",
-            first_name: "Web",
+            userId: user.id,
+            user_id: user.id,
+            raw_user_id: user.id,
+            chat_id: user.id,
+            username: user.email || "web_user",
+            first_name: user.user_metadata?.full_name || "Web",
+            email: user.email,
+            language: getLanguage(),
             vehicle: {
               model: "",
               year: "",
@@ -390,7 +749,7 @@ const SPLINE_SCENE_URL = "";
         await renderLists();
         scrollMessagesToBottom();
       } catch (error) {
-        const errorText = "Не получилось получить ответ от n8n. Проверьте URL webhook, CORS и Respond to Webhook node.";
+        const errorText = t("assistant.error");
         loading.innerHTML = `<strong>PULS</strong><br>${errorText} <small>${new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}</small>`;
         updateKeyChecks(errorText);
         await saveHistoryItem(prompt, errorText);
@@ -407,6 +766,7 @@ const SPLINE_SCENE_URL = "";
     document.addEventListener("DOMContentLoaded", async () => {
       document.body.classList.add("assistant-mode");
       injectIcons();
+      applyLanguage();
       await renderLists();
       connectSpline();
 
@@ -432,6 +792,12 @@ const SPLINE_SCENE_URL = "";
           return;
         }
 
+        const languageButton = event.target.closest(".language-btn[data-lang]");
+        if (languageButton) {
+          setLanguage(languageButton.dataset.lang);
+          return;
+        }
+
         const action = event.target.closest("[data-action]")?.dataset.action;
         if (!action) return;
         $("#composerMenu")?.classList.remove("show");
@@ -439,11 +805,11 @@ const SPLINE_SCENE_URL = "";
         if (event.target.closest("#composerMenuBtn")) return;
         if (action === "dtc") {
           showView("dtc");
-          toast("Открыт раздел диагностики по коду.");
+          toast(t("toast.dtc"));
         } else if (action === "voice") {
-          toast("Голосовой ввод можно подключить к Web Speech API или n8n.");
+          toast(t("toast.voice"));
         } else {
-          toast("Это демо-кнопка. Ее можно подключить к n8n, загрузке файлов или базе материалов.");
+          toast(t("toast.demo"));
         }
       });
     });
