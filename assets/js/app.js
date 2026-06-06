@@ -1,4 +1,4 @@
-const N8N_WEBHOOK_URL = "https://auto-diagnost.app.n8n.cloud/webhook/a8c9c31d-1ae8-4bea-aae3-fbc30909bca3";
+const N8N_WEBHOOK_URL = "https://auto-diagnost.app.n8n.cloud/webhook/68e2f0af-9f2a-4549-ac3f-9645dcc2e6a2";
 const SPLINE_SCENE_URL = "";
 
     const iconMap = {
