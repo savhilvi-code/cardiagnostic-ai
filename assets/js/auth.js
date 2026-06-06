@@ -97,9 +97,10 @@ async function updateProfileBlock() {
 async function syncAuthUserProfile(user) {
   if (!window.supabaseClient || !user?.id) return null;
 
+  const normalizedEmail = user.email?.trim().toLowerCase() || null;
   const payload = {
     auth_user_id: user.id,
-    email: user.email,
+    email: normalizedEmail,
     last_login: new Date().toISOString()
   };
   const authName = user.user_metadata?.full_name;
@@ -117,11 +118,11 @@ async function syncAuthUserProfile(user) {
     console.warn("Не удалось найти профиль по auth_user_id:", byAuthError.message);
   }
 
-  if (user.email) {
+  if (normalizedEmail) {
     const { data: byEmail, error: byEmailError } = await window.supabaseClient
       .from("users")
       .select(selectColumns)
-      .eq("email", user.email)
+      .ilike("email", normalizedEmail)
       .maybeSingle();
 
     if (byEmailError) {
@@ -296,6 +297,7 @@ window.loginUser = loginUser;
 window.logoutUser = logoutUser;
 window.deleteProfileUser = deleteProfileUser;
 window.updateProfileBlock = updateProfileBlock;
+window.syncAuthUserProfile = syncAuthUserProfile;
 window.openAuthModal = openAuthModal;
 window.closeAuthModal = closeAuthModal;
 

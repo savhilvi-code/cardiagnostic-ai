@@ -883,7 +883,13 @@ const SPLINE_SCENE_URL = "";
         return;
       }
 
-      const appUser = window.pulsAppUser || {};
+      const appUser = window.pulsAppUser || await window.syncAuthUserProfile?.(user);
+      if (!appUser || appUser.auth_user_id !== user.id) {
+        toast(t("assistant.authRequired"));
+        return;
+      }
+
+      window.pulsAppUser = appUser;
 
       appendMessage(prompt, true);
       input.value = "";
@@ -898,10 +904,7 @@ const SPLINE_SCENE_URL = "";
             text: prompt,
             prompt,
             source: "web",
-            userId: user.id,
-            user_id: user.id,
             auth_user_id: user.id,
-            chat_id: user.id,
             username: user.email || "web_user",
             first_name: user.user_metadata?.full_name || "Web",
             email: user.email,
