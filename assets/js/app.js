@@ -757,18 +757,6 @@ const SPLINE_SCENE_URL = "";
     }
 
     const HISTORY_STORAGE_KEY = "puls_request_history_v2";
-    const USER_STORAGE_KEY = "puls_web_user_id_v1";
-
-    function getWebUserId() {
-      let userId = localStorage.getItem(USER_STORAGE_KEY);
-
-      if (!userId) {
-        userId = "web_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
-        localStorage.setItem(USER_STORAGE_KEY, userId);
-      }
-
-      return userId;
-    }
 
     function loadLocalHistory() {
       try {
@@ -895,7 +883,7 @@ const SPLINE_SCENE_URL = "";
         return;
       }
 
-      const appUser = window.pulsAppUser;
+      const appUser = window.pulsAppUser || {};
 
       appendMessage(prompt, true);
       input.value = "";
@@ -910,18 +898,15 @@ const SPLINE_SCENE_URL = "";
             text: prompt,
             prompt,
             source: "web",
-            userId: appUser?.id || user.id,
-            user_id: appUser?.id || user.id,
-            app_user_id: appUser?.id || null,
-            public_user_id: appUser?.id || null,
-            raw_user_id: user.id,
+            userId: user.id,
+            user_id: user.id,
             auth_user_id: user.id,
             chat_id: user.id,
             username: user.email || "web_user",
             first_name: user.user_metadata?.full_name || "Web",
             email: user.email,
-            subscription_plan: appUser?.subscription_plan || "free",
-            requests_left: appUser?.requests_left ?? null,
+            subscription_plan: appUser.subscription_plan || "free",
+            requests_left: appUser.requests_left ?? null,
             language: getLanguage(),
             vehicle: {
               model: "",
