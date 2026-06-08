@@ -114,6 +114,9 @@ const SPLINE_SCENE_URL = "";
         "car.serviceAdd": "Add record",
         "car.serviceHelp": "All maintenance records stay inside the selected car so the assistant always knows what has already been done.",
         "car.photoUpload": "Attach car photo",
+        "car.vehicleTitle": "My cars",
+        "car.vehicleSubtitle": "Save several vehicles and switch between them without losing context.",
+        "car.addVehicle": "Add vehicle",
         "car.formTitle": "Car profile editor",
         "car.formSubtitle": "Fill in the car once so PULS always knows which vehicle to use.",
         "car.formBrand": "Brand",
@@ -162,6 +165,15 @@ const SPLINE_SCENE_URL = "";
         "spec.emissionsValue": "Auto-filled after car selection",
         "spec.tank": "Fuel tank:",
         "spec.tankValue": "Auto-filled after car selection",
+        "service.title": "Record title",
+        "service.description": "Description",
+        "service.date": "Date",
+        "service.mileage": "Mileage",
+        "service.photo": "Photo / sticker",
+        "service.previewTitle": "Record sticker preview",
+        "service.previewHint": "You can add a photo, or we will show a colored sticker if no photo is attached.",
+        "service.save": "Save record",
+        "service.saved": "Service record saved.",
         "journal.title": "Request log",
         "journal.subtitle": "History of questions and received solutions",
         "journal.help": "This page stores completed cases only: PULS asked a follow-up, the user confirmed the problem was solved, and the final solution was saved.",
@@ -334,6 +346,9 @@ const SPLINE_SCENE_URL = "";
         "car.formDemo": "Заполнить пример",
         "car.formLookup": "Распознать VIN",
         "car.formLookupHint": "Введите VIN целиком, и PULS сам подтянет доступные данные по машине.",
+        "car.vehicleTitle": "Мои машины",
+        "car.vehicleSubtitle": "Сохраняйте несколько автомобилей и переключайтесь между ними без потери контекста.",
+        "car.addVehicle": "Добавить автомобиль",
         "car.lookupReady": "Готов к распознаванию VIN.",
         "car.lookupSearching": "Распознаю VIN...",
         "car.lookupNeedVin": "Введите полный VIN из 17 символов, чтобы распознать его.",
@@ -356,6 +371,15 @@ const SPLINE_SCENE_URL = "";
         "spec.emissionsValue": "Заполнится автоматически после выбора авто",
         "spec.tank": "Объем бака:",
         "spec.tankValue": "Заполнится автоматически после выбора авто",
+        "service.title": "Название записи",
+        "service.description": "Описание",
+        "service.date": "Дата",
+        "service.mileage": "Пробег",
+        "service.photo": "Фото / стикер",
+        "service.previewTitle": "Предпросмотр стикера записи",
+        "service.previewHint": "Можно добавить фото, а если фото нет, появится цветной стикер.",
+        "service.save": "Сохранить запись",
+        "service.saved": "Запись ТО сохранена.",
         "journal.title": "Журнал запросов",
         "journal.subtitle": "История обращений и полученных решений",
         "journal.help": "Здесь хранятся только завершенные кейсы: PULS напомнил о проблеме, пользователь подтвердил, что она решена, и финальное решение сохранено.",
@@ -457,8 +481,12 @@ const SPLINE_SCENE_URL = "";
 
     window.pulsT = t;
 
+    const VEHICLE_STORE_KEY = "puls_vehicle_store_v1";
+    const VEHICLE_LEGACY_KEY = "puls_vehicle_profile_v1";
+
     function getDefaultVehicleProfile() {
       return {
+        id: "",
         brand: "",
         model: "",
         year: "",
@@ -467,7 +495,9 @@ const SPLINE_SCENE_URL = "";
         drive: "",
         transmission: "",
         mileage: "",
-        vin: ""
+        vin: "",
+        nickname: "",
+        photoUrl: ""
       };
     }
 
@@ -476,22 +506,101 @@ const SPLINE_SCENE_URL = "";
       return Object.fromEntries(Object.keys(defaults).map((key) => [key, String(profile[key] ?? defaults[key] ?? "").trim()]));
     }
 
-    function loadVehicleProfile() {
+    function createVehicleId() {
+      return `veh_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    }
+
+    function normalizeVehicleStore(store = {}) {
+      const rawVehicles = Array.isArray(store.vehicles) ? store.vehicles : [];
+      let vehicles = rawVehicles.length ? rawVehicles : [];
+
+      if (!vehicles.length && store && typeof store === "object" && !Array.isArray(store)) {
+        const looksLikeProfile = ["brand", "model", "year", "engine", "fuel", "drive", "transmission", "mileage", "vin"]
+          .some((key) => String(store[key] || "").trim());
+        if (looksLikeProfile) vehicles = [store];
+      }
+
+      vehicles = vehicles.map((vehicle, index) => normalizeVehicleProfile({
+        ...vehicle,
+        id: vehicle.id || vehicle.vehicleId || `${index}_${vehicle.vin || vehicle.model || "vehicle"}`
+      }));
+
+      const activeId = String(store.activeId || store.activeVehicleId || vehicles[0]?.id || "").trim();
+      if (!vehicles.length) {
+        const fallback = normalizeVehicleProfile({ id: createVehicleId() });
+        vehicles = [fallback];
+      }
+
+      const safeActiveId = vehicles.some((vehicle) => vehicle.id === activeId) ? activeId : vehicles[0].id;
+      return { activeId: safeActiveId, vehicles };
+    }
+
+    function loadVehicleStore() {
       try {
-        const raw = localStorage.getItem(VEHICLE_STORAGE_KEY);
-        if (!raw) return getDefaultVehicleProfile();
-        return normalizeVehicleProfile(JSON.parse(raw));
+        const raw = localStorage.getItem(VEHICLE_STORE_KEY);
+        if (raw) return normalizeVehicleStore(JSON.parse(raw));
+
+        const legacyRaw = localStorage.getItem(VEHICLE_LEGACY_KEY);
+        if (legacyRaw) {
+          const profile = normalizeVehicleProfile(JSON.parse(legacyRaw));
+          const withId = { ...profile, id: createVehicleId() };
+          const store = { activeId: withId.id, vehicles: [withId] };
+          localStorage.setItem(VEHICLE_STORE_KEY, JSON.stringify(store));
+          return store;
+        }
+
+        return normalizeVehicleStore();
       } catch (error) {
-        return getDefaultVehicleProfile();
+        return normalizeVehicleStore();
       }
     }
 
-    function saveVehicleProfile(profile) {
+    function saveVehicleStore(store) {
       try {
-        localStorage.setItem(VEHICLE_STORAGE_KEY, JSON.stringify(normalizeVehicleProfile(profile)));
+        localStorage.setItem(VEHICLE_STORE_KEY, JSON.stringify(normalizeVehicleStore(store)));
       } catch (error) {
-        console.warn("Could not save vehicle profile:", error);
+        console.warn("Could not save vehicle store:", error);
       }
+    }
+
+    function loadVehicleProfile() {
+      const store = loadVehicleStore();
+      return store.vehicles.find((vehicle) => vehicle.id === store.activeId) || store.vehicles[0] || getDefaultVehicleProfile();
+    }
+
+    function saveVehicleProfile(profile, { activate = true } = {}) {
+      const store = loadVehicleStore();
+      const normalized = normalizeVehicleProfile({
+        ...profile,
+        id: String(profile?.id || store.activeId || createVehicleId()).trim()
+      });
+      const index = store.vehicles.findIndex((vehicle) => vehicle.id === normalized.id);
+      if (index >= 0) {
+        store.vehicles[index] = normalized;
+      } else {
+        store.vehicles.unshift(normalized);
+      }
+      if (activate) store.activeId = normalized.id;
+      saveVehicleStore(store);
+      return normalized;
+    }
+
+    function addVehicleProfile(profile = {}) {
+      const store = loadVehicleStore();
+      const vehicle = normalizeVehicleProfile({ ...getDefaultVehicleProfile(), ...profile, id: createVehicleId() });
+      store.vehicles.unshift(vehicle);
+      store.activeId = vehicle.id;
+      saveVehicleStore(store);
+      return vehicle;
+    }
+
+    function setActiveVehicleProfile(vehicleId) {
+      const store = loadVehicleStore();
+      const exists = store.vehicles.find((vehicle) => vehicle.id === vehicleId);
+      if (!exists) return loadVehicleProfile();
+      store.activeId = vehicleId;
+      saveVehicleStore(store);
+      return exists;
     }
 
     const VIN_LOOKUP_URL = "https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/";
@@ -572,6 +681,7 @@ const SPLINE_SCENE_URL = "";
         const mergedCached = normalizeVehicleProfile({
           ...loadVehicleProfile(),
           ...cached,
+          id: loadVehicleProfile().id,
           vin: normalizedVin
         });
         fillVehicleForm(mergedCached);
@@ -606,6 +716,7 @@ const SPLINE_SCENE_URL = "";
         const previous = loadVehicleProfile();
         const keepPreviousModel = Boolean(previous.model && previous.brand && decoded.brand && previous.brand === decoded.brand);
         const merged = normalizeVehicleProfile({
+          id: previous.id,
           brand: decoded.brand || previous.brand,
           model: decoded.model || (keepPreviousModel ? previous.model : ""),
           year: decoded.year || previous.year,
@@ -621,7 +732,9 @@ const SPLINE_SCENE_URL = "";
           emissions: decoded.emissions || previous.emissions,
           tank: decoded.tank || previous.tank,
           mileage: previous.mileage,
-          vin: normalizedVin
+          vin: normalizedVin,
+          photoUrl: previous.photoUrl || "",
+          nickname: previous.nickname || ""
         });
 
         setVinLookupCache(normalizedVin, merged);
@@ -690,8 +803,23 @@ const SPLINE_SCENE_URL = "";
       }
     }
 
+    function setCarPhotoPreview(photoUrl = "") {
+      const box = $(".car-photo-upload");
+      if (!box) return;
+      if (!photoUrl) {
+        box.style.backgroundImage = "";
+        box.classList.remove("has-photo");
+        return;
+      }
+
+      box.style.backgroundImage = `linear-gradient(rgba(2, 13, 22, .22), rgba(2, 13, 22, .72)), url("${photoUrl}")`;
+      box.classList.add("has-photo");
+    }
+
     function getVehicleFormValues() {
+      const active = loadVehicleProfile();
       return normalizeVehicleProfile({
+        id: active.id,
         brand: $("#carBrandInput")?.value,
         model: $("#carModelInput")?.value,
         year: $("#carYearInput")?.value,
@@ -700,7 +828,9 @@ const SPLINE_SCENE_URL = "";
         drive: $("#carDriveInput")?.value,
         transmission: $("#carTransmissionInput")?.value,
         mileage: $("#carMileageInput")?.value,
-        vin: $("#carVinInput")?.value
+        vin: $("#carVinInput")?.value,
+        photoUrl: active.photoUrl || "",
+        nickname: active.nickname || ""
       });
     }
 
@@ -721,6 +851,7 @@ const SPLINE_SCENE_URL = "";
         const node = $(selector);
         if (node) node.value = value;
       });
+      setCarPhotoPreview(normalized.photoUrl);
       setCarSummaryText(normalized);
     }
 
@@ -843,12 +974,19 @@ const SPLINE_SCENE_URL = "";
       help.classList.toggle("show");
     }
 
-    function updateCarPhoto(file) {
-      const box = $(".car-photo-upload");
-      if (!box || !file) return;
-      const url = URL.createObjectURL(file);
-      box.style.backgroundImage = `linear-gradient(rgba(2, 13, 22, .22), rgba(2, 13, 22, .72)), url("${url}")`;
-      box.classList.add("has-photo");
+    async function updateCarPhoto(file) {
+      if (!file) {
+        setCarPhotoPreview("");
+        return "";
+      }
+
+      const url = await fileToDataUrl(file);
+      if (!url) return "";
+      setCarPhotoPreview(url);
+      const active = loadVehicleProfile();
+      saveVehicleProfile({ ...active, photoUrl: url });
+      setCarSummaryText({ ...active, photoUrl: url });
+      return url;
     }
 
     function isSignedIn() {
@@ -1064,6 +1202,8 @@ const SPLINE_SCENE_URL = "";
       }
 
       setCarSummaryText(vehicleProfile);
+      renderVehicleSwitcher();
+      renderServiceRecords(vehicleProfile);
 
       $("#dtcList").innerHTML = dtcRows.map((item) => `
         <article class="dtc">
@@ -1271,6 +1411,221 @@ const SPLINE_SCENE_URL = "";
           <a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.url)}</a>
         </div>
       `).join("");
+    }
+
+    const SERVICE_RECORDS_KEY = "puls_service_records_v1";
+
+    function createServiceRecordId() {
+      return `srv_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    }
+
+    function loadServiceRecords() {
+      try {
+        return JSON.parse(localStorage.getItem(SERVICE_RECORDS_KEY) || "[]").filter(Boolean);
+      } catch (error) {
+        return [];
+      }
+    }
+
+    function saveServiceRecords(records) {
+      try {
+        localStorage.setItem(SERVICE_RECORDS_KEY, JSON.stringify(records.slice(0, 200)));
+      } catch (error) {
+        console.warn("Could not save service records:", error);
+      }
+    }
+
+    function readServiceRecordsForVehicle(vehicleId) {
+      const id = String(vehicleId || "").trim();
+      return loadServiceRecords().filter((record) => String(record.vehicleId || "") === id);
+    }
+
+    function openServiceModal() {
+      const modal = $("#serviceModal");
+      if (!modal) return;
+      const form = $("#serviceForm");
+      if (form) form.reset();
+      const photoInput = $("#servicePhotoInput");
+      if (photoInput) delete photoInput.dataset.previewUrl;
+      const now = new Date();
+      const dateInput = $("#serviceDateInput");
+      if (dateInput) dateInput.value = now.toISOString().slice(0, 10);
+      const status = $("#serviceFormStatus");
+      if (status) status.textContent = "";
+      updateServicePreview();
+      modal.classList.add("show");
+      modal.setAttribute("aria-hidden", "false");
+    }
+
+    function closeServiceModal() {
+      const modal = $("#serviceModal");
+      if (!modal) return;
+      modal.classList.remove("show");
+      modal.setAttribute("aria-hidden", "true");
+    }
+
+    async function fileToDataUrl(file) {
+      if (!file) return "";
+      return await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => resolve("");
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function guessServiceSticker(text = "") {
+      const source = String(text || "").toLowerCase();
+      if (/(oil|масл)/.test(source)) return { sticker: "🛠", color: "violet" };
+      if (/(brake|тормоз)/.test(source)) return { sticker: "🛞", color: "orange" };
+      if (/(battery|аккум)/.test(source)) return { sticker: "🔋", color: "green" };
+      if (/(air|filter|фильтр)/.test(source)) return { sticker: "◦", color: "cyan" };
+      if (/(ac|a\/c|кондиц|freon|фреон)/.test(source)) return { sticker: "❄", color: "cyan" };
+      return { sticker: "🛠", color: "violet" };
+    }
+
+    function updateServicePreview(photoUrl = "") {
+      const preview = $("#servicePreview");
+      if (!preview) return;
+      const title = String($("#serviceTitleInput")?.value || "").trim();
+      const description = String($("#serviceDescriptionInput")?.value || "").trim();
+      const mergedText = `${title} ${description}`.trim();
+      const { sticker, color } = guessServiceSticker(mergedText);
+      const icon = preview.querySelector(".service-preview-icon");
+      const titleNode = preview.querySelector("strong");
+      const textNode = preview.querySelector("p");
+
+      preview.classList.toggle("has-photo", Boolean(photoUrl));
+      preview.style.backgroundImage = photoUrl ? `url("${photoUrl}")` : "";
+      preview.dataset.color = color;
+      if (icon) icon.textContent = photoUrl ? "📷" : sticker;
+      if (titleNode) titleNode.textContent = title || t("service.previewTitle");
+      if (textNode) {
+        textNode.textContent = photoUrl
+          ? (getLanguage() === "en" ? "Photo attached. The record will be saved with the picture." : "Фото прикреплено. Запись сохранится с изображением.")
+          : (getLanguage() === "en" ? "You can add a photo or leave the colored sticker." : "Можно добавить фото или оставить цветной стикер.");
+      }
+    }
+
+    async function saveServiceRecord(event) {
+      event.preventDefault();
+      const active = loadVehicleProfile();
+      const status = $("#serviceFormStatus");
+      const title = String($("#serviceTitleInput")?.value || "").trim();
+      const description = String($("#serviceDescriptionInput")?.value || "").trim();
+      const date = String($("#serviceDateInput")?.value || "").trim();
+      const mileage = String($("#serviceMileageInput")?.value || "").trim();
+      const file = $("#servicePhotoInput")?.files?.[0] || null;
+
+      if (!active?.id) {
+        if (status) status.textContent = getLanguage() === "en" ? "Choose or create a car first." : "Сначала выберите или создайте автомобиль.";
+        return;
+      }
+      if (!title || !date || !mileage) {
+        if (status) status.textContent = getLanguage() === "en"
+          ? "Please fill in title, date, and mileage."
+          : "Заполните название, дату и пробег.";
+        return;
+      }
+
+      const photoUrl = file ? await fileToDataUrl(file) : "";
+      const { sticker, color } = guessServiceSticker(`${title} ${description}`);
+      const record = {
+        id: createServiceRecordId(),
+        vehicleId: active.id,
+        title,
+        description,
+        date,
+        mileage,
+        photoUrl,
+        sticker,
+        color,
+        status: getLanguage() === "en" ? "Completed" : "Выполнено"
+      };
+
+      const records = loadServiceRecords();
+      records.unshift(record);
+      saveServiceRecords(records);
+      if (status) status.textContent = t("service.saved");
+      closeServiceModal();
+      renderServiceRecords(active);
+    }
+
+    function renderVehicleSwitcher() {
+      const box = $("#vehicleSwitcher");
+      if (!box) return;
+      const store = loadVehicleStore();
+      const vehicles = store.vehicles;
+
+      box.innerHTML = vehicles.map((vehicle) => {
+        const isActive = vehicle.id === store.activeId;
+        const label = getVehicleLabel(vehicle);
+        const subtitle = [vehicle.year, vehicle.engine].filter(Boolean).join(" • ");
+        return `
+          <button type="button" class="vehicle-chip ${isActive ? "active" : ""}" data-vehicle-id="${escapeHtml(vehicle.id)}">
+            <span>${escapeHtml(label)}</span>
+            ${subtitle ? `<small>${escapeHtml(subtitle)}</small>` : ""}
+          </button>
+        `;
+      }).join("") + `
+        <button type="button" class="vehicle-chip vehicle-chip-add" id="vehicleAddChip">+ ${escapeHtml(t("car.addVehicle"))}</button>
+      `;
+    }
+
+    function renderServiceRecords(vehicleProfile) {
+      const serviceList = $("#serviceList");
+      if (!serviceList) return;
+
+      const english = getLanguage() === "en";
+      const completedLabel = english ? "Completed" : "Выполнено";
+      const fallbackRows = english ? [
+        ["Engine oil and oil filter replacement", "Oil: 5W-30 Nissan Genuine Oil. Filter: original Nissan", "Today, 10:30", "98,500 km", "violet", "🛠"],
+        ["Timing belt kit replacement", "Timing belt, rollers, tensioner, water pump. Manufacturer: Gates", "March 24, 2024", "90,120 km", "green", "⚙"],
+        ["Air filter replacement", "Engine air filter. Manufacturer: Mann", "March 24, 2024", "90,120 km", "cyan", "◳"],
+        ["Front brake pad replacement", "Front brake pads. Manufacturer: Brembo", "February 12, 2024", "86,780 km", "orange", "◎"],
+        ["Fuel filter replacement", "Fuel filter. Manufacturer: Nissan", "November 10, 2023", "80,450 km", "violet", "◣"],
+        ["A/C service", "Freon refill and leak check", "August 5, 2023", "74,230 km", "cyan", "❄"]
+      ] : services;
+
+      const activeRecords = readServiceRecordsForVehicle(vehicleProfile?.id);
+      const userRows = activeRecords.map((record) => ({
+        title: record.title || (english ? "Service record" : "Запись ТО"),
+        description: record.description || "",
+        date: record.date || "",
+        mileage: record.mileage || "",
+        color: record.color || "violet",
+        sticker: record.photoUrl ? "" : (record.sticker || "🛠"),
+        photoUrl: record.photoUrl || "",
+        status: record.status || completedLabel
+      }));
+
+      const rows = userRows.length ? userRows : fallbackRows.map((item) => ({
+        title: item[0],
+        description: item[1],
+        date: item[2],
+        mileage: item[3],
+        color: item[4] || "violet",
+        sticker: item[5] || "🛠",
+        photoUrl: "",
+        status: completedLabel
+      }));
+
+      serviceList.innerHTML = rows.map((item) => {
+        const mediaStyle = item.photoUrl ? `style="background-image:url('${escapeHtml(item.photoUrl)}')"` : "";
+        const mediaClass = item.photoUrl ? "has-photo" : `service-media-${item.color || "violet"}`;
+        const mediaContent = item.photoUrl ? "" : `<small>${escapeHtml(item.sticker || "🛠")}</small>`;
+        return `
+          <article class="service">
+            <div class="service-media ${mediaClass}" ${mediaStyle}>${mediaContent}</div>
+            <div>
+              <h3>${escapeHtml(item.title)}</h3>
+              <p>${escapeHtml(item.description)}</p>
+              <p class="ok">${escapeHtml(item.status)}</p>
+            </div>
+            <div><p>${escapeHtml(item.date)}</p><p>${escapeHtml(english ? "Mileage" : "Пробег")}: ${escapeHtml(item.mileage)}</p></div>
+          </article>
+        `;
+      }).join("");
     }
 
     const HISTORY_STORAGE_KEY = "puls_request_history_v2";
@@ -1489,6 +1844,16 @@ const SPLINE_SCENE_URL = "";
       $("#carPhotoInput")?.addEventListener("change", (event) => {
         updateCarPhoto(event.target.files?.[0]);
       });
+      $("#serviceForm")?.addEventListener("submit", saveServiceRecord);
+      ["#serviceTitleInput", "#serviceDescriptionInput", "#serviceDateInput", "#serviceMileageInput"].forEach((selector) => {
+        $(selector)?.addEventListener("input", () => updateServicePreview($("#servicePhotoInput")?.dataset.previewUrl || ""));
+      });
+      $("#servicePhotoInput")?.addEventListener("change", async (event) => {
+        const file = event.target.files?.[0] || null;
+        const photoUrl = file ? await fileToDataUrl(file) : "";
+        event.target.dataset.previewUrl = photoUrl;
+        updateServicePreview(photoUrl);
+      });
       $("#languageSelect")?.addEventListener("change", (event) => {
         setLanguage(event.target.value);
       });
@@ -1534,6 +1899,40 @@ const SPLINE_SCENE_URL = "";
           const active = !toggleButton.classList.contains("active");
           toggleButton.classList.toggle("active", active);
           toggleButton.setAttribute("aria-pressed", String(active));
+          return;
+        }
+
+        const addVehicleButton = event.target.closest("#addVehicleBtn, #vehicleAddChip");
+        if (addVehicleButton) {
+          const vehicle = addVehicleProfile();
+          fillVehicleForm(vehicle);
+          renderLists();
+          showView("car");
+          return;
+        }
+
+        const vehicleChip = event.target.closest("[data-vehicle-id]");
+        if (vehicleChip) {
+          const active = setActiveVehicleProfile(vehicleChip.dataset.vehicleId);
+          fillVehicleForm(active);
+          renderLists();
+          return;
+        }
+
+        const serviceButton = event.target.closest("#serviceAddBtn");
+        if (serviceButton) {
+          openServiceModal();
+          return;
+        }
+
+        const serviceClose = event.target.closest("#serviceCloseBtn, #serviceCancelBtn");
+        if (serviceClose) {
+          closeServiceModal();
+          return;
+        }
+
+        if (event.target.id === "serviceModal") {
+          closeServiceModal();
           return;
         }
 
