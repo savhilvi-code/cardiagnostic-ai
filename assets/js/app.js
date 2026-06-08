@@ -530,7 +530,8 @@ const SPLINE_SCENE_URL = "";
       if (!nodes.modal) return;
 
       const english = getLanguage() === "en";
-      const links = extractLinks(item.answer || "");
+      const normalizedLinks = normalizeResponseLinks(item.links || []);
+      const links = normalizedLinks.length ? normalizedLinks : extractLinks(item.answer || "");
 
       if (nodes.title) nodes.title.textContent = english ? "Request details" : "Детали запроса";
       if (nodes.meta) nodes.meta.textContent = [item.date, item.vehicle].filter(Boolean).join(" • ");
@@ -589,6 +590,7 @@ const SPLINE_SCENE_URL = "";
       const historyRows = savedHistory.map((item) => ({
         question: item.question,
         answer: item.answer,
+        links: item.links || [],
         date: item.date,
         vehicle: item.vehicle || `${selectCar} • ${t("hero.engineValue")} • ${t("hero.driveValue")}`,
         type: item.type || textRequestLabel,
@@ -813,11 +815,30 @@ const SPLINE_SCENE_URL = "";
       return links;
     }
 
-    function updateTopicLinks(answer) {
+    function normalizeResponseLinks(rawLinks) {
+      if (!Array.isArray(rawLinks)) return [];
+      const links = [];
+      for (const item of rawLinks) {
+        if (!item || typeof item !== "object") continue;
+        const url = cleanUrl(item.url || item.link || "");
+        if (!url || links.some((existing) => existing.url === url)) continue;
+        const isVideo = /youtube\.com|youtu\.be|rutube\.ru|vimeo\.com/i.test(url) || item.type === "video";
+        links.push({
+          title: String(item.title || item.forum || item.name || item.source || (isVideo ? (getLanguage() === "en" ? "Related video" : "Видео по теме") : (getLanguage() === "en" ? "Related link" : "Ссылка по теме"))),
+          url,
+          source: String(item.source || item.forum || item.description || ""),
+          description: String(item.description || item.key_info || ""),
+          isVideo
+        });
+      }
+      return links;
+    }
+
+    function updateTopicLinks(rawLinks) {
       const box = $("#topicLinks");
       if (!box) return;
 
-      const links = extractLinks(answer);
+      const links = Array.isArray(rawLinks) ? normalizeResponseLinks(rawLinks) : extractLinks(rawLinks);
 
       if (!links.length) {
         box.innerHTML = `<p>${t("assistant.linksFoundEmpty")}</p>`;
@@ -865,6 +886,7 @@ const SPLINE_SCENE_URL = "";
           id: row.id,
           question: row.question,
           answer: row.answer || "",
+          links: extractLinks(row.answer || ""),
           date: createdAt.toLocaleDateString(currentLocale(), { day: "2-digit", month: "short" }) + ", " +
             createdAt.toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" }),
           vehicle: `${t("hero.car")} • ${t("hero.engineValue")} • ${t("hero.driveValue")}`,
@@ -876,10 +898,11 @@ const SPLINE_SCENE_URL = "";
       });
     }
 
-    async function saveHistoryItem(question, answer) {
+    async function saveHistoryItem(question, answer, links = []) {
       const item = {
         question,
         answer,
+        links,
         vehicle: `${t("hero.car")} • ${t("hero.engineValue")} • ${t("hero.driveValue")}`,
         type: getLanguage() === "en" ? "Text request" : "Текстовый запрос"
       };
@@ -1005,11 +1028,12 @@ const SPLINE_SCENE_URL = "";
         }
 
         const answer = data.answer || data.reply || data.message || data.output || rawAnswer || JSON.stringify(data, null, 2);
+        const links = normalizeResponseLinks(data.links || []);
         loading.innerHTML = `<strong>PULS</strong><br>${linkifyText(answer)} <small>${new Date().toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" })}</small>`;
         updateKeyChecks(answer);
-        updateTopicLinks(answer);
+        updateTopicLinks(links.length ? links : answer);
         updateQuota(data.quota);
-        await saveHistoryItem(prompt, answer);
+        await saveHistoryItem(prompt, answer, links);
         await renderLists();
         scrollMessagesToBottom();
       } catch (error) {
@@ -1017,7 +1041,7 @@ const SPLINE_SCENE_URL = "";
         const errorText = t("assistant.error");
         loading.innerHTML = `<strong>PULS</strong><br>${errorText} <small>${new Date().toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" })}</small>`;
         updateKeyChecks(errorText);
-        await saveHistoryItem(prompt, errorText);
+        await saveHistoryItem(prompt, errorText, []);
         scrollMessagesToBottom();
       }
     }
