@@ -47,6 +47,7 @@ const SPLINE_SCENE_URL = "";
     const $ = (selector) => document.querySelector(selector);
     const $$ = (selector) => Array.from(document.querySelectorAll(selector));
     const LANGUAGE_STORAGE_KEY = "puls_language_v1";
+    const VEHICLE_STORAGE_KEY = "puls_vehicle_profile_v1";
 
     const i18n = {
       en: {
@@ -112,6 +113,30 @@ const SPLINE_SCENE_URL = "";
         "car.serviceAdd": "Add record",
         "car.serviceHelp": "All maintenance records stay inside the selected car so the assistant always knows what has already been done.",
         "car.photoUpload": "Attach car photo",
+        "car.formTitle": "Car profile editor",
+        "car.formSubtitle": "Fill in the car once so PULS always knows which vehicle to use.",
+        "car.formBrand": "Brand",
+        "car.formBrandPlaceholder": "Toyota",
+        "car.formModel": "Model",
+        "car.formModelPlaceholder": "Land Cruiser",
+        "car.formYear": "Year",
+        "car.formYearPlaceholder": "2003",
+        "car.formEngine": "Engine",
+        "car.formEnginePlaceholder": "SR20VET",
+        "car.formFuel": "Fuel",
+        "car.formFuelPlaceholder": "Petrol",
+        "car.formDrive": "Drive",
+        "car.formDrivePlaceholder": "4WD",
+        "car.formTransmission": "Transmission",
+        "car.formTransmissionPlaceholder": "AT",
+        "car.formMileage": "Mileage",
+        "car.formMileagePlaceholder": "185000 km",
+        "car.formVin": "VIN",
+        "car.formVinPlaceholder": "JT...",
+        "car.formHint": "You can edit the data anytime. Later we can connect VIN or catalog auto-fill here.",
+        "car.formSave": "Save car",
+        "car.formSaved": "Car profile saved.",
+        "car.formDemo": "Fill demo data",
         "spec.displacement": "Engine displacement:",
         "spec.note": "These fields are filled automatically from vehicle data after the user enters the car information.",
         "spec.displacementValue": "Auto-filled after car selection",
@@ -273,6 +298,30 @@ const SPLINE_SCENE_URL = "";
         "car.serviceAdd": "Добавить запись",
         "car.serviceHelp": "Все записи обслуживания и ТО отображаются внутри карточки выбранного автомобиля, чтобы контекст машины не терялся.",
         "car.photoUpload": "Прикрепить фото авто",
+        "car.formTitle": "Редактор автомобиля",
+        "car.formSubtitle": "Заполните данные машины один раз, чтобы PULS всегда понимал, какой автомобиль использовать.",
+        "car.formBrand": "Марка",
+        "car.formBrandPlaceholder": "Toyota",
+        "car.formModel": "Модель",
+        "car.formModelPlaceholder": "Land Cruiser",
+        "car.formYear": "Год",
+        "car.formYearPlaceholder": "2003",
+        "car.formEngine": "Двигатель",
+        "car.formEnginePlaceholder": "SR20VET",
+        "car.formFuel": "Топливо",
+        "car.formFuelPlaceholder": "Бензин",
+        "car.formDrive": "Привод",
+        "car.formDrivePlaceholder": "4WD",
+        "car.formTransmission": "КПП",
+        "car.formTransmissionPlaceholder": "АКПП",
+        "car.formMileage": "Пробег",
+        "car.formMileagePlaceholder": "185000 км",
+        "car.formVin": "VIN",
+        "car.formVinPlaceholder": "JT...",
+        "car.formHint": "Данные можно редактировать в любой момент. Позже сюда можно подключить авто-подтягивание по VIN или каталогу.",
+        "car.formSave": "Сохранить машину",
+        "car.formSaved": "Профиль машины сохранён.",
+        "car.formDemo": "Заполнить пример",
         "spec.displacement": "Объем двигателя:",
         "spec.note": "Эти поля заполняются автоматически по данным автомобиля после того, как пользователь укажет машину.",
         "spec.displacementValue": "Заполнится автоматически после выбора авто",
@@ -388,6 +437,158 @@ const SPLINE_SCENE_URL = "";
     }
 
     window.pulsT = t;
+
+    function getDefaultVehicleProfile() {
+      return {
+        brand: "",
+        model: "",
+        year: "",
+        engine: "",
+        fuel: "",
+        drive: "",
+        transmission: "",
+        mileage: "",
+        vin: ""
+      };
+    }
+
+    function normalizeVehicleProfile(profile = {}) {
+      const defaults = getDefaultVehicleProfile();
+      return Object.fromEntries(Object.keys(defaults).map((key) => [key, String(profile[key] ?? defaults[key] ?? "").trim()]));
+    }
+
+    function loadVehicleProfile() {
+      try {
+        const raw = localStorage.getItem(VEHICLE_STORAGE_KEY);
+        if (!raw) return getDefaultVehicleProfile();
+        return normalizeVehicleProfile(JSON.parse(raw));
+      } catch (error) {
+        return getDefaultVehicleProfile();
+      }
+    }
+
+    function saveVehicleProfile(profile) {
+      try {
+        localStorage.setItem(VEHICLE_STORAGE_KEY, JSON.stringify(normalizeVehicleProfile(profile)));
+      } catch (error) {
+        console.warn("Could not save vehicle profile:", error);
+      }
+    }
+
+    function getVehicleLabel(profile = loadVehicleProfile()) {
+      const normalized = normalizeVehicleProfile(profile);
+      return [normalized.brand, normalized.model].filter(Boolean).join(" ").trim() || t("hero.car");
+    }
+
+    function setCarSummaryText(profile = loadVehicleProfile()) {
+      const normalized = normalizeVehicleProfile(profile);
+      const summary = getVehicleLabel(normalized);
+      const yearText = normalized.year || t("hero.yearValue");
+      const engineText = normalized.engine || t("hero.engineValue");
+      const driveText = normalized.drive || t("hero.driveValue");
+      const fuelText = normalized.fuel || t("hero.fuelValue");
+      const transmissionText = normalized.transmission || t("car.transmissionValue");
+      const vinText = normalized.vin || t("car.vinValue");
+
+      const setNodeText = (selector, value) => {
+        const node = $(selector);
+        if (node) node.textContent = value;
+      };
+
+      setNodeText("#heroCarTitle", summary);
+      setNodeText("#heroYearValue", yearText);
+      setNodeText("#heroEngineValue", engineText);
+      setNodeText("#heroDriveValue", driveText);
+      setNodeText("#heroFuelValue", fuelText);
+      setNodeText("#carInfoModel", summary);
+      setNodeText("#carInfoYear", yearText);
+      setNodeText("#carInfoEngine", engineText);
+      setNodeText("#carInfoDrive", driveText);
+      setNodeText("#carInfoFuel", fuelText);
+      setNodeText("#carInfoTransmission", transmissionText);
+      setNodeText("#carInfoVin", vinText);
+
+      const formStatus = $("#carFormStatus");
+      if (formStatus && formStatus.dataset.state === "saved") {
+        formStatus.textContent = t("car.formSaved");
+      }
+    }
+
+    function getVehicleFormValues() {
+      return normalizeVehicleProfile({
+        brand: $("#carBrandInput")?.value,
+        model: $("#carModelInput")?.value,
+        year: $("#carYearInput")?.value,
+        engine: $("#carEngineInput")?.value,
+        fuel: $("#carFuelInput")?.value,
+        drive: $("#carDriveInput")?.value,
+        transmission: $("#carTransmissionInput")?.value,
+        mileage: $("#carMileageInput")?.value,
+        vin: $("#carVinInput")?.value
+      });
+    }
+
+    function fillVehicleForm(profile = loadVehicleProfile()) {
+      const normalized = normalizeVehicleProfile(profile);
+      const mapping = {
+        "#carBrandInput": normalized.brand,
+        "#carModelInput": normalized.model,
+        "#carYearInput": normalized.year,
+        "#carEngineInput": normalized.engine,
+        "#carFuelInput": normalized.fuel,
+        "#carDriveInput": normalized.drive,
+        "#carTransmissionInput": normalized.transmission,
+        "#carMileageInput": normalized.mileage,
+        "#carVinInput": normalized.vin
+      };
+      Object.entries(mapping).forEach(([selector, value]) => {
+        const node = $(selector);
+        if (node) node.value = value;
+      });
+      setCarSummaryText(normalized);
+    }
+
+    function initVehicleEditor() {
+      const form = $("#carForm");
+      if (!form) return;
+
+      fillVehicleForm(loadVehicleProfile());
+
+      const saveProfile = (profile, state = "saved") => {
+        saveVehicleProfile(profile);
+        const status = $("#carFormStatus");
+        if (status) {
+          status.dataset.state = state;
+          status.textContent = state === "saved" ? t("car.formSaved") : "";
+        }
+        setCarSummaryText(profile);
+      };
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        saveProfile(getVehicleFormValues());
+      });
+
+      form.addEventListener("input", () => {
+        saveProfile(getVehicleFormValues(), "typing");
+      });
+
+      $("#carFillDemoBtn")?.addEventListener("click", () => {
+        const demo = normalizeVehicleProfile({
+          brand: "Nissan",
+          model: "X-Trail",
+          year: "2003",
+          engine: "SR20VET",
+          fuel: "Petrol",
+          drive: "4WD",
+          transmission: "AT",
+          mileage: "185000 km",
+          vin: "JT1234567890"
+        });
+        fillVehicleForm(demo);
+        saveProfile(demo);
+      });
+    }
 
     function setTranslatedContent(node, value) {
       if (node.firstElementChild?.tagName?.toLowerCase() === "svg") {
@@ -563,6 +764,11 @@ const SPLINE_SCENE_URL = "";
 
     async function renderLists() {
       const english = getLanguage() === "en";
+      const vehicleProfile = loadVehicleProfile();
+      const selectCar = getVehicleLabel(vehicleProfile);
+      const selectYear = vehicleProfile.year || t("hero.yearValue");
+      const selectEngine = vehicleProfile.engine || t("hero.engineValue");
+      const selectDrive = vehicleProfile.drive || t("hero.driveValue");
       const serviceRows = english ? [
         ["Engine oil and oil filter replacement", "Oil: 5W-30 Nissan Genuine Oil. Filter: original Nissan", "Today, 10:30", "98,500 km", "violet", "🛢"],
         ["Timing belt kit replacement", "Timing belt, rollers, tensioner, water pump. Manufacturer: Gates", "March 24, 2024", "90,120 km", "green", "⚙"],
@@ -592,7 +798,7 @@ const SPLINE_SCENE_URL = "";
         answer: item.answer,
         links: item.links || [],
         date: item.date,
-        vehicle: item.vehicle || `${selectCar} • ${t("hero.engineValue")} • ${t("hero.driveValue")}`,
+        vehicle: item.vehicle || [selectCar, selectYear, selectEngine, selectDrive].filter(Boolean).join(" • "),
         type: item.type || textRequestLabel,
         status: item.status || "new"
       }));
@@ -648,6 +854,8 @@ const SPLINE_SCENE_URL = "";
           </article>
         `).join("");
       }
+
+      setCarSummaryText(vehicleProfile);
 
       $("#dtcList").innerHTML = dtcRows.map((item) => `
         <article class="dtc">
@@ -1059,6 +1267,7 @@ const SPLINE_SCENE_URL = "";
       document.body.classList.add("assistant-mode");
       injectIcons();
       applyLanguage();
+      initVehicleEditor();
       await renderLists();
       connectSpline();
 
