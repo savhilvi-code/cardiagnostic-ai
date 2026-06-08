@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CarDiagnostic AI</title>
   <meta name="description" content="PULS для диагностики автомобиля, сервисной истории, ошибок DTC и мануалов.">
-  <link rel="stylesheet" href="assets/css/style.css?v=20260608-04">
+  <link rel="stylesheet" href="assets/css/style.css?v=20260608-05">
 </head>
 <body>
   <div class="app" id="app">
@@ -205,13 +205,13 @@
                 <h3 data-i18n="car.specTitle">Технические характеристики</h3>
                 <p class="card-note" data-i18n="spec.note">These fields are filled automatically from vehicle data after the user enters the car information.</p>
                 <div class="spec-list">
-                  <div><span data-i18n="spec.displacement">Engine displacement:</span><b data-i18n="spec.displacementValue">Auto-filled after car selection</b></div>
-                  <div><span data-i18n="spec.power">Power:</span><b data-i18n="spec.powerValue">Auto-filled after car selection</b></div>
-                  <div><span data-i18n="spec.torque">Torque:</span><b data-i18n="spec.torqueValue">Auto-filled after car selection</b></div>
-                  <div><span data-i18n="spec.engineType">Engine type:</span><b data-i18n="spec.engineTypeValue">Auto-filled after car selection</b></div>
-                  <div><span data-i18n="spec.cylinders">Cylinders:</span><b data-i18n="spec.cylindersValue">Auto-filled after car selection</b></div>
-                  <div><span data-i18n="spec.emissions">Emissions class:</span><b data-i18n="spec.emissionsValue">Auto-filled after car selection</b></div>
-                  <div><span data-i18n="spec.tank">Fuel tank:</span><b data-i18n="spec.tankValue">Auto-filled after car selection</b></div>
+                  <div><span data-i18n="spec.displacement">Engine displacement:</span><b id="specDisplacement" data-i18n="spec.displacementValue">Auto-filled after car selection</b></div>
+                  <div><span data-i18n="spec.power">Power:</span><b id="specPower" data-i18n="spec.powerValue">Auto-filled after car selection</b></div>
+                  <div><span data-i18n="spec.torque">Torque:</span><b id="specTorque" data-i18n="spec.torqueValue">Auto-filled after car selection</b></div>
+                  <div><span data-i18n="spec.engineType">Engine type:</span><b id="specEngineType" data-i18n="spec.engineTypeValue">Auto-filled after car selection</b></div>
+                  <div><span data-i18n="spec.cylinders">Cylinders:</span><b id="specCylinders" data-i18n="spec.cylindersValue">Auto-filled after car selection</b></div>
+                  <div><span data-i18n="spec.emissions">Emissions class:</span><b id="specEmissions" data-i18n="spec.emissionsValue">Auto-filled after car selection</b></div>
+                  <div><span data-i18n="spec.tank">Fuel tank:</span><b id="specTank" data-i18n="spec.tankValue">Auto-filled after car selection</b></div>
                 </div>
               </div>
             </div>
@@ -401,7 +401,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/supabaseClient.js?v=20260531-22"></script>
   <script src="assets/js/auth.js?v=20260606-01"></script>
-  <script src="assets/js/app.js?v=20260608-04"></script>
+  <script src="assets/js/app.js?v=20260608-05"></script>
 </body>
 </html>
 

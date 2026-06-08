@@ -315,6 +315,14 @@ html { scroll-behavior: smooth; }
       animation: pulse 2.6s ease-in-out infinite;
     }
 
+    .rings > div {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      transform: translateY(-10px);
+    }
+
     @keyframes pulse {
       0%, 100% { transform: scale(1); filter: brightness(1); }
       50% { transform: scale(1.025); filter: brightness(1.18); }
@@ -322,14 +330,17 @@ html { scroll-behavior: smooth; }
 
     .rings .listen { font-size: 13px; }
     .rings .mic {
-      font-size: 42px;
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
       color: #9f7cff;
       text-shadow: 0 0 14px #008cff;
     }
 
     .rings .mic svg {
-      width: 42px;
-      height: 42px;
+      width: 26px;
+      height: 26px;
       display: block;
       color: #9f7cff;
       filter: drop-shadow(0 0 14px #008cff);
@@ -1189,9 +1200,20 @@ html { scroll-behavior: smooth; }
       border-radius: 10px;
       background: #04111d;
       color: #fff;
-      padding: 0 12px;
+      padding: 0 36px 0 12px;
       font-weight: 800;
       outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      background-image:
+        linear-gradient(45deg, transparent 50%, #39b9ff 50%),
+        linear-gradient(135deg, #39b9ff 50%, transparent 50%);
+      background-position:
+        calc(100% - 18px) 15px,
+        calc(100% - 12px) 15px;
+      background-size: 6px 6px;
+      background-repeat: no-repeat;
     }
 
     .settings-select:disabled,

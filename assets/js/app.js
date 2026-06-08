@@ -148,6 +148,7 @@ const SPLINE_SCENE_URL = "";
         "car.lookupError": "VIN lookup failed. Please try again in a few seconds.",
         "spec.displacement": "Engine displacement:",
         "spec.note": "These fields are filled automatically from vehicle data after the user enters the car information.",
+        "spec.unavailable": "No data",
         "spec.displacementValue": "Auto-filled after car selection",
         "spec.power": "Power:",
         "spec.powerValue": "Auto-filled after car selection",
@@ -341,6 +342,7 @@ const SPLINE_SCENE_URL = "";
         "car.lookupError": "Не удалось получить данные по VIN. Попробуйте ещё раз через несколько секунд.",
         "spec.displacement": "Объем двигателя:",
         "spec.note": "Эти поля заполняются автоматически по данным автомобиля после того, как пользователь укажет машину.",
+        "spec.unavailable": "Нет данных",
         "spec.displacementValue": "Заполнится автоматически после выбора авто",
         "spec.power": "Мощность:",
         "spec.powerValue": "Заполнится автоматически после выбора авто",
@@ -521,12 +523,29 @@ const SPLINE_SCENE_URL = "";
     function decodeVinRecord(record = {}) {
       const normalized = {
         brand: String(record.Make || record.Manufacturer || record.ManufacturerName || "").trim(),
-        model: String(record.Model || record.Trim || record.Series || "").trim(),
+        model: String(
+          record.Model ||
+          record.BaseModelName ||
+          record.ModelName ||
+          record.Series ||
+          record.Series2 ||
+          record.Trim ||
+          record.Trim2 ||
+          record.VehicleDescriptor ||
+          ""
+        ).trim(),
         year: String(record.ModelYear || "").trim(),
-        engine: String(record.EngineModel || record.EngineConfiguration || record.EngineHP || "").trim(),
+        engine: String(record.EngineModel || record.EngineConfiguration || record.EngineDescription || "").trim(),
         fuel: String(record.FuelTypePrimary || record.FuelTypeSecondary || "").trim(),
         drive: String(record.DriveType || "").trim(),
         transmission: String(record.TransmissionStyle || "").trim(),
+        displacement: String(record.DisplacementL || "").trim(),
+        power: String(record.EngineHP || "").trim(),
+        torque: String(record.EngineTorque || "").trim(),
+        engineType: String(record.EngineConfiguration || record.EngineDescription || record.EngineModel || "").trim(),
+        cylinders: String(record.EngineCylinders || "").trim(),
+        emissions: String(record.EmissionsStandard || record.EmissionsInfo || "").trim(),
+        tank: String(record.FuelTankVolume || record.FuelTankLocation || "").trim(),
         mileage: "",
         vin: String(record.VIN || record.Vin || "").trim().toUpperCase()
       };
@@ -584,9 +603,24 @@ const SPLINE_SCENE_URL = "";
         }
 
         const decoded = decodeVinRecord({ ...record, VIN: normalizedVin });
+        const previous = loadVehicleProfile();
+        const keepPreviousModel = Boolean(previous.model && previous.brand && decoded.brand && previous.brand === decoded.brand);
         const merged = normalizeVehicleProfile({
-          ...loadVehicleProfile(),
-          ...decoded,
+          brand: decoded.brand || previous.brand,
+          model: decoded.model || (keepPreviousModel ? previous.model : ""),
+          year: decoded.year || previous.year,
+          engine: decoded.engine || previous.engine,
+          fuel: decoded.fuel || previous.fuel,
+          drive: decoded.drive || previous.drive,
+          transmission: decoded.transmission || previous.transmission,
+          displacement: decoded.displacement || previous.displacement,
+          power: decoded.power || previous.power,
+          torque: decoded.torque || previous.torque,
+          engineType: decoded.engineType || previous.engineType,
+          cylinders: decoded.cylinders || previous.cylinders,
+          emissions: decoded.emissions || previous.emissions,
+          tank: decoded.tank || previous.tank,
+          mileage: previous.mileage,
           vin: normalizedVin
         });
 
@@ -617,6 +651,13 @@ const SPLINE_SCENE_URL = "";
       const fuelText = normalized.fuel || t("hero.fuelValue");
       const transmissionText = normalized.transmission || t("car.transmissionValue");
       const vinText = normalized.vin || t("car.vinValue");
+      const displacementText = normalized.displacement ? `${normalized.displacement} L` : t("spec.unavailable");
+      const powerText = normalized.power ? `${normalized.power} hp` : t("spec.unavailable");
+      const torqueText = normalized.torque ? `${normalized.torque} Nm` : t("spec.unavailable");
+      const engineTypeText = normalized.engineType || t("spec.unavailable");
+      const cylindersText = normalized.cylinders ? `${normalized.cylinders}` : t("spec.unavailable");
+      const emissionsText = normalized.emissions || t("spec.unavailable");
+      const tankText = normalized.tank || t("spec.unavailable");
 
       const setNodeText = (selector, value) => {
         const node = $(selector);
@@ -635,6 +676,13 @@ const SPLINE_SCENE_URL = "";
       setNodeText("#carInfoFuel", fuelText);
       setNodeText("#carInfoTransmission", transmissionText);
       setNodeText("#carInfoVin", vinText);
+      setNodeText("#specDisplacement", displacementText);
+      setNodeText("#specPower", powerText);
+      setNodeText("#specTorque", torqueText);
+      setNodeText("#specEngineType", engineTypeText);
+      setNodeText("#specCylinders", cylindersText);
+      setNodeText("#specEmissions", emissionsText);
+      setNodeText("#specTank", tankText);
 
       const formStatus = $("#carFormStatus");
       if (formStatus && formStatus.dataset.state === "saved") {
