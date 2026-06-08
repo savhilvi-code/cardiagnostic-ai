@@ -1,4 +1,4 @@
-const N8N_WEBHOOK_URL = "https://puls-backend-t3sn.onrender.com/chat";
+const CHAT_API_URL = "https://puls-backend-t3sn.onrender.com/chat";
 const SPLINE_SCENE_URL = "";
 
     const iconMap = {
@@ -973,32 +973,27 @@ const SPLINE_SCENE_URL = "";
 
       const loading = appendMessage(t("assistant.loading"), false);
       try {
-        const res = await fetch(N8N_WEBHOOK_URL, {
+        const res = await fetch(CHAT_API_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             message: prompt,
-            text: prompt,
-            prompt,
             source: "web",
             auth_user_id: user.id,
             username: user.email || "web_user",
             first_name: user.user_metadata?.full_name || "Web",
             email: user.email,
-            subscription_plan: appUser.subscription_plan || "free",
-            requests_left: appUser.requests_left ?? null,
             language: getLanguage(),
-            vehicle: {
-              model: "",
-              year: "",
-              engine: "",
-              drive: "",
-              fuel: ""
-            }
+            car_info: appUser.car_info || "",
+            telegram_id: appUser.telegram_id || "",
+            chat_id: appUser.telegram_id || ""
           })
         });
 
-        if (!res.ok) throw new Error("n8n webhook вернул ошибку");
+        if (!res.ok) {
+          const errorBody = await res.text().catch(() => "");
+          throw new Error(`Chat API returned ${res.status}: ${errorBody || res.statusText}`);
+        }
 
         const rawAnswer = await res.text();
         let data;
@@ -1017,6 +1012,7 @@ const SPLINE_SCENE_URL = "";
         await renderLists();
         scrollMessagesToBottom();
       } catch (error) {
+        console.error("PULS /chat request failed:", error);
         const errorText = t("assistant.error");
         loading.innerHTML = `<strong>PULS</strong><br>${errorText} <small>${new Date().toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" })}</small>`;
         updateKeyChecks(errorText);
