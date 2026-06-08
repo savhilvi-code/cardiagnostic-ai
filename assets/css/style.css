@@ -2098,13 +2098,11 @@ body.assistant-mode .workspace {
 }
 
 body.assistant-mode .side {
-  position: sticky;
-  top: 90px;
+  position: static;
   height: auto !important;
-  max-height: calc(100vh - 110px) !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  scrollbar-color: #0b7ee8 transparent;
+  max-height: none !important;
+  overflow: visible !important;
+  scrollbar-color: transparent transparent;
 }
 
 body.assistant-mode .content,
