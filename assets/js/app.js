@@ -160,7 +160,7 @@ const SPLINE_SCENE_URL = "";
         "settings.metric": "km, °C",
         "settings.imperial": "mi, °F",
         "settings.timezone": "Time zone",
-        "subscription.freeStatus": "Status: Free — 5 requests",
+        "subscription.freeStatus": "Status: Free — 10 requests",
         "subscription.plan": "PULS Pro subscription: 100 requests for $15.",
         "subscription.pay": "Pay $15",
         "notifications.service": "Service reminders",
@@ -321,7 +321,7 @@ const SPLINE_SCENE_URL = "";
         "settings.metric": "км, °C",
         "settings.imperial": "мили, °F",
         "settings.timezone": "Часовой пояс",
-        "subscription.freeStatus": "Статус: Free — 5 запросов",
+        "subscription.freeStatus": "Статус: Free — 10 запросов",
         "subscription.plan": "Подписка PULS Pro: 100 запросов за $15.",
         "subscription.pay": "Оплатить $15",
         "notifications.service": "Напоминания о ТО",
@@ -485,6 +485,81 @@ const SPLINE_SCENE_URL = "";
       return `<div class="empty-state">${escapeHtml(message)}</div>`;
     }
 
+    const requestModalState = {
+      visibleHistory: [],
+      visibleJournal: []
+    };
+
+    function getRequestModalNodes() {
+      return {
+        modal: $("#requestModal"),
+        title: $("#requestModalTitle"),
+        meta: $("#requestModalMeta"),
+        type: $("#requestModalType"),
+        status: $("#requestModalStatus"),
+        question: $("#requestModalQuestion"),
+        answer: $("#requestModalAnswer"),
+        links: $("#requestModalLinks")
+      };
+    }
+
+    function closeRequestModal() {
+      const { modal } = getRequestModalNodes();
+      if (!modal) return;
+      modal.classList.remove("show");
+      modal.setAttribute("aria-hidden", "true");
+    }
+
+    function renderRequestLinks(links) {
+      if (!links.length) {
+        return `<p class="request-empty">${escapeHtml(getLanguage() === "en" ? "No links found." : "Ссылки не найдены.")}</p>`;
+      }
+
+      return links.map((item) => `
+        <a class="request-link" href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">
+          <strong>${escapeHtml(item.title || (getLanguage() === "en" ? "Related link" : "Ссылка по теме"))}</strong>
+          <span>${escapeHtml(item.description || item.url)}</span>
+          <small>${escapeHtml(item.url)}</small>
+        </a>
+      `).join("");
+    }
+
+    function openRequestModal(item) {
+      if (!item) return;
+      const nodes = getRequestModalNodes();
+      if (!nodes.modal) return;
+
+      const english = getLanguage() === "en";
+      const links = extractLinks(item.answer || "");
+
+      if (nodes.title) nodes.title.textContent = english ? "Request details" : "Детали запроса";
+      if (nodes.meta) nodes.meta.textContent = [item.date, item.vehicle].filter(Boolean).join(" • ");
+      if (nodes.type) nodes.type.textContent = item.type || (english ? "Text request" : "Текстовый запрос");
+      if (nodes.status) nodes.status.textContent = item.status || "new";
+      if (nodes.question) nodes.question.innerHTML = linkifyText(item.question || "");
+      if (nodes.answer) nodes.answer.innerHTML = linkifyText(item.answer || "");
+      if (nodes.links) nodes.links.innerHTML = renderRequestLinks(links);
+
+      nodes.modal.classList.add("show");
+      nodes.modal.setAttribute("aria-hidden", "false");
+    }
+
+    function openRequestByClick(target) {
+      const card = target.closest("[data-request-kind][data-request-index]");
+      if (!card) return false;
+
+      const kind = card.dataset.requestKind;
+      const index = Number(card.dataset.requestIndex);
+      if (!Number.isFinite(index)) return false;
+
+      const source = kind === "journal" ? requestModalState.visibleJournal : requestModalState.visibleHistory;
+      const item = source[index];
+      if (!item) return false;
+
+      openRequestModal(item);
+      return true;
+    }
+
     async function renderLists() {
       const english = getLanguage() === "en";
       const serviceRows = english ? [
@@ -537,8 +612,9 @@ const SPLINE_SCENE_URL = "";
 
       const journalQuery = getSearchValue("#journalSearch");
       const visibleCases = closedCases.filter((item) => matchesSearch([item.question, item.answer, item.vehicle, item.status], journalQuery));
+      requestModalState.visibleJournal = visibleCases;
       $("#journalList").innerHTML = visibleCases.length ? visibleCases.map((item, index) => `
-        <article class="row ${index === 0 ? "featured" : ""}">
+        <article class="row request-row ${index === 0 ? "featured" : ""}" data-request-kind="journal" data-request-index="${index}" role="button" tabindex="0">
           <div class="thumb" aria-hidden="true"></div>
           <div>
             <h3>${escapeHtml(item.question)}</h3>
@@ -551,8 +627,9 @@ const SPLINE_SCENE_URL = "";
 
       const historyQuery = getSearchValue("#historySearch");
       const visibleHistory = historyRows.filter((item) => matchesSearch([item.question, item.answer, item.vehicle, item.type, item.date], historyQuery));
-      $("#historyList").innerHTML = visibleHistory.length ? visibleHistory.map((item) => `
-        <article class="row" style="grid-template-columns:64px 1fr 150px">
+      requestModalState.visibleHistory = visibleHistory;
+      $("#historyList").innerHTML = visibleHistory.length ? visibleHistory.map((item, index) => `
+        <article class="row request-row" style="grid-template-columns:64px 1fr 150px" data-request-kind="history" data-request-index="${index}" role="button" tabindex="0">
           <div class="square ${item.type === voiceRequestLabel ? "violet" : ""}">${item.type === voiceRequestLabel ? "🎙" : "⌨"}</div>
           <div><h3>${escapeHtml(item.question)}</h3><p>${escapeHtml(item.vehicle)}</p></div>
           <div><p>${escapeHtml(item.date)}</p><span class="tag">${escapeHtml(item.type)}</span></div>
@@ -982,6 +1059,15 @@ const SPLINE_SCENE_URL = "";
       window.addEventListener("resize", syncAssistantMessageHeight);
       syncAssistantMessageHeight();
       document.addEventListener("click", (event) => {
+        if (event.target.closest("#requestCloseBtn") || event.target.closest("#requestModal") && event.target.id === "requestModal") {
+          closeRequestModal();
+          return;
+        }
+
+        if (openRequestByClick(event.target)) {
+          return;
+        }
+
         if (guardAuthAction(event.target)) {
           event.preventDefault();
           return;
@@ -1032,6 +1118,18 @@ const SPLINE_SCENE_URL = "";
           toast(t("toast.voice"));
         } else {
           toast(t("toast.demo"));
+        }
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          closeRequestModal();
+        }
+
+        const requestRow = event.target.closest("[data-request-kind][data-request-index]");
+        if (requestRow && (event.key === "Enter" || event.key === " ")) {
+          event.preventDefault();
+          openRequestByClick(event.target);
         }
       });
     });
