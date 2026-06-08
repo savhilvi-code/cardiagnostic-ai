@@ -327,6 +327,14 @@ html { scroll-behavior: smooth; }
       text-shadow: 0 0 14px #008cff;
     }
 
+    .rings .mic svg {
+      width: 42px;
+      height: 42px;
+      display: block;
+      color: #9f7cff;
+      filter: drop-shadow(0 0 14px #008cff);
+    }
+
     .wave {
       height: 42px;
       margin: 8px 0;
