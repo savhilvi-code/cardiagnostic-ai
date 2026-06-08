@@ -67,7 +67,6 @@ const SPLINE_SCENE_URL = "";
         "nav.journal": "Request log",
         "nav.history": "Request history",
         "nav.dtc": "Errors (DTC)",
-        "nav.service": "Service",
         "nav.manuals": "Manuals",
         "nav.video": "Video",
         "nav.settings": "Settings",
@@ -108,6 +107,10 @@ const SPLINE_SCENE_URL = "";
         "car.quickElectrical": "Wiring diagrams",
         "car.quickFuses": "Fuses",
         "car.specTitle": "Technical specifications",
+        "car.serviceTitle": "Service history",
+        "car.serviceSubtitle": "Service and maintenance records for the selected car",
+        "car.serviceAdd": "Add record",
+        "car.serviceHelp": "All maintenance records stay inside the selected car so the assistant always knows what has already been done.",
         "car.photoUpload": "Attach car photo",
         "spec.displacement": "Engine displacement:",
         "spec.note": "These fields are filled automatically from vehicle data after the user enters the car information.",
@@ -139,9 +142,6 @@ const SPLINE_SCENE_URL = "";
         "dtc.clear": "Clear all",
         "dtc.found": "3 errors found.",
         "dtc.warning": "It is recommended to check and fix errors for correct vehicle operation.",
-        "service.title": "Service",
-        "service.subtitle": "Maintenance history and completed work",
-        "service.add": "Add record",
         "manuals.title": "Manuals and guides",
         "manuals.subtitle": "Detailed service guides and recommendations",
         "manuals.help": "Manuals collected from search requests, repair cases, and relevant product documentation for the selected car will appear here.",
@@ -228,7 +228,6 @@ const SPLINE_SCENE_URL = "";
         "nav.journal": "Журнал запросов",
         "nav.history": "История запросов",
         "nav.dtc": "Ошибки (DTC)",
-        "nav.service": "Сервис и ТО",
         "nav.manuals": "Мануалы",
         "nav.video": "Видео",
         "nav.settings": "Настройки",
@@ -269,6 +268,10 @@ const SPLINE_SCENE_URL = "";
         "car.quickElectrical": "Электросхемы",
         "car.quickFuses": "Предохранители",
         "car.specTitle": "Технические характеристики",
+        "car.serviceTitle": "Сервис и ТО",
+        "car.serviceSubtitle": "История обслуживания и выполненных работ по выбранной машине",
+        "car.serviceAdd": "Добавить запись",
+        "car.serviceHelp": "Все записи обслуживания и ТО отображаются внутри карточки выбранного автомобиля, чтобы контекст машины не терялся.",
         "car.photoUpload": "Прикрепить фото авто",
         "spec.displacement": "Объем двигателя:",
         "spec.note": "Эти поля заполняются автоматически по данным автомобиля после того, как пользователь укажет машину.",
@@ -300,9 +303,6 @@ const SPLINE_SCENE_URL = "";
         "dtc.clear": "Удалить все",
         "dtc.found": "Найдено 3 ошибки.",
         "dtc.warning": "Рекомендуется проверить и устранить ошибки для корректной работы автомобиля.",
-        "service.title": "Сервис и ТО",
-        "service.subtitle": "История технического обслуживания и выполненных работ",
-        "service.add": "Добавить запись",
         "manuals.title": "Мануалы и руководства",
         "manuals.subtitle": "Подробные руководства и рекомендации по обслуживанию",
         "manuals.help": "Здесь собираются общие мануалы по машине, материалы из поисковых запросов, ремонтные инструкции и актуальная продукция для выбранного авто.",
@@ -638,13 +638,16 @@ const SPLINE_SCENE_URL = "";
         </article>
       `).join("") : emptyState(historyQuery ? t("common.noMatches") : t("history.empty"));
 
-      $("#serviceList").innerHTML = serviceRows.map((item) => `
-        <article class="service">
-          <div class="square ${item[4]}">${item[5]}</div>
-          <div><h3>${item[0]}</h3><p>${item[1]}</p><p class="ok">${completedLabel}</p></div>
-          <div><p>${item[2]}</p><p>${english ? "Mileage" : "Пробег"}: ${item[3]}</p></div>
-        </article>
-      `).join("");
+      const serviceList = $("#serviceList");
+      if (serviceList) {
+        serviceList.innerHTML = serviceRows.map((item) => `
+          <article class="service">
+            <div class="square ${item[4]}">${item[5]}</div>
+            <div><h3>${item[0]}</h3><p>${item[1]}</p><p class="ok">${completedLabel}</p></div>
+            <div><p>${item[2]}</p><p>${english ? "Mileage" : "Пробег"}: ${item[3]}</p></div>
+          </article>
+        `).join("");
+      }
 
       $("#dtcList").innerHTML = dtcRows.map((item) => `
         <article class="dtc">

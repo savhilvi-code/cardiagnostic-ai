@@ -448,6 +448,19 @@ html { scroll-behavior: smooth; }
       margin: 7px 0;
     }
 
+    .car-service-card {
+      margin-top: 16px;
+    }
+
+    .car-section-head {
+      margin-bottom: 10px;
+    }
+
+    .car-service-note {
+      margin-top: 4px;
+      margin-bottom: 14px;
+    }
+
     .car-info {
       display: grid;
       grid-template-columns: 1fr minmax(190px, 270px);

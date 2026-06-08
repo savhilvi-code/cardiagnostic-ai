@@ -41,7 +41,6 @@
           <button data-view="journal" data-icon="journal" data-i18n="nav.journal">Журнал запросов</button>
           <button data-view="history" data-icon="history" data-i18n="nav.history">История запросов</button>
           <button data-view="dtc" data-icon="car" data-i18n="nav.dtc">Ошибки (DTC)</button>
-          <button data-view="service" data-icon="service" data-i18n="nav.service">Сервис и ТО</button>
           <button data-view="manuals" data-icon="file" data-i18n="nav.manuals">Мануалы</button>
           <button data-view="video" data-icon="play" data-i18n="nav.video">Видео</button>
           <button data-view="settings" data-icon="settings" data-i18n="nav.settings">Настройки</button>
@@ -157,6 +156,18 @@
                 </div>
               </div>
             </div>
+
+            <div class="card car-service-card">
+              <div class="head car-section-head">
+                <div>
+                  <h3 data-i18n="car.serviceTitle">Сервис и ТО</h3>
+                  <p data-i18n="car.serviceSubtitle">История обслуживания и выполненных работ по выбранной машине</p>
+                </div>
+                <button class="btn" data-action="demo" data-i18n="car.serviceAdd">Добавить запись</button>
+              </div>
+              <p class="card-note car-service-note" data-i18n="car.serviceHelp">Все записи обслуживания и ТО отображаются внутри карточки выбранного автомобиля, чтобы контекст машины не терялся.</p>
+              <div id="serviceList"></div>
+            </div>
           </section>
 
           <section class="view" id="journal">
@@ -177,11 +188,6 @@
             <div class="head"><div><h1 data-i18n="dtc.title">Ошибки (DTC)</h1><p data-i18n="dtc.subtitle">Диагностические коды неисправностей вашего автомобиля</p></div><button class="btn" data-action="demo" data-i18n="dtc.clear">Удалить все</button></div>
             <div class="card alert"><strong class="warn" data-i18n="dtc.found">Найдено 3 ошибки.</strong> <span data-i18n="dtc.warning">Рекомендуется проверить и устранить ошибки для корректной работы автомобиля.</span></div>
             <div id="dtcList"></div>
-          </section>
-
-          <section class="view" id="service">
-            <div class="head"><div><h1 data-i18n="service.title">Сервис и ТО</h1><p data-i18n="service.subtitle">История технического обслуживания и выполненных работ</p></div><button class="btn" data-action="demo" data-i18n="service.add">Добавить запись</button></div>
-            <div id="serviceList"></div>
           </section>
 
           <section class="view" id="manuals">
