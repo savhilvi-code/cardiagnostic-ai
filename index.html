@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CarDiagnostic AI</title>
   <meta name="description" content="PULS для диагностики автомобиля, сервисной истории, ошибок DTC и мануалов.">
-  <link rel="stylesheet" href="assets/css/style.css?v=20260608-06">
+  <link rel="stylesheet" href="assets/css/style.css?v=20260608-07">
 </head>
 <body>
   <div class="app" id="app">
@@ -117,7 +117,10 @@
                   <h3 data-i18n="car.vehicleTitle">Мои машины</h3>
                   <p data-i18n="car.vehicleSubtitle">Сохраняйте несколько автомобилей и переключайтесь между ними без потери истории.</p>
                 </div>
-                <button class="btn blue" id="addVehicleBtn" type="button" data-i18n="car.addVehicle">Добавить автомобиль</button>
+                <div class="profile-actions">
+                  <button class="btn blue" id="addVehicleBtn" type="button" data-i18n="car.addVehicle">Добавить автомобиль</button>
+                  <button class="btn danger-btn" id="deleteVehicleBtn" type="button" data-i18n="car.deleteVehicle">Удалить автомобиль</button>
+                </div>
               </div>
               <div id="vehicleSwitcher" class="vehicle-switcher" aria-label="Vehicle switcher"></div>
             </div>
@@ -457,7 +460,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/supabaseClient.js?v=20260531-22"></script>
   <script src="assets/js/auth.js?v=20260606-01"></script>
-  <script src="assets/js/app.js?v=20260608-06"></script>
+  <script src="assets/js/app.js?v=20260608-07"></script>
 </body>
 </html>
 

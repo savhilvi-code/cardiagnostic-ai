@@ -1603,12 +1603,6 @@ html { scroll-behavior: smooth; }
       padding-right: 4px;
     }
 
-    body.assistant-mode .sound-card {
-      position: sticky;
-      bottom: 18px;
-      z-index: 4;
-    }
-
     .side::-webkit-scrollbar,
     .assistant-right::-webkit-scrollbar,
     .messages::-webkit-scrollbar { width: 8px; }

@@ -117,6 +117,7 @@ const SPLINE_SCENE_URL = "";
         "car.vehicleTitle": "My cars",
         "car.vehicleSubtitle": "Save several vehicles and switch between them without losing context.",
         "car.addVehicle": "Add vehicle",
+        "car.deleteVehicle": "Delete vehicle",
         "car.formTitle": "Car profile editor",
         "car.formSubtitle": "Fill in the car once so PULS always knows which vehicle to use.",
         "car.formBrand": "Brand",
@@ -349,6 +350,7 @@ const SPLINE_SCENE_URL = "";
         "car.vehicleTitle": "Мои машины",
         "car.vehicleSubtitle": "Сохраняйте несколько автомобилей и переключайтесь между ними без потери контекста.",
         "car.addVehicle": "Добавить автомобиль",
+        "car.deleteVehicle": "Удалить автомобиль",
         "car.lookupReady": "Готов к распознаванию VIN.",
         "car.lookupSearching": "Распознаю VIN...",
         "car.lookupNeedVin": "Введите полный VIN из 17 символов, чтобы распознать его.",
@@ -601,6 +603,23 @@ const SPLINE_SCENE_URL = "";
       store.activeId = vehicleId;
       saveVehicleStore(store);
       return exists;
+    }
+
+    function removeActiveVehicleProfile() {
+      const store = loadVehicleStore();
+      if (store.vehicles.length <= 1) {
+        const blank = normalizeVehicleProfile({ id: createVehicleId() });
+        const nextStore = { activeId: blank.id, vehicles: [blank] };
+        saveVehicleStore(nextStore);
+        return blank;
+      }
+
+      const activeIndex = store.vehicles.findIndex((vehicle) => vehicle.id === store.activeId);
+      const nextVehicles = store.vehicles.filter((vehicle) => vehicle.id !== store.activeId);
+      const nextActive = nextVehicles[Math.max(0, activeIndex - 1)] || nextVehicles[0];
+      const nextStore = { activeId: nextActive.id, vehicles: nextVehicles };
+      saveVehicleStore(nextStore);
+      return nextActive;
     }
 
     const VIN_LOOKUP_URL = "https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/";
@@ -1906,6 +1925,20 @@ const SPLINE_SCENE_URL = "";
         if (addVehicleButton) {
           const vehicle = addVehicleProfile();
           fillVehicleForm(vehicle);
+          renderLists();
+          showView("car");
+          return;
+        }
+
+        const deleteVehicleButton = event.target.closest("#deleteVehicleBtn");
+        if (deleteVehicleButton) {
+          const store = loadVehicleStore();
+          const activeVehicle = store.vehicles.find((vehicle) => vehicle.id === store.activeId) || store.vehicles[0];
+          const label = getVehicleLabel(activeVehicle);
+          const confirmed = window.confirm(`${t("car.deleteVehicle")}: ${label}?`);
+          if (!confirmed) return;
+          const nextVehicle = removeActiveVehicleProfile();
+          fillVehicleForm(nextVehicle);
           renderLists();
           showView("car");
           return;
