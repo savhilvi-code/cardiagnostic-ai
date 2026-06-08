@@ -137,6 +137,14 @@ const SPLINE_SCENE_URL = "";
         "car.formSave": "Save car",
         "car.formSaved": "Car profile saved.",
         "car.formDemo": "Fill demo data",
+        "car.formLookup": "Decode VIN",
+        "car.formLookupHint": "Enter the full VIN and PULS will pull the available vehicle data automatically.",
+        "car.lookupReady": "Ready to decode VIN.",
+        "car.lookupSearching": "Decoding VIN...",
+        "car.lookupNeedVin": "Enter a full 17-character VIN to decode it.",
+        "car.lookupInvalid": "This VIN could not be decoded. Please check the number and try again.",
+        "car.lookupNotFound": "No matching vehicle data was found for this VIN.",
+        "car.lookupError": "VIN lookup failed. Please try again in a few seconds.",
         "spec.displacement": "Engine displacement:",
         "spec.note": "These fields are filled automatically from vehicle data after the user enters the car information.",
         "spec.displacementValue": "Auto-filled after car selection",
@@ -322,6 +330,14 @@ const SPLINE_SCENE_URL = "";
         "car.formSave": "Сохранить машину",
         "car.formSaved": "Профиль машины сохранён.",
         "car.formDemo": "Заполнить пример",
+        "car.formLookup": "Распознать VIN",
+        "car.formLookupHint": "Введите VIN целиком, и PULS сам подтянет доступные данные по машине.",
+        "car.lookupReady": "Готов к распознаванию VIN.",
+        "car.lookupSearching": "Распознаю VIN...",
+        "car.lookupNeedVin": "Введите полный VIN из 17 символов, чтобы распознать его.",
+        "car.lookupInvalid": "Этот VIN не удалось распознать. Проверьте номер и попробуйте снова.",
+        "car.lookupNotFound": "По этому VIN не найдено подходящих данных по машине.",
+        "car.lookupError": "Не удалось получить данные по VIN. Попробуйте ещё раз через несколько секунд.",
         "spec.displacement": "Объем двигателя:",
         "spec.note": "Эти поля заполняются автоматически по данным автомобиля после того, как пользователь укажет машину.",
         "spec.displacementValue": "Заполнится автоматически после выбора авто",
@@ -475,6 +491,117 @@ const SPLINE_SCENE_URL = "";
       }
     }
 
+    const VIN_LOOKUP_URL = "https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/";
+    const VIN_LOOKUP_CACHE_KEY = "puls_vin_lookup_v1";
+    let vehicleLookupTimer = null;
+    let vehicleLookupRequestId = 0;
+
+    function getVinLookupCache(vin) {
+      try {
+        const raw = localStorage.getItem(`${VIN_LOOKUP_CACHE_KEY}:${vin}`);
+        return raw ? JSON.parse(raw) : null;
+      } catch (error) {
+        return null;
+      }
+    }
+
+    function setVinLookupCache(vin, data) {
+      try {
+        localStorage.setItem(`${VIN_LOOKUP_CACHE_KEY}:${vin}`, JSON.stringify(data));
+      } catch (error) {
+        console.warn("Could not save VIN cache:", error);
+      }
+    }
+
+    function isFullVin(vin) {
+      return /^[A-HJ-NPR-Z0-9]{17}$/i.test(String(vin || "").trim());
+    }
+
+    function decodeVinRecord(record = {}) {
+      const normalized = {
+        brand: String(record.Make || record.Manufacturer || record.ManufacturerName || "").trim(),
+        model: String(record.Model || record.Trim || record.Series || "").trim(),
+        year: String(record.ModelYear || "").trim(),
+        engine: String(record.EngineModel || record.EngineConfiguration || record.EngineHP || "").trim(),
+        fuel: String(record.FuelTypePrimary || record.FuelTypeSecondary || "").trim(),
+        drive: String(record.DriveType || "").trim(),
+        transmission: String(record.TransmissionStyle || "").trim(),
+        mileage: "",
+        vin: String(record.VIN || record.Vin || "").trim().toUpperCase()
+      };
+
+      return normalizeVehicleProfile(normalized);
+    }
+
+    function updateLookupStatus(message, state = "info") {
+      const node = $("#carLookupStatus");
+      if (!node) return;
+      node.dataset.state = state;
+      node.textContent = message || "";
+    }
+
+    async function lookupVehicleByVin(vin, { force = false } = {}) {
+      const normalizedVin = String(vin || "").trim().toUpperCase();
+      if (!isFullVin(normalizedVin)) {
+        updateLookupStatus(t("car.lookupNeedVin"), "warn");
+        return null;
+      }
+
+      const cached = getVinLookupCache(normalizedVin);
+      if (cached && !force) {
+        const mergedCached = normalizeVehicleProfile({
+          ...loadVehicleProfile(),
+          ...cached,
+          vin: normalizedVin
+        });
+        fillVehicleForm(mergedCached);
+        saveVehicleProfile(mergedCached);
+        updateLookupStatus(t("car.lookupReady"), "ok");
+        return mergedCached;
+      }
+
+      const requestId = ++vehicleLookupRequestId;
+      updateLookupStatus(t("car.lookupSearching"), "info");
+
+      try {
+        const response = await fetch(`${VIN_LOOKUP_URL}${encodeURIComponent(normalizedVin)}?format=json`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (requestId !== vehicleLookupRequestId) return null;
+
+        const record = Array.isArray(data?.Results) ? data.Results[0] : null;
+        if (!record) {
+          updateLookupStatus(t("car.lookupNotFound"), "warn");
+          return null;
+        }
+
+        const errorCode = String(record.ErrorCode || "").trim();
+        const hasUsefulFields = Boolean(record.Make || record.Model || record.ModelYear || record.EngineModel);
+        if (errorCode && errorCode !== "0" && errorCode !== "1" && !hasUsefulFields) {
+          updateLookupStatus(t("car.lookupInvalid"), "warn");
+          return null;
+        }
+
+        const decoded = decodeVinRecord({ ...record, VIN: normalizedVin });
+        const merged = normalizeVehicleProfile({
+          ...loadVehicleProfile(),
+          ...decoded,
+          vin: normalizedVin
+        });
+
+        setVinLookupCache(normalizedVin, merged);
+        fillVehicleForm(merged);
+        saveVehicleProfile(merged);
+        updateLookupStatus(t("car.formSaved"), "ok");
+        renderLists();
+        return merged;
+      } catch (error) {
+        console.error("VIN lookup failed:", error);
+        updateLookupStatus(t("car.lookupError"), "error");
+        return null;
+      }
+    }
+
     function getVehicleLabel(profile = loadVehicleProfile()) {
       const normalized = normalizeVehicleProfile(profile);
       return [normalized.brand, normalized.model].filter(Boolean).join(" ").trim() || t("hero.car");
@@ -552,7 +679,14 @@ const SPLINE_SCENE_URL = "";
       const form = $("#carForm");
       if (!form) return;
 
-      fillVehicleForm(loadVehicleProfile());
+      const initialProfile = loadVehicleProfile();
+      fillVehicleForm(initialProfile);
+      if (initialProfile.vin && isFullVin(initialProfile.vin)) {
+        updateLookupStatus(t("car.lookupSearching"), "info");
+        setTimeout(() => lookupVehicleByVin(initialProfile.vin), 50);
+      } else {
+        updateLookupStatus(t("car.lookupReady"), "info");
+      }
 
       const saveProfile = (profile, state = "saved") => {
         saveVehicleProfile(profile);
@@ -571,6 +705,32 @@ const SPLINE_SCENE_URL = "";
 
       form.addEventListener("input", () => {
         saveProfile(getVehicleFormValues(), "typing");
+      });
+
+      $("#carLookupBtn")?.addEventListener("click", () => {
+        lookupVehicleByVin($("#carVinInput")?.value);
+      });
+
+      $("#carVinInput")?.addEventListener("input", () => {
+        clearTimeout(vehicleLookupTimer);
+        const vin = $("#carVinInput")?.value || "";
+        if (!vin.trim()) {
+          updateLookupStatus(t("car.lookupReady"), "info");
+          return;
+        }
+        if (!isFullVin(vin)) {
+          updateLookupStatus(t("car.lookupNeedVin"), "warn");
+          return;
+        }
+        vehicleLookupTimer = setTimeout(() => lookupVehicleByVin(vin), 650);
+      });
+
+      $("#carVinInput")?.addEventListener("blur", () => {
+        clearTimeout(vehicleLookupTimer);
+        const vin = $("#carVinInput")?.value || "";
+        if (isFullVin(vin)) {
+          lookupVehicleByVin(vin);
+        }
       });
 
       $("#carFillDemoBtn")?.addEventListener("click", () => {

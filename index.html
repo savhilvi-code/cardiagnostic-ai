@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CarDiagnostic AI</title>
   <meta name="description" content="PULS для диагностики автомобиля, сервисной истории, ошибок DTC и мануалов.">
-  <link rel="stylesheet" href="assets/css/style.css?v=20260608-02">
+  <link rel="stylesheet" href="assets/css/style.css?v=20260608-03">
 </head>
 <body>
   <div class="app" id="app">
@@ -176,6 +176,10 @@
                         <span data-i18n="car.formVin">VIN</span>
                         <input id="carVinInput" type="text" data-i18n-placeholder="car.formVinPlaceholder" placeholder="JT...">
                       </label>
+                      <div class="car-form-wide car-lookup-row">
+                        <button class="btn" id="carLookupBtn" type="button" data-i18n="car.formLookup">Распознать VIN</button>
+                        <span class="car-lookup-hint" data-i18n="car.formLookupHint">Введите VIN целиком, и PULS сам подтянет доступные данные по машине.</span>
+                      </div>
                     </div>
                     <p class="card-note car-form-note" data-i18n="car.formHint">Данные можно редактировать в любой момент. Позже сюда можно подключить авто-подтягивание из VIN или каталога.</p>
                     <div class="profile-actions">
@@ -183,6 +187,7 @@
                       <button class="btn" id="carFillDemoBtn" type="button" data-i18n="car.formDemo">Заполнить пример</button>
                     </div>
                     <div class="auth-status" id="carFormStatus" aria-live="polite"></div>
+                    <div class="auth-status" id="carLookupStatus" aria-live="polite"></div>
                   </form>
                 </div>
                 <div class="card">
@@ -396,7 +401,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/supabaseClient.js?v=20260531-22"></script>
   <script src="assets/js/auth.js?v=20260606-01"></script>
-  <script src="assets/js/app.js?v=20260608-02"></script>
+  <script src="assets/js/app.js?v=20260608-03"></script>
 </body>
 </html>
 

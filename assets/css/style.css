@@ -511,6 +511,19 @@ html { scroll-behavior: smooth; }
       margin-top: 0;
     }
 
+    .car-lookup-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .car-lookup-hint {
+      color: var(--soft);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
     .car-info {
       display: grid;
       grid-template-columns: 1fr minmax(190px, 270px);
