@@ -985,6 +985,7 @@ const SPLINE_SCENE_URL = "";
             email: user.email,
             language: getLanguage(),
             car_info: appUser.car_info || "",
+            conversation_history: appUser.conversation_history || "",
             telegram_id: appUser.telegram_id || "",
             chat_id: appUser.telegram_id || ""
           })
