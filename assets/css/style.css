@@ -750,18 +750,11 @@ html { scroll-behavior: smooth; }
       display: grid;
       justify-items: end;
       gap: 8px;
-      opacity: 0;
-      transform: translateY(-4px);
-      pointer-events: none;
+      opacity: 1;
+      transform: none;
+      pointer-events: auto;
       transition: opacity .18s, transform .18s;
       z-index: 2;
-    }
-
-    .service:hover .service-actions,
-    .service.service-menu-open .service-actions {
-      opacity: 1;
-      transform: translateY(0);
-      pointer-events: auto;
     }
 
     .service-menu-btn {
