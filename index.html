@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CarDiagnostic AI</title>
   <meta name="description" content="PULS для диагностики автомобиля, сервисной истории, ошибок DTC и мануалов.">
-  <link rel="stylesheet" href="assets/css/style.css?v=20260609-11">
+  <link rel="stylesheet" href="assets/css/style.css?v=20260609-12">
 </head>
 <body>
   <div class="app" id="app">
@@ -118,7 +118,7 @@
                   <p data-i18n="car.vehicleSubtitle">Сохраняйте несколько автомобилей и переключайтесь между ними без потери истории.</p>
                 </div>
                 <div class="profile-actions">
-                  <button class="btn blue" id="addVehicleBtn" type="button" data-i18n="car.addVehicle">Добавить автомобиль</button>
+                  <button class="btn blue auth-required" id="addVehicleBtn" type="button" data-i18n="car.addVehicle">Добавить автомобиль</button>
                   <button class="btn danger-btn" id="deleteVehicleBtn" type="button" data-i18n="car.deleteVehicle">Удалить автомобиль</button>
                 </div>
               </div>
@@ -139,7 +139,7 @@
                       <span>VIN:</span><b id="carInfoVin" data-i18n="car.vinValue">Укажите VIN</b>
                     </div>
                   </div>
-                  <label class="car-photo-upload">
+                  <label class="car-photo-upload auth-required">
                     <input id="carPhotoInput" type="file" accept="image/*">
                     <span class="car-photo-label" data-i18n="car.photoUpload">Attach car photo</span>
                   </label>
@@ -235,7 +235,7 @@
                     <h3 data-i18n="car.serviceTitle">Сервис и ТО</h3>
                     <p data-i18n="car.serviceSubtitle">История обслуживания и выполненных работ по выбранной машине</p>
                   </div>
-                <button class="btn" id="serviceAddBtn" type="button" data-i18n="car.serviceAdd">Добавить запись</button>
+                <button class="btn auth-required" id="serviceAddBtn" type="button" data-i18n="car.serviceAdd">Добавить запись</button>
                 </div>
               <p class="card-note car-service-note" data-i18n="car.serviceHelp">Все записи обслуживания и ТО отображаются внутри карточки выбранного автомобиля, чтобы контекст машины не терялся.</p>
               <div id="serviceList"></div>
@@ -460,6 +460,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/supabaseClient.js?v=20260531-22"></script>
   <script src="assets/js/auth.js?v=20260606-01"></script>
-  <script src="assets/js/app.js?v=20260609-11"></script>
+  <script src="assets/js/app.js?v=20260609-12"></script>
 </body>
 </html>

@@ -589,6 +589,7 @@ const SPLINE_SCENE_URL = "";
     }
 
     function saveVehicleProfile(profile, { activate = true } = {}) {
+      if (!requireSignedInForEdit()) return loadVehicleProfile();
       const store = loadVehicleStore();
       const targetId = String(profile?.id || store.activeId || createVehicleId()).trim();
       const index = store.vehicles.findIndex((vehicle) => vehicle.id === targetId);
@@ -609,6 +610,7 @@ const SPLINE_SCENE_URL = "";
     }
 
     function addVehicleProfile(profile = {}) {
+      if (!requireSignedInForEdit()) return loadVehicleProfile();
       const store = loadVehicleStore();
       const vehicle = normalizeVehicleProfile({ ...getDefaultVehicleProfile(), ...profile, id: createVehicleId() });
       store.vehicles.unshift(vehicle);
@@ -627,6 +629,7 @@ const SPLINE_SCENE_URL = "";
     }
 
     function removeActiveVehicleProfile() {
+      if (!requireSignedInForEdit()) return loadVehicleProfile();
       const store = loadVehicleStore();
       if (store.vehicles.length <= 1) {
         const blank = normalizeVehicleProfile({ id: createVehicleId() });
@@ -910,6 +913,10 @@ const SPLINE_SCENE_URL = "";
       }
 
       const saveProfile = (profile, state = "saved") => {
+        if (!isSignedIn()) {
+          requireSignedInForEdit();
+          return;
+        }
         saveVehicleProfile(profile);
         const status = $("#carFormStatus");
         if (status) {
@@ -1022,6 +1029,7 @@ const SPLINE_SCENE_URL = "";
     }
 
     async function updateCarPhoto(file) {
+      if (!requireSignedInForEdit()) return "";
       if (!file) {
         setCarPhotoPreview("");
         return "";
@@ -1040,6 +1048,13 @@ const SPLINE_SCENE_URL = "";
       return Boolean(window.pulsCurrentUser);
     }
 
+    function requireSignedInForEdit() {
+      if (isSignedIn()) return true;
+      toast(t("auth.lockedAction"));
+      window.openAuthModal?.();
+      return false;
+    }
+
     function applyAuthLockedState() {
       const signedIn = isSignedIn();
       $$(".auth-required").forEach((node) => {
@@ -1048,6 +1063,13 @@ const SPLINE_SCENE_URL = "";
         const input = node.matches(".car-photo-upload") ? node.querySelector("input") : null;
         if (input) input.disabled = !signedIn;
         node.setAttribute("aria-disabled", String(!signedIn));
+      });
+      ["#carForm", "#serviceForm"].forEach((selector) => {
+        const form = $(selector);
+        if (!form) return;
+        form.querySelectorAll("input, button, select, textarea").forEach((node) => {
+          node.disabled = !signedIn;
+        });
       });
     }
 
@@ -1607,6 +1629,7 @@ const SPLINE_SCENE_URL = "";
 
     async function saveServiceRecord(event) {
       event.preventDefault();
+      if (!requireSignedInForEdit()) return;
       const active = loadVehicleProfile();
       const status = $("#serviceFormStatus");
       const title = String($("#serviceTitleInput")?.value || "").trim();
@@ -1666,7 +1689,7 @@ const SPLINE_SCENE_URL = "";
           </button>
         `;
       }).join("") + `
-        <button type="button" class="vehicle-chip vehicle-chip-add" id="vehicleAddChip">+ ${escapeHtml(t("car.addVehicle"))}</button>
+        <button type="button" class="vehicle-chip vehicle-chip-add auth-required" id="vehicleAddChip">+ ${escapeHtml(t("car.addVehicle"))}</button>
       `;
     }
 
