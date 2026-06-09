@@ -2157,37 +2157,49 @@ body.assistant-mode #assistant .chat-grid,
 body.assistant-mode .assistant-chat {
   height: 100% !important;
   min-height: 0 !important;
-  overflow: hidden !important;
+  overflow: visible !important;
 }
 
 body.assistant-mode .content > .main-panel {
   height: 100% !important;
   min-height: 0 !important;
-  overflow: hidden !important;
-  padding: 0;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding: 4px 4px clamp(320px, 36vh, 420px) !important;
 }
 
 body.assistant-mode #assistant.view.active {
+  height: auto !important;
+  min-height: 100%;
   padding: 0;
 }
 
 body.assistant-mode #assistant .chat-grid {
   align-items: start;
+  height: auto !important;
 }
 
 body.assistant-mode .messages {
   height: auto !important;
   max-height: none !important;
   min-height: 0 !important;
-  overflow-y: auto !important;
-  padding: 0 12px 34px 4px !important;
+  overflow: visible !important;
+  padding: 0 12px 24px 4px !important;
 }
 
 body.assistant-mode .assistant-right {
-  height: 100% !important;
-  max-height: none !important;
+  position: sticky !important;
+  top: 4px !important;
+  align-self: start;
+  height: auto !important;
+  max-height: calc(100vh - 150px) !important;
   overflow-y: auto !important;
-  padding-bottom: 34px !important;
+  overflow-x: hidden !important;
+  padding-bottom: 24px !important;
+}
+
+body.assistant-mode .assistant-right .card:first-child {
+  margin-top: 0;
 }
 
 /* ===== Center composer in the main workspace ===== */
