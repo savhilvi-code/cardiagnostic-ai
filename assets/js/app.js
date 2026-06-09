@@ -1466,9 +1466,26 @@ const SPLINE_SCENE_URL = "";
       return `srv_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     }
 
+    function normalizeServiceRecord(record = {}, index = 0) {
+      return {
+        id: String(record.id || record.serviceId || `srv_${index}_${record.vehicleId || "record"}`).trim(),
+        vehicleId: String(record.vehicleId || "").trim(),
+        title: String(record.title || "").trim(),
+        description: String(record.description || "").trim(),
+        date: String(record.date || "").trim(),
+        mileage: String(record.mileage || "").trim(),
+        photoUrl: String(record.photoUrl || "").trim(),
+        sticker: String(record.sticker || "🛠").trim(),
+        color: String(record.color || "violet").trim(),
+        status: String(record.status || "").trim()
+      };
+    }
+
     function loadServiceRecords() {
       try {
-        return JSON.parse(localStorage.getItem(SERVICE_RECORDS_KEY) || "[]").filter(Boolean);
+        return JSON.parse(localStorage.getItem(SERVICE_RECORDS_KEY) || "[]")
+          .filter(Boolean)
+          .map((record, index) => normalizeServiceRecord(record, index));
       } catch (error) {
         return [];
       }
@@ -1476,7 +1493,11 @@ const SPLINE_SCENE_URL = "";
 
     function saveServiceRecords(records) {
       try {
-        localStorage.setItem(SERVICE_RECORDS_KEY, JSON.stringify(records.slice(0, 200)));
+        const normalized = records
+          .filter(Boolean)
+          .map((record, index) => normalizeServiceRecord(record, index))
+          .slice(0, 200);
+        localStorage.setItem(SERVICE_RECORDS_KEY, JSON.stringify(normalized));
       } catch (error) {
         console.warn("Could not save service records:", error);
       }
@@ -1689,18 +1710,19 @@ const SPLINE_SCENE_URL = "";
       }));
 
       serviceList.innerHTML = rows.map((item) => {
+        const serviceId = String(item.id || "").trim();
         const mediaStyle = item.photoUrl ? `style="background-image:url('${escapeHtml(item.photoUrl)}')"` : "";
         const mediaClass = item.photoUrl ? "has-photo" : `service-media-${item.color || "violet"}`;
         const mediaContent = item.photoUrl ? "" : `<small>${escapeHtml(item.sticker || "🛠")}</small>`;
-        const menuMarkup = item.id ? `
+        const menuMarkup = serviceId ? `
           <div class="service-actions">
-            <button type="button" class="service-menu-btn" data-service-menu-btn data-service-id="${escapeHtml(item.id)}" aria-haspopup="menu" aria-expanded="false" aria-label="Меню записи">⋯</button>
-            <div class="service-menu" data-service-menu="${escapeHtml(item.id)}" hidden>
-              <button type="button" class="service-menu-delete" data-service-delete="${escapeHtml(item.id)}">✕ ${escapeHtml(getLanguage() === "en" ? "Delete record" : "Удалить запись")}</button>
+            <button type="button" class="service-menu-btn" data-service-menu-btn data-service-id="${escapeHtml(serviceId)}" aria-haspopup="menu" aria-expanded="false" aria-label="Меню записи">⋯</button>
+            <div class="service-menu" data-service-menu="${escapeHtml(serviceId)}" hidden>
+              <button type="button" class="service-menu-delete" data-service-delete="${escapeHtml(serviceId)}">✕ ${escapeHtml(getLanguage() === "en" ? "Delete record" : "Удалить запись")}</button>
             </div>
           </div>` : "";
         return `
-          <article class="service" data-service-id="${escapeHtml(item.id || "")}">
+          <article class="service" data-service-id="${escapeHtml(serviceId)}">
             <div class="service-media ${mediaClass}" ${mediaStyle}>${mediaContent}</div>
             <div>
               <h3>${escapeHtml(item.title)}</h3>
