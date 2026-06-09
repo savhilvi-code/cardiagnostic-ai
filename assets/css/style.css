@@ -750,10 +750,6 @@ html { scroll-behavior: smooth; }
       display: grid;
       justify-items: end;
       gap: 8px;
-      opacity: 1;
-      transform: none;
-      pointer-events: auto;
-      transition: opacity .18s, transform .18s;
       z-index: 2;
     }
 
