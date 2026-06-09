@@ -151,7 +151,7 @@ const SPLINE_SCENE_URL = "";
         "car.lookupNotFound": "No matching vehicle data was found for this VIN.",
         "car.lookupError": "VIN lookup failed. Please try again in a few seconds.",
         "spec.displacement": "Engine displacement:",
-        "spec.note": "These fields are filled automatically from vehicle data after the user enters the car information.",
+        "spec.note": "These fields are filled automatically from vehicle data and can be edited manually.",
         "spec.unavailable": "No data",
         "spec.displacementValue": "Auto-filled after car selection",
         "spec.power": "Power:",
@@ -358,7 +358,7 @@ const SPLINE_SCENE_URL = "";
         "car.lookupNotFound": "По этому VIN не найдено подходящих данных по машине.",
         "car.lookupError": "Не удалось получить данные по VIN. Попробуйте ещё раз через несколько секунд.",
         "spec.displacement": "Объем двигателя:",
-        "spec.note": "Эти поля заполняются автоматически по данным автомобиля после того, как пользователь укажет машину.",
+        "spec.note": "Эти поля заполняются автоматически по данным автомобиля и могут редактироваться вручную.",
         "spec.unavailable": "Нет данных",
         "spec.displacementValue": "Заполнится автоматически после выбора авто",
         "spec.power": "Мощность:",
@@ -499,13 +499,31 @@ const SPLINE_SCENE_URL = "";
         mileage: "",
         vin: "",
         nickname: "",
-        photoUrl: ""
+        photoUrl: "",
+        displacement: "",
+        power: "",
+        torque: "",
+        engineType: "",
+        cylinders: "",
+        emissions: "",
+        tank: ""
       };
     }
 
     function normalizeVehicleProfile(profile = {}) {
       const defaults = getDefaultVehicleProfile();
       return Object.fromEntries(Object.keys(defaults).map((key) => [key, String(profile[key] ?? defaults[key] ?? "").trim()]));
+    }
+
+    function mergeVehicleProfiles(primary = {}, fallback = {}) {
+      const defaults = getDefaultVehicleProfile();
+      const merged = {};
+      Object.keys(defaults).forEach((key) => {
+        const primaryValue = String(primary[key] ?? "").trim();
+        const fallbackValue = String(fallback[key] ?? "").trim();
+        merged[key] = primaryValue || fallbackValue;
+      });
+      return normalizeVehicleProfile(merged);
     }
 
     function createVehicleId() {
@@ -572,11 +590,14 @@ const SPLINE_SCENE_URL = "";
 
     function saveVehicleProfile(profile, { activate = true } = {}) {
       const store = loadVehicleStore();
+      const targetId = String(profile?.id || store.activeId || createVehicleId()).trim();
+      const index = store.vehicles.findIndex((vehicle) => vehicle.id === targetId);
+      const existing = index >= 0 ? store.vehicles[index] : getDefaultVehicleProfile();
       const normalized = normalizeVehicleProfile({
+        ...existing,
         ...profile,
-        id: String(profile?.id || store.activeId || createVehicleId()).trim()
+        id: String(existing.id || targetId).trim()
       });
-      const index = store.vehicles.findIndex((vehicle) => vehicle.id === normalized.id);
       if (index >= 0) {
         store.vehicles[index] = normalized;
       } else {
@@ -697,12 +718,12 @@ const SPLINE_SCENE_URL = "";
 
       const cached = getVinLookupCache(normalizedVin);
       if (cached && !force) {
-        const mergedCached = normalizeVehicleProfile({
-          ...loadVehicleProfile(),
-          ...cached,
-          id: loadVehicleProfile().id,
-          vin: normalizedVin
-        });
+        const current = loadVehicleProfile();
+        const preserveManualEdits = String(current.vin || "").trim().toUpperCase() === normalizedVin;
+        const mergedCached = preserveManualEdits
+          ? mergeVehicleProfiles(current, { ...cached, vin: normalizedVin })
+          : mergeVehicleProfiles({ ...cached, vin: normalizedVin }, current);
+        mergedCached.id = current.id;
         fillVehicleForm(mergedCached);
         saveVehicleProfile(mergedCached);
         updateLookupStatus(t("car.lookupReady"), "ok");
@@ -734,27 +755,16 @@ const SPLINE_SCENE_URL = "";
         const decoded = decodeVinRecord({ ...record, VIN: normalizedVin });
         const previous = loadVehicleProfile();
         const keepPreviousModel = Boolean(previous.model && previous.brand && decoded.brand && previous.brand === decoded.brand);
-        const merged = normalizeVehicleProfile({
-          id: previous.id,
-          brand: decoded.brand || previous.brand,
+        const preserveManualEdits = String(previous.vin || "").trim().toUpperCase() === normalizedVin;
+        const lookupData = {
+          ...decoded,
           model: decoded.model || (keepPreviousModel ? previous.model : ""),
-          year: decoded.year || previous.year,
-          engine: decoded.engine || previous.engine,
-          fuel: decoded.fuel || previous.fuel,
-          drive: decoded.drive || previous.drive,
-          transmission: decoded.transmission || previous.transmission,
-          displacement: decoded.displacement || previous.displacement,
-          power: decoded.power || previous.power,
-          torque: decoded.torque || previous.torque,
-          engineType: decoded.engineType || previous.engineType,
-          cylinders: decoded.cylinders || previous.cylinders,
-          emissions: decoded.emissions || previous.emissions,
-          tank: decoded.tank || previous.tank,
-          mileage: previous.mileage,
-          vin: normalizedVin,
-          photoUrl: previous.photoUrl || "",
-          nickname: previous.nickname || ""
-        });
+          vin: normalizedVin
+        };
+        const merged = preserveManualEdits
+          ? mergeVehicleProfiles(previous, lookupData)
+          : mergeVehicleProfiles(lookupData, previous);
+        merged.id = previous.id;
 
         setVinLookupCache(normalizedVin, merged);
         fillVehicleForm(merged);
@@ -783,13 +793,6 @@ const SPLINE_SCENE_URL = "";
       const fuelText = normalized.fuel || t("hero.fuelValue");
       const transmissionText = normalized.transmission || t("car.transmissionValue");
       const vinText = normalized.vin || t("car.vinValue");
-      const displacementText = normalized.displacement ? `${normalized.displacement} L` : t("spec.unavailable");
-      const powerText = normalized.power ? `${normalized.power} hp` : t("spec.unavailable");
-      const torqueText = normalized.torque ? `${normalized.torque} Nm` : t("spec.unavailable");
-      const engineTypeText = normalized.engineType || t("spec.unavailable");
-      const cylindersText = normalized.cylinders ? `${normalized.cylinders}` : t("spec.unavailable");
-      const emissionsText = normalized.emissions || t("spec.unavailable");
-      const tankText = normalized.tank || t("spec.unavailable");
 
       const setNodeText = (selector, value) => {
         const node = $(selector);
@@ -808,13 +811,25 @@ const SPLINE_SCENE_URL = "";
       setNodeText("#carInfoFuel", fuelText);
       setNodeText("#carInfoTransmission", transmissionText);
       setNodeText("#carInfoVin", vinText);
-      setNodeText("#specDisplacement", displacementText);
-      setNodeText("#specPower", powerText);
-      setNodeText("#specTorque", torqueText);
-      setNodeText("#specEngineType", engineTypeText);
-      setNodeText("#specCylinders", cylindersText);
-      setNodeText("#specEmissions", emissionsText);
-      setNodeText("#specTank", tankText);
+
+      const setSpecField = (selector, value, placeholder) => {
+        const node = $(selector);
+        if (!node) return;
+        if ("value" in node) {
+          node.value = value || "";
+          node.placeholder = placeholder;
+        } else {
+          node.textContent = value || placeholder;
+        }
+      };
+
+      setSpecField("#specDisplacement", normalized.displacement, t("spec.displacementValue"));
+      setSpecField("#specPower", normalized.power, t("spec.powerValue"));
+      setSpecField("#specTorque", normalized.torque, t("spec.torqueValue"));
+      setSpecField("#specEngineType", normalized.engineType, t("spec.engineTypeValue"));
+      setSpecField("#specCylinders", normalized.cylinders, t("spec.cylindersValue"));
+      setSpecField("#specEmissions", normalized.emissions, t("spec.emissionsValue"));
+      setSpecField("#specTank", normalized.tank, t("spec.tankValue"));
 
       const formStatus = $("#carFormStatus");
       if (formStatus && formStatus.dataset.state === "saved") {
@@ -849,7 +864,14 @@ const SPLINE_SCENE_URL = "";
         mileage: $("#carMileageInput")?.value,
         vin: $("#carVinInput")?.value,
         photoUrl: active.photoUrl || "",
-        nickname: active.nickname || ""
+        nickname: active.nickname || "",
+        displacement: $("#specDisplacement")?.value,
+        power: $("#specPower")?.value,
+        torque: $("#specTorque")?.value,
+        engineType: $("#specEngineType")?.value,
+        cylinders: $("#specCylinders")?.value,
+        emissions: $("#specEmissions")?.value,
+        tank: $("#specTank")?.value
       });
     }
 
@@ -904,6 +926,12 @@ const SPLINE_SCENE_URL = "";
 
       form.addEventListener("input", () => {
         saveProfile(getVehicleFormValues(), "typing");
+      });
+
+      ["#specDisplacement", "#specPower", "#specTorque", "#specEngineType", "#specCylinders", "#specEmissions", "#specTank"].forEach((selector) => {
+        $(selector)?.addEventListener("input", () => {
+          saveProfile(getVehicleFormValues(), "typing");
+        });
       });
 
       $("#carLookupBtn")?.addEventListener("click", () => {
@@ -1459,9 +1487,40 @@ const SPLINE_SCENE_URL = "";
       return loadServiceRecords().filter((record) => String(record.vehicleId || "") === id);
     }
 
+    function closeServiceRecordMenus(exceptId = "") {
+      $$(".service[data-service-id]").forEach((item) => {
+        if (exceptId && item.dataset.serviceId === exceptId) return;
+        item.classList.remove("service-menu-open");
+        const menu = item.querySelector(".service-menu");
+        if (menu) menu.hidden = true;
+        const button = item.querySelector("[data-service-menu-btn]");
+        if (button) button.setAttribute("aria-expanded", "false");
+      });
+    }
+
+    function toggleServiceRecordMenu(serviceId) {
+      const item = $(`.service[data-service-id="${serviceId}"]`);
+      if (!item) return;
+      const isOpen = item.classList.toggle("service-menu-open");
+      const menu = item.querySelector(".service-menu");
+      if (menu) menu.hidden = !isOpen;
+      const button = item.querySelector("[data-service-menu-btn]");
+      if (button) button.setAttribute("aria-expanded", String(isOpen));
+      closeServiceRecordMenus(isOpen ? serviceId : "");
+    }
+
+    function deleteServiceRecord(recordId) {
+      const active = loadVehicleProfile();
+      const nextRecords = loadServiceRecords().filter((record) => String(record.id || "") !== String(recordId || ""));
+      saveServiceRecords(nextRecords);
+      closeServiceRecordMenus();
+      renderServiceRecords(active);
+    }
+
     function openServiceModal() {
       const modal = $("#serviceModal");
       if (!modal) return;
+      closeServiceRecordMenus();
       const form = $("#serviceForm");
       if (form) form.reset();
       const photoInput = $("#servicePhotoInput");
@@ -1633,8 +1692,15 @@ const SPLINE_SCENE_URL = "";
         const mediaStyle = item.photoUrl ? `style="background-image:url('${escapeHtml(item.photoUrl)}')"` : "";
         const mediaClass = item.photoUrl ? "has-photo" : `service-media-${item.color || "violet"}`;
         const mediaContent = item.photoUrl ? "" : `<small>${escapeHtml(item.sticker || "🛠")}</small>`;
+        const menuMarkup = item.id ? `
+          <div class="service-actions">
+            <button type="button" class="service-menu-btn" data-service-menu-btn data-service-id="${escapeHtml(item.id)}" aria-haspopup="menu" aria-expanded="false" aria-label="Меню записи">⋯</button>
+            <div class="service-menu" data-service-menu="${escapeHtml(item.id)}" hidden>
+              <button type="button" class="service-menu-delete" data-service-delete="${escapeHtml(item.id)}">✕ ${escapeHtml(getLanguage() === "en" ? "Delete record" : "Удалить запись")}</button>
+            </div>
+          </div>` : "";
         return `
-          <article class="service">
+          <article class="service" data-service-id="${escapeHtml(item.id || "")}">
             <div class="service-media ${mediaClass}" ${mediaStyle}>${mediaContent}</div>
             <div>
               <h3>${escapeHtml(item.title)}</h3>
@@ -1642,9 +1708,12 @@ const SPLINE_SCENE_URL = "";
               <p class="ok">${escapeHtml(item.status)}</p>
             </div>
             <div><p>${escapeHtml(item.date)}</p><p>${escapeHtml(english ? "Mileage" : "Пробег")}: ${escapeHtml(item.mileage)}</p></div>
+            ${menuMarkup}
           </article>
         `;
       }).join("");
+
+      closeServiceRecordMenus();
     }
 
     const HISTORY_STORAGE_KEY = "puls_request_history_v2";
@@ -1958,6 +2027,18 @@ const SPLINE_SCENE_URL = "";
           return;
         }
 
+        const serviceMenuButton = event.target.closest("[data-service-menu-btn]");
+        if (serviceMenuButton) {
+          toggleServiceRecordMenu(serviceMenuButton.dataset.serviceId);
+          return;
+        }
+
+        const serviceDeleteButton = event.target.closest("[data-service-delete]");
+        if (serviceDeleteButton) {
+          deleteServiceRecord(serviceDeleteButton.dataset.serviceDelete);
+          return;
+        }
+
         const serviceClose = event.target.closest("#serviceCloseBtn, #serviceCancelBtn");
         if (serviceClose) {
           closeServiceModal();
@@ -1967,6 +2048,10 @@ const SPLINE_SCENE_URL = "";
         if (event.target.id === "serviceModal") {
           closeServiceModal();
           return;
+        }
+
+        if (!event.target.closest(".service-actions")) {
+          closeServiceRecordMenus();
         }
 
         const infoButton = event.target.closest(".info-btn[data-info]");
