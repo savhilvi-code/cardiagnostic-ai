@@ -1837,6 +1837,7 @@ html { scroll-behavior: smooth; }
 
     #car .car-photo-upload,
     .vehicle-photo-box {
+      --car-photo-image: none;
       clip-path: none !important;
       display: grid;
       place-items: center;
@@ -1844,14 +1845,16 @@ html { scroll-behavior: smooth; }
       min-height: 180px;
       border: 1px dashed #0b6fbb;
       border-radius: 12px;
-      background:
+      background-image:
+        var(--car-photo-image),
         radial-gradient(circle at 50% 48%, rgba(8, 125, 255, .16), transparent 35%),
         linear-gradient(135deg, rgba(7,26,42,.92), rgba(3,11,19,.92)) !important;
       color: var(--muted);
       font-weight: 700;
       cursor: pointer;
       background-size: cover !important;
-      background-position: center !important;
+      background-position: center, center, center !important;
+      background-repeat: no-repeat, no-repeat, no-repeat;
       text-align: center;
       padding: 16px;
     }

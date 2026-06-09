@@ -841,12 +841,12 @@ const SPLINE_SCENE_URL = "";
       const box = $(".car-photo-upload");
       if (!box) return;
       if (!photoUrl) {
-        box.style.backgroundImage = "";
+        box.style.removeProperty("--car-photo-image");
         box.classList.remove("has-photo");
         return;
       }
 
-      box.style.backgroundImage = `linear-gradient(rgba(2, 13, 22, .22), rgba(2, 13, 22, .72)), url("${photoUrl}")`;
+      box.style.setProperty("--car-photo-image", `url("${photoUrl}")`);
       box.classList.add("has-photo");
     }
 
