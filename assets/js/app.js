@@ -1,6 +1,5 @@
 const CHAT_API_URL = "https://puls-backend-t3sn.onrender.com/chat";
 const SPLINE_SCENE_URL = "https://my.spline.design/starterscenecopy-RDKY0gQFbXbkko9LN657PtBA/";
-const MOBILE_MEDIA = window.matchMedia("(max-width: 780px)");
 
     const iconMap = {
       bot: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="8" width="14" height="10" rx="3"/><path d="M12 4v4M8 13h.01M16 13h.01M7 21h10M3 11v4M21 11v4"/></svg>',
@@ -16,9 +15,7 @@ const MOBILE_MEDIA = window.matchMedia("(max-width: 780px)");
       calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/></svg>',
       engine: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 8h8l3 3v5h-3l-2 3H9l-2-3H4v-5h3z"/><path d="M9 5h6M12 5v3M20 12h2M2 12h2"/></svg>',
       drivetrain: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="6" cy="6" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="18" r="2"/><path d="M8 6h8M8 18h8M6 8v8M18 8v8"/></svg>',
-      fuel: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9v18H6z"/><path d="M15 8h2l2 2v8a2 2 0 0 0 4 0v-6l-3-3"/><path d="M8 7h5"/></svg>',
-      warning: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10.3 4.7 2.6 18a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4.7a2 2 0 0 0-3.4 0Z"/><path d="M12 9v5"/><path d="M12 17h.01"/></svg>',
-      help: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.2A2.6 2.6 0 0 1 12 7a2.7 2.7 0 0 1 2.8 2.5c0 1.8-2.4 2.1-2.9 3.7v.8"/><path d="M12 17h.01"/></svg>'
+      fuel: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9v18H6z"/><path d="M15 8h2l2 2v8a2 2 0 0 0 4 0v-6l-3-3"/><path d="M8 7h5"/></svg>'
     };
 
     const requests = [
@@ -1320,11 +1317,10 @@ const MOBILE_MEDIA = window.matchMedia("(max-width: 780px)");
 
     function showView(viewId) {
       $$(".nav button, .view").forEach((node) => node.classList.remove("active"));
-      $(`.nav button[data-view="${viewId}"]`)?.classList.add("active");
-      $(`#${viewId}`)?.classList.add("active");
+      $(`.nav button[data-view="${viewId}"]`).classList.add("active");
+      $(`#${viewId}`).classList.add("active");
       document.body.classList.toggle("assistant-mode", viewId === "assistant");
       document.body.classList.toggle("page-mode", viewId !== "assistant");
-      if (isMobileLayout()) closeMobileDrawer();
       syncAssistantMessageHeight();
       if (window.innerWidth < 1050) window.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -1409,21 +1405,6 @@ const MOBILE_MEDIA = window.matchMedia("(max-width: 780px)");
 
     function currentLocale() {
       return getLanguage() === "en" ? "en-US" : "ru-RU";
-    }
-
-    function isMobileLayout() {
-      return MOBILE_MEDIA.matches;
-    }
-
-    function openMobileDrawer() {
-      if (!isMobileLayout()) return;
-      document.body.classList.add("mobile-drawer-open");
-      $("#mobileDrawer")?.setAttribute("aria-hidden", "false");
-    }
-
-    function closeMobileDrawer() {
-      document.body.classList.remove("mobile-drawer-open");
-      $("#mobileDrawer")?.setAttribute("aria-hidden", "true");
     }
 
     function extractLinks(text) {
@@ -1963,7 +1944,6 @@ const MOBILE_MEDIA = window.matchMedia("(max-width: 780px)");
     }
 
     function connectSpline() {
-      if (isMobileLayout()) return;
       if (!SPLINE_SCENE_URL) return;
       if (!$("#splineBox")) return;
       $("#splineBox").innerHTML = `<iframe title="Spline scene" src="${SPLINE_SCENE_URL}" allow="autoplay; fullscreen; xr-spatial-tracking"></iframe>`;
@@ -1973,17 +1953,12 @@ const MOBILE_MEDIA = window.matchMedia("(max-width: 780px)");
     const SPLASH_ACTIVATE_EVENTS = ["click", "touchstart", "keydown"];
     const IDLE_ACTIVITY_EVENTS = ["mousemove", "click", "touchstart", "keydown", "scroll"];
     let idleTimerId = null;
-    let splashVisible = !MOBILE_MEDIA.matches;
+    let splashVisible = true;
     let idleVisible = false;
 
     function setPulsScreenState() {
-      if (isMobileLayout()) {
-        splashVisible = false;
-        idleVisible = false;
-      }
-      document.body.classList.toggle("mobile-layout", isMobileLayout());
-      document.body.classList.toggle("puls-splash-active", splashVisible && !isMobileLayout());
-      document.body.classList.toggle("puls-idle-active", idleVisible && !isMobileLayout());
+      document.body.classList.toggle("puls-splash-active", splashVisible);
+      document.body.classList.toggle("puls-idle-active", idleVisible);
     }
 
     function hideSplashScreen() {
@@ -1994,7 +1969,7 @@ const MOBILE_MEDIA = window.matchMedia("(max-width: 780px)");
     }
 
     function showIdleScreen() {
-      if (isMobileLayout() || idleVisible || splashVisible) return;
+      if (idleVisible || splashVisible) return;
       idleVisible = true;
       setPulsScreenState();
     }
@@ -2007,18 +1982,18 @@ const MOBILE_MEDIA = window.matchMedia("(max-width: 780px)");
 
     function resetIdleTimer() {
       clearTimeout(idleTimerId);
-      if (isMobileLayout() || splashVisible) return;
+      if (splashVisible) return;
       idleTimerId = window.setTimeout(showIdleScreen, IDLE_TIMEOUT_MS);
     }
 
     function handlePulsActivity() {
-      if (isMobileLayout() || splashVisible) return;
+      if (splashVisible) return;
       if (idleVisible) hideIdleScreen();
       resetIdleTimer();
     }
 
     function handleSplashActivation(event) {
-      if (isMobileLayout() || !splashVisible) return;
+      if (!splashVisible) return;
       hideSplashScreen();
       SPLASH_ACTIVATE_EVENTS.forEach((eventName) => {
         document.removeEventListener(eventName, handleSplashActivation);
@@ -2033,13 +2008,6 @@ const MOBILE_MEDIA = window.matchMedia("(max-width: 780px)");
       initVehicleEditor();
       await renderLists();
       connectSpline();
-
-      $("#mobileMenuBtn")?.addEventListener("click", openMobileDrawer);
-      $("#mobileDrawerCloseBtn")?.addEventListener("click", closeMobileDrawer);
-      $("#mobileDrawerBackdrop")?.addEventListener("click", closeMobileDrawer);
-      window.addEventListener("keydown", (event) => {
-        if (event.key === "Escape") closeMobileDrawer();
-      });
 
       $("#sendBtn").addEventListener("click", sendPrompt);
       $("#promptInput").addEventListener("keydown", (event) => {
@@ -2076,20 +2044,8 @@ const MOBILE_MEDIA = window.matchMedia("(max-width: 780px)");
       IDLE_ACTIVITY_EVENTS.forEach((eventName) => {
         window.addEventListener(eventName, handlePulsActivity, { passive: eventName !== "keydown" });
       });
-      if (typeof MOBILE_MEDIA.addEventListener === "function") {
-        MOBILE_MEDIA.addEventListener("change", () => {
-          setPulsScreenState();
-          closeMobileDrawer();
-          if (!isMobileLayout()) connectSpline();
-        });
-      }
       applyAuthLockedState();
-      window.addEventListener("resize", () => {
-        syncAssistantMessageHeight();
-        setPulsScreenState();
-        closeMobileDrawer();
-        if (!isMobileLayout()) connectSpline();
-      });
+      window.addEventListener("resize", syncAssistantMessageHeight);
       syncAssistantMessageHeight();
       document.addEventListener("click", (event) => {
         if (event.target.closest("#requestCloseBtn") || event.target.closest("#requestModal") && event.target.id === "requestModal") {
