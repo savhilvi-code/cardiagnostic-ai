@@ -1368,8 +1368,8 @@ const SPLINE_SCENE_URL = "https://my.spline.design/starterscenecopy-RDKY0gQFbXbk
 
         requestAnimationFrame(() => {
           const bubbleBottom = lastBubble.getBoundingClientRect().bottom;
-          const composerTop = composer.getBoundingClientRect().top;
-          const hiddenByComposer = bubbleBottom - composerTop + 52;
+          const composerRect = composer.getBoundingClientRect();
+          const hiddenByComposer = bubbleBottom - composerRect.top + composerRect.height + 24;
 
           if (hiddenByComposer <= 0) return;
 
