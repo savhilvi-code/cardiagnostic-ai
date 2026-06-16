@@ -1356,24 +1356,19 @@ const SPLINE_SCENE_URL = "https://my.spline.design/starterscenecopy-RDKY0gQFbXbk
 
         const lastBubble = messagesBox.querySelector(".bubble:last-child");
         const composer = $(".composer");
+        const scrollBox = $(".content > .main-panel");
 
-        if (!lastBubble || !composer) return;
-
+        if (!lastBubble || !composer || !scrollBox) return;
         if (!isAssistantMode) return;
 
-        const composerRect = composer.getBoundingClientRect();
-        const bubbleRect = lastBubble.getBoundingClientRect();
-        const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+        const bubbleBottom = lastBubble.getBoundingClientRect().bottom;
+        const scrollBoxBottom = scrollBox.getBoundingClientRect().bottom;
+        const composerHeight = composer.getBoundingClientRect().height;
         const safeGap = 24;
-        const targetScrollTop = Math.max(
-          0,
-          bubbleRect.bottom + window.scrollY - viewportHeight + composerRect.height + safeGap
-        );
+        const hiddenByComposer = bubbleBottom - (scrollBoxBottom - composerHeight - safeGap);
 
-        if (document.scrollingElement) {
-          document.scrollingElement.scrollTo({ top: targetScrollTop, behavior: "smooth" });
-        } else {
-          window.scrollTo({ top: targetScrollTop, behavior: "smooth" });
+        if (hiddenByComposer > 0) {
+          scrollBox.scrollBy({ top: hiddenByComposer, behavior: "smooth" });
         }
       });
     }
@@ -2018,6 +2013,8 @@ const SPLINE_SCENE_URL = "https://my.spline.design/starterscenecopy-RDKY0gQFbXbk
       $("#promptInput").addEventListener("keydown", (event) => {
         if (event.key === "Enter") sendPrompt();
       });
+      $("#pulsSplashHitArea")?.addEventListener("pointerdown", handleSplashActivation);
+      $("#pulsSplashHitArea")?.addEventListener("click", handleSplashActivation);
       ["#journalSearch", "#historySearch", "#manualSearch", "#videoSearch"].forEach((selector) => {
         $(selector)?.addEventListener("input", () => renderLists());
       });
