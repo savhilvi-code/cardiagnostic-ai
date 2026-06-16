@@ -2434,7 +2434,8 @@ body {
 }
 
 .app {
-  width: min(1240px, calc(100% - 20px));
+  width: calc(100% - 20px);
+  max-width: none;
   padding: 16px 0 20px;
 }
 
@@ -2572,20 +2573,25 @@ body {
 
 body.page-mode .content > .main-panel,
 body.assistant-mode .content > .main-panel {
-  padding-bottom: calc(260px + env(safe-area-inset-bottom)) !important;
+  padding-bottom: calc(340px + env(safe-area-inset-bottom)) !important;
 }
 
 body.page-mode .view.active {
-  padding-bottom: calc(240px + env(safe-area-inset-bottom)) !important;
+  padding-bottom: calc(320px + env(safe-area-inset-bottom)) !important;
 }
 
 body.assistant-mode .messages {
-  padding-bottom: calc(260px + env(safe-area-inset-bottom)) !important;
-  scroll-padding-bottom: calc(260px + env(safe-area-inset-bottom)) !important;
+  padding-bottom: calc(340px + env(safe-area-inset-bottom)) !important;
+  scroll-padding-bottom: calc(340px + env(safe-area-inset-bottom)) !important;
 }
 
 body.assistant-mode .assistant-right {
-  padding-bottom: calc(260px + env(safe-area-inset-bottom)) !important;
+  padding-bottom: calc(340px + env(safe-area-inset-bottom)) !important;
+}
+
+body.assistant-mode #assistant .chat-grid {
+  grid-template-columns: minmax(0, 1fr) !important;
+  padding-right: clamp(350px, 24vw, 392px);
 }
 
 @media (min-width: 1051px) {
@@ -2630,7 +2636,11 @@ body.assistant-mode .assistant-right {
   body.assistant-mode .messages,
   body.assistant-mode .assistant-right,
   body.page-mode .view.active {
-    padding-bottom: calc(280px + env(safe-area-inset-bottom)) !important;
+    padding-bottom: calc(360px + env(safe-area-inset-bottom)) !important;
+  }
+
+  body.assistant-mode #assistant .chat-grid {
+    padding-right: 0 !important;
   }
 
   .composer {
