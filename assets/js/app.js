@@ -1,5 +1,5 @@
 const CHAT_API_URL = "https://puls-backend-t3sn.onrender.com/chat";
-const SPLINE_SCENE_URL = "";
+const SPLINE_SCENE_URL = "https://my.spline.design/starterscenecopy-RDKY0gQFbXbkko9LN657PtBA/";
 
     const iconMap = {
       bot: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="8" width="14" height="10" rx="3"/><path d="M12 4v4M8 13h.01M16 13h.01M7 21h10M3 11v4M21 11v4"/></svg>',
@@ -1958,13 +1958,59 @@ const SPLINE_SCENE_URL = "";
       $("#splineBox").innerHTML = `<iframe title="Spline scene" src="${SPLINE_SCENE_URL}" allow="autoplay; fullscreen; xr-spatial-tracking"></iframe>`;
     }
 
+    const SPLASH_DURATION_MS = 3000;
+    const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
+    const ACTIVITY_EVENTS = ["mousemove", "click", "touchstart", "keydown", "scroll"];
+    let splashTimerId = null;
+    let idleTimerId = null;
+    let splashVisible = true;
+    let idleVisible = false;
+
+    function setPulsScreenState() {
+      document.body.classList.toggle("puls-splash-active", splashVisible);
+      document.body.classList.toggle("puls-idle-active", idleVisible);
+    }
+
+    function hideSplashScreen() {
+      if (!splashVisible) return;
+      splashVisible = false;
+      setPulsScreenState();
+      resetIdleTimer();
+    }
+
+    function showIdleScreen() {
+      if (idleVisible || splashVisible) return;
+      idleVisible = true;
+      setPulsScreenState();
+    }
+
+    function hideIdleScreen() {
+      if (!idleVisible) return;
+      idleVisible = false;
+      setPulsScreenState();
+    }
+
+    function resetIdleTimer() {
+      clearTimeout(idleTimerId);
+      if (splashVisible) return;
+      idleTimerId = window.setTimeout(showIdleScreen, IDLE_TIMEOUT_MS);
+    }
+
+    function handlePulsActivity() {
+      if (splashVisible) return;
+      if (idleVisible) hideIdleScreen();
+      resetIdleTimer();
+    }
+
     document.addEventListener("DOMContentLoaded", async () => {
       document.body.classList.add("assistant-mode");
+      setPulsScreenState();
       injectIcons();
       applyLanguage();
       initVehicleEditor();
       await renderLists();
       connectSpline();
+      splashTimerId = window.setTimeout(hideSplashScreen, SPLASH_DURATION_MS);
 
       $("#sendBtn").addEventListener("click", sendPrompt);
       $("#promptInput").addEventListener("keydown", (event) => {
@@ -1992,6 +2038,9 @@ const SPLINE_SCENE_URL = "";
       window.addEventListener("puls-auth-change", () => {
         applyAuthLockedState();
         renderLists();
+      });
+      ACTIVITY_EVENTS.forEach((eventName) => {
+        window.addEventListener(eventName, handlePulsActivity, { passive: eventName !== "keydown" });
       });
       applyAuthLockedState();
       window.addEventListener("resize", syncAssistantMessageHeight);
