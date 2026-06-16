@@ -2442,6 +2442,18 @@ body {
   padding: 16px 0 20px;
 }
 
+@media (min-width: 1051px) {
+  .app {
+    zoom: 0.9;
+  }
+}
+
+@media (max-width: 1050px) {
+  .app {
+    zoom: 1;
+  }
+}
+
 .topbar {
   margin-bottom: 12px !important;
   padding-bottom: 6px !important;
