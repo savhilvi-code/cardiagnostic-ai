@@ -2443,13 +2443,13 @@ body {
 }
 
 @media (min-width: 1051px) {
-  .app {
+  body {
     zoom: 0.9;
   }
 }
 
 @media (max-width: 1050px) {
-  .app {
+  body {
     zoom: 1;
   }
 }
