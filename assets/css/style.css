@@ -2653,3 +2653,86 @@ body.assistant-mode #assistant .chat-grid {
     width: auto !important;
   }
 }
+
+/* ===== Final page-mode and assistant-mode overrides ===== */
+body.page-mode {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+body.page-mode .app {
+  height: auto !important;
+  min-height: 100vh;
+  overflow: visible !important;
+  padding-bottom: calc(148px + env(safe-area-inset-bottom)) !important;
+}
+
+body.page-mode .workspace {
+  height: auto !important;
+  overflow: visible !important;
+  align-items: flex-start;
+}
+
+body.page-mode .side {
+  position: sticky !important;
+  top: 12px !important;
+  height: auto !important;
+  max-height: calc(100vh - 24px) !important;
+}
+
+body.page-mode .content,
+body.page-mode .content > .main-panel,
+body.page-mode .view.active {
+  height: auto !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+}
+
+body.page-mode .content > .main-panel,
+body.page-mode .view.active {
+  padding-bottom: calc(148px + env(safe-area-inset-bottom)) !important;
+  scroll-padding-bottom: calc(148px + env(safe-area-inset-bottom)) !important;
+}
+
+body.assistant-mode .content > .main-panel {
+  padding-bottom: calc(200px + env(safe-area-inset-bottom)) !important;
+}
+
+body.assistant-mode .messages {
+  padding-bottom: calc(180px + env(safe-area-inset-bottom)) !important;
+  scroll-padding-bottom: calc(180px + env(safe-area-inset-bottom)) !important;
+}
+
+body.assistant-mode .assistant-right {
+  padding-bottom: calc(180px + env(safe-area-inset-bottom)) !important;
+}
+
+body.assistant-mode #assistant .chat-grid {
+  padding-right: clamp(260px, 20vw, 320px) !important;
+}
+
+@media (max-width: 1050px) {
+  body.page-mode .app {
+    padding-bottom: calc(150px + env(safe-area-inset-bottom)) !important;
+  }
+
+  body.page-mode .content > .main-panel,
+  body.page-mode .view.active {
+    padding-bottom: calc(150px + env(safe-area-inset-bottom)) !important;
+    scroll-padding-bottom: calc(150px + env(safe-area-inset-bottom)) !important;
+  }
+
+  body.assistant-mode .content > .main-panel {
+    padding-bottom: calc(200px + env(safe-area-inset-bottom)) !important;
+  }
+
+  body.assistant-mode .messages,
+  body.assistant-mode .assistant-right {
+    padding-bottom: calc(170px + env(safe-area-inset-bottom)) !important;
+    scroll-padding-bottom: calc(170px + env(safe-area-inset-bottom)) !important;
+  }
+
+  body.assistant-mode #assistant .chat-grid {
+    padding-right: 0 !important;
+  }
+}
