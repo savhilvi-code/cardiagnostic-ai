@@ -1,4 +1,10 @@
 # CarDiagnostic AI
+PULS AI is an AI-powered vehicle diagnostic platform that combines automotive knowledge, real repair cases, DTC interpretation, service manuals, and conversational diagnostics.
+
+## Topics
+
+`ai`, `automotive`, `car-diagnostics`, `vehicle-diagnostics`, `fastapi`, `python`, `openai`, `claude`, `supabase`, `telegram-bot`
+
 
 Статический прототип сайта для GitHub Pages.
 
