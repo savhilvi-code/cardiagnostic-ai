@@ -8,8 +8,18 @@
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://pulscar.co/pages/privacy.html">
   <link rel="stylesheet" href="../assets/css/style.css?v=20260609-12">
+  <style>
+    body.seo-page { overflow: auto !important; }
+    body.seo-page .app { width: min(1320px, calc(100% - 32px)); margin: 0 auto; padding: 24px 0 40px; }
+    body.seo-page .seo-main { margin-top: 18px; }
+    body.seo-page .seo-container { width: 100%; max-width: 1120px; margin: 0 auto; }
+    body.seo-page .seo-grid { display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(280px, 0.9fr); gap: 18px; align-items: start; }
+    body.seo-page .seo-copy { max-width: 72ch; }
+    body.seo-page .seo-note { margin-top: 14px; color: var(--muted); }
+    @media (max-width: 960px) { body.seo-page .seo-grid { grid-template-columns: 1fr; } }
+  </style>
 </head>
-<body class="page-mode">
+<body class="seo-page">
   <div class="app">
     <header class="topbar">
       <div class="brand">
@@ -22,13 +32,34 @@
       <a class="btn blue" href="../index.html">Open app</a>
     </header>
 
-    <main class="workspace">
-      <section class="panel" style="padding: 24px;">
-        <div class="card">
-          <h1>Privacy Policy</h1>
-          <p>This page provides a basic public privacy notice for PULS CarDiagnostic AI. It can be expanded later with the full data-processing details used by your production deployment.</p>
-        </div>
-      </section>
+    <main class="seo-main">
+      <div class="seo-container">
+        <section class="panel seo-hero" style="padding: 28px;">
+          <div class="card">
+            <h1>Privacy Policy</h1>
+            <p class="seo-copy">This page provides a basic public privacy notice for PULS CarDiagnostic AI. It can be expanded later with the full data-processing details used by your production deployment.</p>
+          </div>
+        </section>
+
+        <section class="seo-grid">
+          <div class="panel" style="padding: 28px;">
+            <div class="card">
+              <h2>How this page is used</h2>
+              <p class="seo-copy">The layout matches the main site style and keeps the content easy to read for both users and crawlers.</p>
+              <p class="seo-note">When you are ready, you can replace this draft with the final legal privacy text without changing the page structure.</p>
+            </div>
+          </div>
+
+          <aside class="panel" style="padding: 28px;">
+            <div class="card">
+              <h2>Quick links</h2>
+              <p><a href="../index.html">Open the main app</a></p>
+              <p><a href="./about.html">About PULS</a></p>
+              <p><a href="./terms.html">Terms of Service</a></p>
+            </div>
+          </aside>
+        </section>
+      </div>
     </main>
   </div>
 </body>
