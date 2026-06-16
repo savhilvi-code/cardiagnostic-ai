@@ -41,11 +41,18 @@
   <link rel="stylesheet" href="assets/css/style.css?v=20260609-12">
 </head>
 <body class="puls-splash-active">
+  <script>
+    if (window.matchMedia("(max-width: 780px)").matches) {
+      document.body.classList.add("mobile-layout");
+    }
+  </script>
   <div class="puls-spline-screen" id="pulsSplineScreen" aria-hidden="true">
     <div class="puls-spline-backdrop"></div>
     <iframe
       title="PULS startup animation"
-      src="https://my.spline.design/starterscenecopy-RDKY0gQFbXbkko9LN657PtBA/"
+      src="about:blank"
+        data-src="about:blank"
+        data-src="https://my.spline.design/starterscenecopy-RDKY0gQFbXbkko9LN657PtBA/"
       allow="autoplay; fullscreen; xr-spatial-tracking"
       loading="eager"
       referrerpolicy="no-referrer"
@@ -58,6 +65,49 @@
     ></button>
   </div>
   <div class="app" id="app">
+    <div class="mobile-shell">
+      <header class="mobile-topbar">
+        <button class="mobile-menu-btn" id="mobileMenuBtn" type="button" aria-label="Open menu">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+        <div class="mobile-brand">
+          <img class="mobile-brand-logo" src="assets/img/puls-logo.png" alt="PULS">
+          <div class="mobile-brand-copy">
+            <div class="mobile-brand-title">CarDiagnostic <span>AI</span></div>
+            <div class="mobile-brand-subtitle" data-i18n="brand.subtitle"></div>
+          </div>
+        </div>
+        <button class="mobile-car-btn" type="button" data-view="car" data-icon="car" aria-label="My car"></button>
+      </header>
+
+      <div class="mobile-drawer-backdrop" id="mobileDrawerBackdrop"></div>
+      <aside class="mobile-drawer" id="mobileDrawer" aria-hidden="true">
+        <div class="mobile-drawer-card">
+          <div class="mobile-drawer-head">
+            <div class="mobile-drawer-brand">
+              <img class="mobile-brand-logo" src="assets/img/puls-logo.png" alt="PULS">
+              <div class="mobile-brand-copy">
+                <div class="mobile-brand-title">CarDiagnostic <span>AI</span></div>
+                <div class="mobile-brand-subtitle" data-i18n="brand.subtitle"></div>
+              </div>
+            </div>
+            <button class="mobile-drawer-close" id="mobileDrawerCloseBtn" type="button" aria-label="Close menu">x</button>
+          </div>
+          <nav class="mobile-drawer-nav nav" aria-label="Mobile menu">
+            <button class="active" type="button" data-view="assistant" data-icon="bot">AI assistant</button>
+            <button type="button" data-view="car" data-icon="home">My car</button>
+            <button type="button" data-view="history" data-icon="history">History</button>
+            <button type="button" data-view="journal" data-icon="journal">Journal</button>
+            <button type="button" data-view="manuals" data-icon="file">Guides</button>
+            <button type="button" data-view="dtc" data-icon="warning">DTC codes</button>
+            <button type="button" data-view="settings" data-icon="settings">Settings</button>
+            <button type="button" data-view="video" data-icon="help">Support and help</button>
+          </nav>
+        </div>
+      </aside>
+    </div>
     <header class="topbar">
       <div class="brand">
         <img class="brand-logo" src="assets/img/puls-logo.png" alt="PULS">
@@ -122,9 +172,16 @@
                   </div>
                 </div>
 
+                <div class="mobile-hero-copy">
+                  <div class="mobile-hero-kicker" data-i18n="system.ready"></div>
+                  <h2>&#x0413;&#x043E;&#x0442;&#x043E;&#x0432;, &#x043A;&#x043E;&#x0433;&#x0434;&#x0430; &#x0442;&#x044B; &#x0433;&#x043E;&#x0442;&#x043E;&#x0432;.</h2>
+                  <p data-i18n="assistant.subtitle"></p>
+                </div>
+
+
                 <div class="messages" id="messages">
-                  <div class="bubble user"><span data-i18n="assistant.demoQuestion">I hear a humming noise under the hood during acceleration, especially around 2000-3000 rpm.</span> <small>10:42</small></div>
-                  <div class="bubble">
+                  <div class="bubble user demo-bubble"><span data-i18n="assistant.demoQuestion">I hear a humming noise under the hood during acceleration, especially around 2000-3000 rpm.</span> <small>10:42</small></div>
+                  <div class="bubble demo-bubble">
                     <strong>PULS</strong><br>
                     <span data-i18n="assistant.demoAnswer">Похоже на проблему со вспомогательными узлами двигателя. Вероятные причины: износ подшипника генератора, ролик натяжителя ремня, помпа или приводной ремень.</span>
                     <br><br><strong data-i18n="assistant.demoActions">Что можно сделать:</strong><br>
@@ -133,6 +190,16 @@
                   </div>
                 </div>
               </div>
+
+                <div class="mobile-disclaimer">
+                  <div class="mobile-disclaimer-icon" data-icon="warning" aria-hidden="true"></div>
+                  <div class="mobile-disclaimer-copy">
+                    <strong>CarDiagnostic AI</strong>
+                    <p>AI output can contain errors. Check important details before using them.</p>
+                  </div>
+                </div>
+
+                <div class="mobile-footer-card" aria-hidden="true"></div>
 
               <aside class="assistant-right">
                 <div class="card">
@@ -149,11 +216,6 @@
                   </div>
                   <button class="btn blue" data-action="demo" data-i18n="assistant.watchVideo">Смотреть видео</button>
                 </div>
-              </aside>
-            </div>
-          </section>
-
-          <section class="view" id="car">
             <div class="head">
               <div>
                 <h1 data-i18n="car.title">Мой автомобиль</h1>
