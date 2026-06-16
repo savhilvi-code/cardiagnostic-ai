@@ -2008,7 +2008,8 @@ body.page-mode .content > .main-panel {
   height: calc(100% - 92px) !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
-  padding: 4px 4px clamp(320px, 36vh, 420px) !important;
+  padding: 4px 4px clamp(420px, 46vh, 560px) !important;
+  scroll-padding-bottom: clamp(420px, 46vh, 560px) !important;
 }
 
 body.assistant-mode .content,
@@ -2028,6 +2029,8 @@ body.assistant-mode .content > .main-panel {
 body.page-mode .view.active {
   height: auto !important;
   min-height: 100%;
+  padding-bottom: clamp(420px, 46vh, 560px) !important;
+  scroll-padding-bottom: clamp(420px, 46vh, 560px) !important;
 }
 
 body.page-mode #assistant.view {
@@ -2577,7 +2580,7 @@ body.assistant-mode .content > .main-panel {
 }
 
 body.page-mode .view.active {
-  padding-bottom: calc(320px + env(safe-area-inset-bottom)) !important;
+  padding-bottom: calc(480px + env(safe-area-inset-bottom)) !important;
 }
 
 body.assistant-mode .messages {
@@ -2636,7 +2639,7 @@ body.assistant-mode #assistant .chat-grid {
   body.assistant-mode .messages,
   body.assistant-mode .assistant-right,
   body.page-mode .view.active {
-    padding-bottom: calc(360px + env(safe-area-inset-bottom)) !important;
+    padding-bottom: calc(520px + env(safe-area-inset-bottom)) !important;
   }
 
   body.assistant-mode #assistant .chat-grid {
