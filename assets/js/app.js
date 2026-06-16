@@ -1958,10 +1958,9 @@ const SPLINE_SCENE_URL = "https://my.spline.design/starterscenecopy-RDKY0gQFbXbk
       $("#splineBox").innerHTML = `<iframe title="Spline scene" src="${SPLINE_SCENE_URL}" allow="autoplay; fullscreen; xr-spatial-tracking"></iframe>`;
     }
 
-    const SPLASH_DURATION_MS = 3000;
     const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
-    const ACTIVITY_EVENTS = ["mousemove", "click", "touchstart", "keydown", "scroll"];
-    let splashTimerId = null;
+    const SPLASH_ACTIVATE_EVENTS = ["click", "touchstart", "keydown"];
+    const IDLE_ACTIVITY_EVENTS = ["mousemove", "click", "touchstart", "keydown", "scroll"];
     let idleTimerId = null;
     let splashVisible = true;
     let idleVisible = false;
@@ -2002,6 +2001,14 @@ const SPLINE_SCENE_URL = "https://my.spline.design/starterscenecopy-RDKY0gQFbXbk
       resetIdleTimer();
     }
 
+    function handleSplashActivation(event) {
+      if (!splashVisible) return;
+      hideSplashScreen();
+      SPLASH_ACTIVATE_EVENTS.forEach((eventName) => {
+        document.removeEventListener(eventName, handleSplashActivation);
+      });
+    }
+
     document.addEventListener("DOMContentLoaded", async () => {
       document.body.classList.add("assistant-mode");
       setPulsScreenState();
@@ -2010,7 +2017,6 @@ const SPLINE_SCENE_URL = "https://my.spline.design/starterscenecopy-RDKY0gQFbXbk
       initVehicleEditor();
       await renderLists();
       connectSpline();
-      splashTimerId = window.setTimeout(hideSplashScreen, SPLASH_DURATION_MS);
 
       $("#sendBtn").addEventListener("click", sendPrompt);
       $("#promptInput").addEventListener("keydown", (event) => {
@@ -2039,7 +2045,10 @@ const SPLINE_SCENE_URL = "https://my.spline.design/starterscenecopy-RDKY0gQFbXbk
         applyAuthLockedState();
         renderLists();
       });
-      ACTIVITY_EVENTS.forEach((eventName) => {
+      SPLASH_ACTIVATE_EVENTS.forEach((eventName) => {
+        document.addEventListener(eventName, handleSplashActivation, { passive: eventName !== "keydown" });
+      });
+      IDLE_ACTIVITY_EVENTS.forEach((eventName) => {
         window.addEventListener(eventName, handlePulsActivity, { passive: eventName !== "keydown" });
       });
       applyAuthLockedState();
