@@ -1348,9 +1348,6 @@ const SPLINE_SCENE_URL = "https://my.spline.design/starterscenecopy-RDKY0gQFbXbk
       if (!messagesBox) return;
       requestAnimationFrame(() => {
         const isAssistantMode = document.body.classList.contains("assistant-mode");
-        const scrollBox = document.body.classList.contains("assistant-mode")
-          ? $(".content > .main-panel")
-          : messagesBox;
 
         if (!isAssistantMode && getComputedStyle(messagesBox).overflowY !== "visible") {
           messagesBox.scrollTop = messagesBox.scrollHeight;
@@ -1362,23 +1359,22 @@ const SPLINE_SCENE_URL = "https://my.spline.design/starterscenecopy-RDKY0gQFbXbk
 
         if (!lastBubble || !composer) return;
 
-        if (scrollBox && scrollBox !== messagesBox) {
-          scrollBox.scrollTo({ top: scrollBox.scrollHeight, behavior: "smooth" });
+        if (!isAssistantMode) return;
+
+        const composerRect = composer.getBoundingClientRect();
+        const bubbleRect = lastBubble.getBoundingClientRect();
+        const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+        const safeGap = 24;
+        const targetScrollTop = Math.max(
+          0,
+          bubbleRect.bottom + window.scrollY - viewportHeight + composerRect.height + safeGap
+        );
+
+        if (document.scrollingElement) {
+          document.scrollingElement.scrollTo({ top: targetScrollTop, behavior: "smooth" });
+        } else {
+          window.scrollTo({ top: targetScrollTop, behavior: "smooth" });
         }
-
-        requestAnimationFrame(() => {
-          const bubbleBottom = lastBubble.getBoundingClientRect().bottom;
-          const composerRect = composer.getBoundingClientRect();
-          const hiddenByComposer = bubbleBottom - composerRect.top + composerRect.height + 24;
-
-          if (hiddenByComposer <= 0) return;
-
-          if (scrollBox && scrollBox !== messagesBox) {
-            scrollBox.scrollBy({ top: hiddenByComposer, behavior: "smooth" });
-          } else {
-            window.scrollBy({ top: hiddenByComposer, behavior: "smooth" });
-          }
-        });
       });
     }
 
