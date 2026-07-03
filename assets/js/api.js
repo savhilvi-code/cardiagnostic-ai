@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "./config.js";
+const API_BASE_URL = (window.PULS_CONFIG?.API_BASE_URL || "").replace(/\/$/, "");
 
 export async function loadHistoryFromApi(userId) {
   const res = await fetch(`${API_BASE_URL}/api/history?userId=${encodeURIComponent(userId)}`);

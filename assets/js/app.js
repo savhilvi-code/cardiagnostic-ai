@@ -1,5 +1,6 @@
-const CHAT_API_URL = "https://puls-backend-t3sn.onrender.com/chat";
-const SPLINE_SCENE_URL = "https://my.spline.design/starterscenecopy-RDKY0gQFbXbkko9LN657PtBA/";
+const PULS_CONFIG = window.PULS_CONFIG || {};
+const CHAT_API_URL = PULS_CONFIG.CHAT_API_URL || `${String(PULS_CONFIG.API_BASE_URL || "https://puls-backend-t3sn.onrender.com").replace(/\/$/, "")}/chat`;
+const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.design/starterscenecopy-RDKY0gQFbXbkko9LN657PtBA/";
 
     const iconMap = {
       bot: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="8" width="14" height="10" rx="3"/><path d="M12 4v4M8 13h.01M16 13h.01M7 21h10M3 11v4M21 11v4"/></svg>',
