@@ -13,7 +13,7 @@ PULS - это AI-система для автомобильной диагнос
 - Data: Supabase.
 - AI: OpenAI, Claude.
 - Hosting: Render для backend, GitHub Pages для frontend.
-- Дополнительные интеграции: Telegram Bot, parser/search pipeline.
+- Дополнительные интеграции: parser/search pipeline.
 
 ---
 
@@ -23,10 +23,10 @@ PULS - это AI-система для автомобильной диагнос
 
 - Frontend отвечает за интерфейс сайта, страницы, ввод пользователя, отображение ответа и вызовы backend API.
 - Backend принимает API-запросы, маршрутизирует диалог, запускает AI, parser, knowledge base и работу с Supabase.
+- Frontend отправляет чат только в backend `/chat`, читает историю через `/api/history` и отображает quota из ответа backend. Если пользователь еще не вошел через Supabase Auth, frontend использует локальный `web-guest-* auth_user_id`, чтобы сообщение всё равно дошло до backend.
 - Supabase хранит пользователей, историю запросов, базу знаний и связанные диагностические данные.
 - OpenAI используется для AI-маршрутизации, генерации ответов и вспомогательных AI-задач.
 - Claude используется для глубокого поиска и анализа через cloud/search-ветку.
-- Telegram Bot исторически был отдельным транспортом для сообщений, но для сайта не должен мешать web-flow.
 - GitHub Pages публикует frontend.
 - Render запускает backend FastAPI.
 
@@ -36,6 +36,7 @@ flowchart LR
     Browser --> Frontend[Frontend on GitHub Pages]
     Frontend --> APIConfig[API Config]
     APIConfig --> Backend[Backend FastAPI on Render]
+    APIConfig --> History[Backend /api/history]
     Backend --> Routers[Routers]
     Routers --> Services[Services]
     Services --> OpenAI[OpenAI]
@@ -44,9 +45,9 @@ flowchart LR
     Services --> KB[Knowledge Base]
     KB --> Supabase[Supabase]
     Services --> Supabase
+    History --> Supabase
     Backend --> Response[Response]
     Response --> Frontend
-    Telegram[Telegram Bot] -. optional transport .-> Backend
 ```
 
 ---

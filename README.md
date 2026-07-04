@@ -3,7 +3,7 @@ PULS AI is an AI-powered vehicle diagnostic platform that combines automotive kn
 
 ## Topics
 
-`ai`, `automotive`, `car-diagnostics`, `vehicle-diagnostics`, `fastapi`, `python`, `openai`, `claude`, `supabase`, `telegram-bot`
+`ai`, `automotive`, `car-diagnostics`, `vehicle-diagnostics`, `fastapi`, `python`, `openai`, `claude`, `supabase`
 
 
 Статический прототип сайта для GitHub Pages.

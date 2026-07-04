@@ -18,7 +18,7 @@ SKIP_DIRS = {
 }
 
 TEXT_EXTENSIONS = {".html", ".css", ".js", ".mjs", ".json", ".xml", ".md", ".txt"}
-API_ROUTE_RE = re.compile(r"(?P<match>(?:https?://[^'\"\s)]+)?/(?:chat|history|search|health|telegram)\b[^'\"\s)]*)")
+API_ROUTE_RE = re.compile(r"(?P<match>(?:https?://[^'\"\s)]+)?/(?:chat|history|search|health)\b[^'\"\s)]*)")
 FETCH_RE = re.compile(r"\bfetch\s*\(")
 AXIOS_RE = re.compile(r"\baxios(?:\s*\(|\.[a-zA-Z]+\s*\()")
 SUPABASE_RE = re.compile(r"\b(createClient|supabase\.auth|supabase\.from\s*\()")

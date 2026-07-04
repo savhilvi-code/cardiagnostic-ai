@@ -4,6 +4,8 @@
 
 CarDiagnostic AI frontend - статический frontend-проект для сайта PULS. Он состоит из HTML-страниц, CSS-стилей и JavaScript-модулей, которые управляют интерфейсом, навигацией, авторизацией, Supabase-клиентом и запросами к backend FastAPI.
 
+Frontend не принимает диагностические решения и не пишет `diagnostic_requests` напрямую. Чат отправляет сообщения в backend `/chat`, история читается из backend `/api/history`, а quota берется из ответа backend. Для незалогиненного пользователя используется локальный `web-guest-* auth_user_id`, чтобы кнопка отправки и Enter всегда доходили до backend; после Supabase Auth используется настоящий `auth_user_id`.
+
 ## Структура папок
 
 ```text
@@ -114,23 +116,19 @@ CarDiagnostic AI frontend - статический frontend-проект для 
 
 ## API-вызовы к backend
 
-- `assets/js/api.js:4` - /history?userId=${encodeURIComponent(userId, fetch(...) - `const res = await fetch(`${API_BASE_URL}/api/history?userId=${encodeURIComponent(userId)}`);`
-- `assets/js/api.js:11` - /history`,, fetch(...) - `const res = await fetch(`${API_BASE_URL}/api/history`, {`
-- `assets/js/api.js:22` - /chat`,, fetch(...) - `const res = await fetch(`${API_BASE_URL}/api/chat`, {`
+- `assets/js/api.js` - `GET /api/history?user_id=...`
+- `assets/js/api.js` - `POST /chat`
 - `assets/js/app.js:2` - /chat`; - `const CHAT_API_URL = PULS_CONFIG.CHAT_API_URL || `${String(PULS_CONFIG.API_BASE_URL || "https://puls-backend-t3sn.onrender.com").replace(/\/$/, "")}/chat`;`
-- `assets/js/app.js:741` - fetch(...) - `const response = await fetch(`${VIN_LOOKUP_URL}${encodeURIComponent(normalizedVin)}?format=json`);`
-- `assets/js/app.js:1897` - fetch(...) - `const res = await fetch(CHAT_API_URL, {`
-- `assets/js/app.js:1938` - /chat - `console.error("PULS /chat request failed:", error);`
+- `assets/js/app.js` - `POST /chat` через `CHAT_API_URL`
+- `assets/js/app.js` - `GET /api/history?user_id=...`
+- `assets/js/app.js` - quota отображается из `data.quota`
 - `assets/js/config.js:3` - https://puls-backend-t3sn.onrender.com/chat - `CHAT_API_URL: "https://puls-backend-t3sn.onrender.com/chat",`
-- `server.js:191` - fetch(...) - `const response = await fetch(webhookUrl, {`
-- `server.js:220` - /health - `app.get("/api/health", asyncRoute(async (req, res) => {`
-- `server.js:226` - /history - `app.get("/api/history", asyncRoute(async (req, res) => {`
-- `server.js:242` - /history - `app.post("/api/history", asyncRoute(async (req, res) => {`
-- `server.js:266` - /chat - `app.post("/api/chat", asyncRoute(async (req, res) => {`
+- `server.js` - локальный dev proxy: `/api/health`, `/api/history`, `/api/chat` проксируются в backend без прямой записи в Supabase
 
 ## Использование Supabase
 
 - `assets/js/supabaseClient.js:11` - createClient - `window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);`
+- Supabase на frontend используется для Auth/profile sync. История и диагностические записи сохраняются backend-ом.
 
 ## Поток frontend-запроса
 
@@ -138,7 +136,10 @@ CarDiagnostic AI frontend - статический frontend-проект для 
 flowchart LR
     Browser[Browser] --> Frontend[Frontend HTML/CSS/JS]
     Frontend --> APIConfig[API Config]
-    APIConfig --> Backend[Backend FastAPI]
+    APIConfig --> Chat[POST /chat]
+    APIConfig --> History[GET /api/history]
+    Chat --> Backend[Backend FastAPI]
+    History --> Backend
     Backend --> Response[Response]
     Response --> UI[UI]
 ```

@@ -1753,6 +1753,7 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
     }
 
     const HISTORY_STORAGE_KEY = "puls_request_history_v2";
+    const GUEST_AUTH_STORAGE_KEY = "puls_guest_auth_user_id";
 
     function loadLocalHistory() {
       try {
@@ -1764,36 +1765,33 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
 
     async function loadUserHistory() {
       const appUser = window.pulsAppUser;
-      if (!window.supabaseClient || !appUser?.id) return [];
+      if (!appUser?.id) return loadLocalHistory();
 
-      const { data, error } = await window.supabaseClient
-        .from("diagnostic_requests")
-        .select("id,question,answer,language,request_type,status,created_at,vehicle_id")
-        .eq("user_id", appUser.id)
-        .order("created_at", { ascending: false })
-        .limit(100);
-
-      if (error) {
-        console.warn("Не удалось загрузить diagnostic_requests:", error.message);
-        return loadLocalHistory();
-      }
-
-      return (data || []).map((row) => {
-        const createdAt = row.created_at ? new Date(row.created_at) : new Date();
-        return {
+      try {
+        const apiBase = String(PULS_CONFIG.API_BASE_URL || "https://puls-backend-t3sn.onrender.com").replace(/\/$/, "");
+        const response = await fetch(`${apiBase}/api/history?user_id=${encodeURIComponent(appUser.id)}&limit=100`);
+        if (!response.ok) throw new Error(`History API returned ${response.status}`);
+        const payload = await response.json();
+        const data = Array.isArray(payload.items) ? payload.items : [];
+        return data.map((row) => ({
           id: row.id,
           question: row.question,
           answer: row.answer || "",
-          links: extractLinks(row.answer || ""),
-          date: createdAt.toLocaleDateString(currentLocale(), { day: "2-digit", month: "short" }) + ", " +
-            createdAt.toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" }),
-          vehicle: `${t("hero.car")} • ${t("hero.engineValue")} • ${t("hero.driveValue")}`,
-          type: row.request_type === "voice"
-            ? (getLanguage() === "en" ? "Voice request" : "Голосовой запрос")
-            : (getLanguage() === "en" ? "Text request" : "Текстовый запрос"),
+          links: Array.isArray(row.sources) ? row.sources : extractLinks(row.answer || ""),
+          videos: Array.isArray(row.videos) ? row.videos : [],
+          date: row.date || "",
+          vehicle: row.vehicle || `${t("hero.car")} • ${t("hero.engineValue")} • ${t("hero.driveValue")}`,
+          type: row.deep_search_used
+            ? (getLanguage() === "en" ? "Deep Search" : "Deep Search")
+            : row.parser_used
+              ? (getLanguage() === "en" ? "Parser" : "Parser")
+              : (getLanguage() === "en" ? "Text request" : "Текстовый запрос"),
           status: row.status || "new"
-        };
-      });
+        }));
+      } catch (error) {
+        console.warn("Не удалось загрузить историю из backend:", error.message);
+        return loadLocalHistory();
+      }
     }
 
     async function saveHistoryItem(question, answer, links = []) {
@@ -1810,25 +1808,6 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
         ...item,
         date: now.toLocaleDateString(currentLocale(), { day: "2-digit", month: "short" }) + ", " + now.toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" })
       };
-
-      const appUser = window.pulsAppUser;
-      if (window.supabaseClient && appUser?.id) {
-        const { error } = await window.supabaseClient
-          .from("diagnostic_requests")
-          .insert({
-            user_id: appUser.id,
-            question,
-            answer,
-            language: getLanguage(),
-            request_type: "text",
-            status: "new",
-            source: "web"
-          });
-
-        if (error) {
-          console.warn("Не удалось сохранить diagnostic_requests:", error.message);
-        }
-      }
 
       const history = loadLocalHistory();
       history.unshift(localItem);
@@ -1868,26 +1847,57 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
       return error ? null : data.user;
     }
 
+    function getGuestAuthId() {
+      let guestId = localStorage.getItem(GUEST_AUTH_STORAGE_KEY);
+      if (!guestId) {
+        const randomId = window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        guestId = `web-guest-${randomId}`;
+        localStorage.setItem(GUEST_AUTH_STORAGE_KEY, guestId);
+      }
+      return guestId;
+    }
+
+    async function getChatUserContext() {
+      const user = await getCurrentAuthUser();
+      if (!user) {
+        return {
+          isGuest: true,
+          appUser: null,
+          payload: {
+            auth_user_id: getGuestAuthId(),
+            username: "web_guest",
+            first_name: "Guest",
+            email: "",
+            car_info: "",
+            conversation_history: ""
+          }
+        };
+      }
+
+      const appUser = window.pulsAppUser || await window.syncAuthUserProfile?.(user);
+      window.pulsAppUser = appUser || window.pulsAppUser || null;
+
+      return {
+        isGuest: false,
+        appUser,
+        payload: {
+          auth_user_id: user.id,
+          username: user.email || "web_user",
+          first_name: user.user_metadata?.full_name || "Web",
+          email: user.email || "",
+          car_info: appUser?.car_info || "",
+          conversation_history: appUser?.conversation_history || ""
+        }
+      };
+    }
+
     async function sendPrompt() {
       const input = $("#promptInput");
       const prompt = input.value.trim();
       if (!prompt) return;
       showView("assistant");
 
-      const user = await getCurrentAuthUser();
-      if (!user) {
-        toast(t("assistant.authRequired"));
-        window.openAuthModal?.();
-        return;
-      }
-
-      const appUser = window.pulsAppUser || await window.syncAuthUserProfile?.(user);
-      if (!appUser || appUser.auth_user_id !== user.id) {
-        toast(t("assistant.authRequired"));
-        return;
-      }
-
-      window.pulsAppUser = appUser;
+      const chatUser = await getChatUserContext();
 
       appendMessage(prompt, true);
       input.value = "";
@@ -1900,15 +1910,13 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
           body: JSON.stringify({
             message: prompt,
             source: "web",
-            auth_user_id: user.id,
-            username: user.email || "web_user",
-            first_name: user.user_metadata?.full_name || "Web",
-            email: user.email,
+            auth_user_id: chatUser.payload.auth_user_id,
+            username: chatUser.payload.username,
+            first_name: chatUser.payload.first_name,
+            email: chatUser.payload.email,
             language: getLanguage(),
-            car_info: appUser.car_info || "",
-            conversation_history: appUser.conversation_history || "",
-            telegram_id: appUser.telegram_id || "",
-            chat_id: appUser.telegram_id || ""
+            car_info: chatUser.payload.car_info,
+            conversation_history: chatUser.payload.conversation_history
           })
         });
 
@@ -2012,7 +2020,10 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
 
       $("#sendBtn").addEventListener("click", sendPrompt);
       $("#promptInput").addEventListener("keydown", (event) => {
-        if (event.key === "Enter") sendPrompt();
+        if (event.key === "Enter") {
+          event.preventDefault();
+          sendPrompt();
+        }
       });
       $("#pulsSplashHitArea")?.addEventListener("pointerdown", handleSplashActivation);
       $("#pulsSplashHitArea")?.addEventListener("click", handleSplashActivation);
