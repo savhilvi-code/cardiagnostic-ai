@@ -143,3 +143,10 @@ flowchart LR
     Backend --> Response[Response]
     Response --> UI[UI]
 ```
+
+## Vehicle Cards
+
+- `assets/js/app.js` syncs "My car" through backend `GET/POST/PUT/DELETE /api/vehicles`.
+- LocalStorage remains a UI cache/fallback, but after login Supabase `vehicles` through backend is the source of truth.
+- The active vehicle label is sent to `/chat` as `car_info` so backend can resolve `vehicles.id`.
+- If the user deletes a car, frontend removes the personal card; confirmed solved cases remain in backend shared knowledge/history.

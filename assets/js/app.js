@@ -1,5 +1,6 @@
 const PULS_CONFIG = window.PULS_CONFIG || {};
-const CHAT_API_URL = PULS_CONFIG.CHAT_API_URL || `${String(PULS_CONFIG.API_BASE_URL || "https://puls-backend-t3sn.onrender.com").replace(/\/$/, "")}/chat`;
+const API_BASE_URL = String(PULS_CONFIG.API_BASE_URL || "https://puls-backend-t3sn.onrender.com").replace(/\/$/, "");
+const CHAT_API_URL = PULS_CONFIG.CHAT_API_URL || `${API_BASE_URL}/chat`;
 const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.design/starterscenecopy-RDKY0gQFbXbkko9LN657PtBA/";
 
     const iconMap = {
@@ -531,6 +532,48 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
       return `veh_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     }
 
+    function isBackendVehicleId(value) {
+      return /^\d+$/.test(String(value || "").trim());
+    }
+
+    function vehicleFromApi(row = {}) {
+      return normalizeVehicleProfile({
+        id: row.id,
+        brand: row.brand,
+        model: row.model,
+        year: row.year,
+        engine: row.engine,
+        fuel: row.fuel || row.fuel_type,
+        drive: row.drive || row.drive_type,
+        transmission: row.transmission,
+        mileage: row.mileage,
+        vin: row.vin,
+        nickname: row.nickname,
+        photoUrl: row.photo_url
+      });
+    }
+
+    function vehicleToApi(profile = {}, appUser = window.pulsAppUser || null) {
+      const normalized = normalizeVehicleProfile(profile);
+      return {
+        user_id: appUser?.id || null,
+        auth_user_id: window.pulsCurrentUser?.id || "",
+        email: window.pulsCurrentUser?.email || appUser?.email || "",
+        brand: normalized.brand,
+        model: normalized.model,
+        year: normalized.year,
+        engine: normalized.engine,
+        fuel: normalized.fuel,
+        fuel_type: normalized.fuel,
+        drive: normalized.drive,
+        transmission: normalized.transmission,
+        mileage: normalized.mileage,
+        vin: normalized.vin,
+        nickname: normalized.nickname,
+        photo_url: normalized.photoUrl
+      };
+    }
+
     function normalizeVehicleStore(store = {}) {
       const rawVehicles = Array.isArray(store.vehicles) ? store.vehicles : [];
       let vehicles = rawVehicles.length ? rawVehicles : [];
@@ -610,6 +653,72 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
       return normalized;
     }
 
+    async function fetchBackendVehicles() {
+      const appUser = window.pulsAppUser || null;
+      const currentUser = window.pulsCurrentUser || null;
+      if (!appUser?.id && !currentUser?.id && !currentUser?.email) return [];
+
+      const params = new URLSearchParams();
+      if (appUser?.id) params.set("user_id", appUser.id);
+      if (currentUser?.id) params.set("auth_user_id", currentUser.id);
+      if (currentUser?.email) params.set("email", currentUser.email);
+
+      const res = await fetch(`${API_BASE_URL}/api/vehicles?${params.toString()}`);
+      if (!res.ok) throw new Error(`Vehicle API returned ${res.status}`);
+      const data = await res.json();
+      return Array.isArray(data.vehicles) ? data.vehicles.map(vehicleFromApi) : [];
+    }
+
+    async function syncVehicleStoreFromBackend() {
+      if (!isSignedIn()) return loadVehicleStore();
+      try {
+        const backendVehicles = await fetchBackendVehicles();
+        if (!backendVehicles.length) return loadVehicleStore();
+
+        const currentStore = loadVehicleStore();
+        const activeId = backendVehicles.some((vehicle) => vehicle.id === currentStore.activeId)
+          ? currentStore.activeId
+          : backendVehicles[0].id;
+        const nextStore = { activeId, vehicles: backendVehicles };
+        saveVehicleStore(nextStore);
+        fillVehicleForm(loadVehicleProfile());
+        return nextStore;
+      } catch (error) {
+        console.warn("Could not sync vehicles from backend:", error);
+        return loadVehicleStore();
+      }
+    }
+
+    async function saveVehicleProfileToBackend(profile) {
+      if (!isSignedIn()) return profile;
+      const appUser = window.pulsAppUser || null;
+      if (!appUser?.id && !window.pulsCurrentUser?.id) return profile;
+
+      const normalized = normalizeVehicleProfile(profile);
+      const method = isBackendVehicleId(normalized.id) ? "PUT" : "POST";
+      const url = method === "PUT" ? `${API_BASE_URL}/api/vehicles/${encodeURIComponent(normalized.id)}` : `${API_BASE_URL}/api/vehicles`;
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(vehicleToApi(normalized, appUser))
+      });
+      if (!res.ok) throw new Error(`Vehicle save returned ${res.status}`);
+      const data = await res.json();
+      if (!data.vehicle) return normalized;
+      return saveVehicleProfile(vehicleFromApi(data.vehicle));
+    }
+
+    async function deleteVehicleFromBackend(vehicle) {
+      if (!isSignedIn() || !isBackendVehicleId(vehicle?.id)) return true;
+      const params = new URLSearchParams();
+      if (window.pulsAppUser?.id) params.set("user_id", window.pulsAppUser.id);
+      if (window.pulsCurrentUser?.id) params.set("auth_user_id", window.pulsCurrentUser.id);
+      if (window.pulsCurrentUser?.email) params.set("email", window.pulsCurrentUser.email);
+      const res = await fetch(`${API_BASE_URL}/api/vehicles/${encodeURIComponent(vehicle.id)}?${params.toString()}`, { method: "DELETE" });
+      if (!res.ok) throw new Error(`Vehicle delete returned ${res.status}`);
+      return true;
+    }
+
     function addVehicleProfile(profile = {}) {
       if (!requireSignedInForEdit()) return loadVehicleProfile();
       const store = loadVehicleStore();
@@ -651,6 +760,7 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
     const VIN_LOOKUP_CACHE_KEY = "puls_vin_lookup_v1";
     let vehicleLookupTimer = null;
     let vehicleLookupRequestId = 0;
+    let vehicleBackendSaveTimer = null;
 
     function getVinLookupCache(vin) {
       try {
@@ -730,6 +840,7 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
         mergedCached.id = current.id;
         fillVehicleForm(mergedCached);
         saveVehicleProfile(mergedCached);
+        saveVehicleProfileToBackend(mergedCached).catch((error) => console.warn("Could not save cached VIN vehicle to backend:", error));
         updateLookupStatus(t("car.lookupReady"), "ok");
         return mergedCached;
       }
@@ -773,6 +884,7 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
         setVinLookupCache(normalizedVin, merged);
         fillVehicleForm(merged);
         saveVehicleProfile(merged);
+        saveVehicleProfileToBackend(merged).catch((error) => console.warn("Could not save VIN vehicle to backend:", error));
         updateLookupStatus(t("car.formSaved"), "ok");
         renderLists();
         return merged;
@@ -913,18 +1025,31 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
         updateLookupStatus(t("car.lookupReady"), "info");
       }
 
-      const saveProfile = (profile, state = "saved") => {
+      const saveProfile = (profile, state = "saved", { syncBackend = true } = {}) => {
         if (!isSignedIn()) {
           requireSignedInForEdit();
           return;
         }
-        saveVehicleProfile(profile);
+        const savedProfile = saveVehicleProfile(profile);
         const status = $("#carFormStatus");
         if (status) {
           status.dataset.state = state;
           status.textContent = state === "saved" ? t("car.formSaved") : "";
         }
-        setCarSummaryText(profile);
+        setCarSummaryText(savedProfile);
+        if (syncBackend) {
+          clearTimeout(vehicleBackendSaveTimer);
+          const delay = state === "typing" ? 900 : 0;
+          vehicleBackendSaveTimer = window.setTimeout(async () => {
+            try {
+              const backendProfile = await saveVehicleProfileToBackend(savedProfile);
+              fillVehicleForm(backendProfile);
+              renderLists();
+            } catch (error) {
+              console.warn("Could not save vehicle to backend:", error);
+            }
+          }, delay);
+        }
       };
 
       form.addEventListener("submit", (event) => {
@@ -1876,6 +2001,14 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
 
       const appUser = window.pulsAppUser || await window.syncAuthUserProfile?.(user);
       window.pulsAppUser = appUser || window.pulsAppUser || null;
+      const activeVehicle = loadVehicleProfile();
+      const activeVehicleLabel = getVehicleLabel(activeVehicle);
+      const activeVehicleContext = [
+        activeVehicleLabel && activeVehicleLabel !== t("hero.car") ? activeVehicleLabel : "",
+        activeVehicle.year,
+        activeVehicle.engine,
+        activeVehicle.drive
+      ].filter(Boolean).join(" ");
 
       return {
         isGuest: false,
@@ -1885,7 +2018,7 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
           username: user.email || "web_user",
           first_name: user.user_metadata?.full_name || "Web",
           email: user.email || "",
-          car_info: appUser?.car_info || "",
+          car_info: activeVehicleContext || appUser?.car_info || "",
           conversation_history: appUser?.conversation_history || ""
         }
       };
@@ -2015,6 +2148,7 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
       injectIcons();
       applyLanguage();
       initVehicleEditor();
+      await syncVehicleStoreFromBackend();
       await renderLists();
       connectSpline();
 
@@ -2046,8 +2180,9 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
       $("#languageSelect")?.addEventListener("change", (event) => {
         setLanguage(event.target.value);
       });
-      window.addEventListener("puls-auth-change", () => {
+      window.addEventListener("puls-auth-change", async () => {
         applyAuthLockedState();
+        await syncVehicleStoreFromBackend();
         renderLists();
       });
       SPLASH_ACTIVATE_EVENTS.forEach((eventName) => {
@@ -2059,7 +2194,7 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
       applyAuthLockedState();
       window.addEventListener("resize", syncAssistantMessageHeight);
       syncAssistantMessageHeight();
-      document.addEventListener("click", (event) => {
+      document.addEventListener("click", async (event) => {
         if (event.target.closest("#requestCloseBtn") || event.target.closest("#requestModal") && event.target.id === "requestModal") {
           closeRequestModal();
           return;
@@ -2113,6 +2248,11 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
           const label = getVehicleLabel(activeVehicle);
           const confirmed = window.confirm(`${t("car.deleteVehicle")}: ${label}?`);
           if (!confirmed) return;
+          try {
+            await deleteVehicleFromBackend(activeVehicle);
+          } catch (error) {
+            console.warn("Could not delete vehicle from backend:", error);
+          }
           const nextVehicle = removeActiveVehicleProfile();
           fillVehicleForm(nextVehicle);
           renderLists();

@@ -1,5 +1,11 @@
 # Frontend Task Log
 
+## 2026-07-05
+
+- Connected "My car" vehicle cards to backend `/api/vehicles`; LocalStorage remains only a UI cache/fallback after login.
+- Frontend now sends the active vehicle label/year/engine/drive to `/chat` as `car_info` so backend can resolve `vehicles.id`.
+- Deleting a vehicle in the UI calls backend delete for the personal card while shared solved cases remain stored by backend.
+
 ## 2026-07-03
 
 - Создана система документации для Codex по frontend.
