@@ -532,6 +532,32 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
       return `veh_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     }
 
+    let guestVehicleStore = null;
+
+    function getBlankVehicleStore() {
+      if (!guestVehicleStore) {
+        const blank = normalizeVehicleProfile({ id: createVehicleId() });
+        guestVehicleStore = { activeId: blank.id, vehicles: [blank] };
+      }
+      return guestVehicleStore;
+    }
+
+    function getVehicleStoreKey() {
+      const userId = window.pulsCurrentUser?.id || window.pulsAppUser?.auth_user_id || window.pulsAppUser?.id || "";
+      return userId ? `${VEHICLE_STORE_KEY}:${userId}` : "";
+    }
+
+    function clearPrivateUiCache() {
+      try {
+        localStorage.removeItem(HISTORY_STORAGE_KEY);
+        localStorage.removeItem(VEHICLE_STORE_KEY);
+        localStorage.removeItem(VEHICLE_LEGACY_KEY);
+        guestVehicleStore = null;
+      } catch (error) {
+        console.warn("Could not clear private UI cache:", error);
+      }
+    }
+
     function isBackendVehicleId(value) {
       return /^\d+$/.test(String(value || "").trim());
     }
@@ -600,18 +626,14 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
     }
 
     function loadVehicleStore() {
+      const storeKey = getVehicleStoreKey();
+      if (!storeKey) return getBlankVehicleStore();
+
       try {
-        const raw = localStorage.getItem(VEHICLE_STORE_KEY);
+        const raw = localStorage.getItem(storeKey);
         if (raw) return normalizeVehicleStore(JSON.parse(raw));
 
-        const legacyRaw = localStorage.getItem(VEHICLE_LEGACY_KEY);
-        if (legacyRaw) {
-          const profile = normalizeVehicleProfile(JSON.parse(legacyRaw));
-          const withId = { ...profile, id: createVehicleId() };
-          const store = { activeId: withId.id, vehicles: [withId] };
-          localStorage.setItem(VEHICLE_STORE_KEY, JSON.stringify(store));
-          return store;
-        }
+        localStorage.removeItem(VEHICLE_LEGACY_KEY);
 
         return normalizeVehicleStore();
       } catch (error) {
@@ -620,8 +642,10 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
     }
 
     function saveVehicleStore(store) {
+      const storeKey = getVehicleStoreKey();
+      if (!storeKey) return;
       try {
-        localStorage.setItem(VEHICLE_STORE_KEY, JSON.stringify(normalizeVehicleStore(store)));
+        localStorage.setItem(storeKey, JSON.stringify(normalizeVehicleStore(store)));
       } catch (error) {
         console.warn("Could not save vehicle store:", error);
       }
@@ -1197,6 +1221,13 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
           node.disabled = !signedIn;
         });
       });
+      ["#deleteVehicleBtn"].forEach((selector) => {
+        const node = $(selector);
+        if (!node) return;
+        node.disabled = !signedIn;
+        node.classList.toggle("locked", !signedIn);
+        node.setAttribute("aria-disabled", String(!signedIn));
+      });
     }
 
     function guardAuthAction(target) {
@@ -1351,13 +1382,13 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
         date: item.date,
         vehicle: item.vehicle,
         status: completedLabel
-      })) : [{
+      })) : (isSignedIn() ? [{
         question: t("journal.sampleQuestion"),
         answer: t("journal.sampleSolution"),
         date: english ? "Example" : "Пример",
         vehicle: selectCar,
         status: completedLabel
-      }];
+      }] : []);
 
       const journalQuery = getSearchValue("#journalSearch");
       const visibleCases = closedCases.filter((item) => matchesSearch([item.question, item.answer, item.vehicle, item.status], journalQuery));
@@ -1881,16 +1912,12 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
     const GUEST_AUTH_STORAGE_KEY = "puls_guest_auth_user_id";
 
     function loadLocalHistory() {
-      try {
-        return JSON.parse(localStorage.getItem(HISTORY_STORAGE_KEY) || "[]");
-      } catch (error) {
-        return [];
-      }
+      return [];
     }
 
     async function loadUserHistory() {
       const appUser = window.pulsAppUser;
-      if (!appUser?.id) return loadLocalHistory();
+      if (!isSignedIn() || !appUser?.id) return [];
 
       try {
         const apiBase = String(PULS_CONFIG.API_BASE_URL || "https://puls-backend-t3sn.onrender.com").replace(/\/$/, "");
@@ -1915,11 +1942,15 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
         }));
       } catch (error) {
         console.warn("Не удалось загрузить историю из backend:", error.message);
-        return loadLocalHistory();
+        return [];
       }
     }
 
     async function saveHistoryItem(question, answer, links = []) {
+      if (!isSignedIn()) return;
+      await renderLists();
+      return;
+
       const item = {
         question,
         answer,
@@ -2180,10 +2211,15 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
       $("#languageSelect")?.addEventListener("change", (event) => {
         setLanguage(event.target.value);
       });
-      window.addEventListener("puls-auth-change", async () => {
+      window.addEventListener("puls-auth-change", async (event) => {
+        if (!event.detail?.user) {
+          clearPrivateUiCache();
+          window.pulsAppUser = null;
+          fillVehicleForm(loadVehicleProfile());
+        }
         applyAuthLockedState();
         await syncVehicleStoreFromBackend();
-        renderLists();
+        await renderLists();
       });
       SPLASH_ACTIVATE_EVENTS.forEach((eventName) => {
         document.addEventListener(eventName, handleSplashActivation, { passive: eventName !== "keydown" });

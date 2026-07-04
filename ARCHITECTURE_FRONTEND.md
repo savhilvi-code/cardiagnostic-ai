@@ -148,5 +148,12 @@ flowchart LR
 
 - `assets/js/app.js` syncs "My car" through backend `GET/POST/PUT/DELETE /api/vehicles`.
 - LocalStorage remains a UI cache/fallback, but after login Supabase `vehicles` through backend is the source of truth.
+- Vehicle LocalStorage is scoped by the authenticated user id. Guest mode does not read the previous shared vehicle cache, so logout + refresh cannot show another user's saved cars.
 - The active vehicle label is sent to `/chat` as `car_info` so backend can resolve `vehicles.id`.
 - If the user deletes a car, frontend removes the personal card; confirmed solved cases remain in backend shared knowledge/history.
+
+## Auth And Private Data
+
+- Request history and journal views read backend `/api/history` only for a signed-in user.
+- Guest mode returns empty private lists instead of falling back to old browser LocalStorage history.
+- On `puls-auth-change` logout, frontend clears legacy private UI cache keys for history and vehicles before rerendering the app.

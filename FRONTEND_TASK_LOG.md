@@ -5,6 +5,8 @@
 - Connected "My car" vehicle cards to backend `/api/vehicles`; LocalStorage remains only a UI cache/fallback after login.
 - Frontend now sends the active vehicle label/year/engine/drive to `/chat` as `car_info` so backend can resolve `vehicles.id`.
 - Deleting a vehicle in the UI calls backend delete for the personal card while shared solved cases remain stored by backend.
+- Fixed logout privacy state: guest mode no longer reads cached request history or previous user's vehicle cards after logout + refresh.
+- Scoped vehicle UI cache by authenticated user id and cleared legacy private cache keys on `puls-auth-change` logout.
 
 ## 2026-07-03
 
