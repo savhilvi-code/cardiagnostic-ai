@@ -1,5 +1,13 @@
 # Frontend Task Log
 
+## 2026-07-06
+
+- Confirmed frontend still uses backend `/chat` and `/api/history`, reads `quota` from backend response, and does not write `diagnostic_requests` or use legacy `telegram_id` / `chat_id` fields.
+- Reproduced the production UX issue: the startup splash could make the chat composer look unresponsive before the user dismissed it.
+- Updated `assets/js/app.js` so the splash auto-hides shortly after load and also closes immediately when the chat input receives focus or pointer interaction.
+- Updated localhost preview config to use `/api/chat` on the same origin and extended `serve.mjs` with a lightweight backend proxy so local frontend checks no longer depend on Render CORS for `localhost`.
+- Bumped the `assets/js/app.js` cache-busting query in `index.html` so GitHub Pages clients receive the fresh frontend script after redeploy.
+
 ## 2026-07-05
 
 - Connected "My car" vehicle cards to backend `/api/vehicles`; LocalStorage remains only a UI cache/fallback after login.
