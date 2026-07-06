@@ -106,7 +106,7 @@ async function syncAuthUserProfile(user) {
   const authName = user.user_metadata?.full_name;
   if (authName) payload.name = authName;
 
-  const selectColumns = "id,email,google_id,name,language,country,city,subscription_plan,subscription_status,requests_left,conversation_history,car_info,auth_user_id,last_login";
+  const selectColumns = "id,email,name,language,country,city,auth_user_id,last_login,source,created_at,last_seen_at";
 
   const { data: byAuth, error: byAuthError } = await window.supabaseClient
     .from("users")

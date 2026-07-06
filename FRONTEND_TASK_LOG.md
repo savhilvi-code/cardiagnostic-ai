@@ -7,6 +7,7 @@
 - Updated `assets/js/app.js` so the splash auto-hides shortly after load and also closes immediately when the chat input receives focus or pointer interaction.
 - Updated localhost preview config to use `/api/chat` on the same origin and extended `serve.mjs` with a lightweight backend proxy so local frontend checks no longer depend on Render CORS for `localhost`.
 - Bumped the `assets/js/app.js` cache-busting query in `index.html` so GitHub Pages clients receive the fresh frontend script after redeploy.
+- Stopped frontend Auth/profile sync from reading legacy `users.requests_left`, `users.conversation_history`, and `users.car_info`, and stopped sending `conversation_history` in `/chat` payloads. Backend is now the single source of runtime chat context and quota.
 
 ## 2026-07-05
 

@@ -2024,8 +2024,7 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
             username: "web_guest",
             first_name: "Guest",
             email: "",
-            car_info: "",
-            conversation_history: ""
+            car_info: ""
           }
         };
       }
@@ -2049,8 +2048,7 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
           username: user.email || "web_user",
           first_name: user.user_metadata?.full_name || "Web",
           email: user.email || "",
-          car_info: activeVehicleContext || appUser?.car_info || "",
-          conversation_history: appUser?.conversation_history || ""
+          car_info: activeVehicleContext || ""
         }
       };
     }
@@ -2079,8 +2077,7 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
             first_name: chatUser.payload.first_name,
             email: chatUser.payload.email,
             language: getLanguage(),
-            car_info: chatUser.payload.car_info,
-            conversation_history: chatUser.payload.conversation_history
+            car_info: chatUser.payload.car_info
           })
         });
 
