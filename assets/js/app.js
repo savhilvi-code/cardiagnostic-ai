@@ -1205,6 +1205,13 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
       return false;
     }
 
+    function requireSignedInForChat() {
+      if (isSignedIn()) return true;
+      toast(t("assistant.authRequired"));
+      window.openAuthModal?.();
+      return false;
+    }
+
     function applyAuthLockedState() {
       const signedIn = isSignedIn();
       $$(".auth-required").forEach((node) => {
@@ -2015,19 +2022,7 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
 
     async function getChatUserContext() {
       const user = await getCurrentAuthUser();
-      if (!user) {
-        return {
-          isGuest: true,
-          appUser: null,
-          payload: {
-            auth_user_id: getGuestAuthId(),
-            username: "web_guest",
-            first_name: "Guest",
-            email: "",
-            car_info: ""
-          }
-        };
-      }
+      if (!user) return null;
 
       const appUser = window.pulsAppUser || await window.syncAuthUserProfile?.(user);
       window.pulsAppUser = appUser || window.pulsAppUser || null;
@@ -2057,9 +2052,14 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
       const input = $("#promptInput");
       const prompt = input.value.trim();
       if (!prompt) return;
+      if (!requireSignedInForChat()) return;
       showView("assistant");
 
       const chatUser = await getChatUserContext();
+      if (!chatUser?.payload) {
+        window.openAuthModal?.();
+        return;
+      }
 
       appendMessage(prompt, true);
       input.value = "";
@@ -2120,11 +2120,9 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
     }
 
     const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
-    const SPLASH_AUTO_HIDE_MS = 2200;
     const SPLASH_ACTIVATE_EVENTS = ["click", "touchstart", "keydown"];
     const IDLE_ACTIVITY_EVENTS = ["mousemove", "click", "touchstart", "keydown", "scroll"];
     let idleTimerId = null;
-    let splashAutoHideTimerId = null;
     let splashVisible = true;
     let idleVisible = false;
 
@@ -2135,7 +2133,6 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
 
     function hideSplashScreen() {
       if (!splashVisible) return;
-      clearTimeout(splashAutoHideTimerId);
       splashVisible = false;
       setPulsScreenState();
       resetIdleTimer();
@@ -2173,13 +2170,6 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
       });
     }
 
-    function scheduleSplashAutoHide() {
-      clearTimeout(splashAutoHideTimerId);
-      splashAutoHideTimerId = window.setTimeout(() => {
-        hideSplashScreen();
-      }, SPLASH_AUTO_HIDE_MS);
-    }
-
     document.addEventListener("DOMContentLoaded", async () => {
       document.body.classList.add("assistant-mode");
       setPulsScreenState();
@@ -2191,12 +2181,6 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
       connectSpline();
 
       $("#sendBtn").addEventListener("click", sendPrompt);
-      $("#promptInput").addEventListener("focus", () => {
-        hideSplashScreen();
-      });
-      $("#promptInput").addEventListener("pointerdown", () => {
-        hideSplashScreen();
-      });
       $("#promptInput").addEventListener("keydown", (event) => {
         if (event.key === "Enter") {
           event.preventDefault();
@@ -2237,7 +2221,6 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
       SPLASH_ACTIVATE_EVENTS.forEach((eventName) => {
         document.addEventListener(eventName, handleSplashActivation, { passive: eventName !== "keydown" });
       });
-      scheduleSplashAutoHide();
       IDLE_ACTIVITY_EVENTS.forEach((eventName) => {
         window.addEventListener(eventName, handlePulsActivity, { passive: eventName !== "keydown" });
       });

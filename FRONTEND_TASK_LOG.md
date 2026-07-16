@@ -1,5 +1,10 @@
 # Frontend Task Log
 
+## 2026-07-16
+
+- Restored the original PULS access gate for guests: unauthenticated users can no longer send chat requests, and the login/register modal opens instead of calling backend `/chat`.
+- Restored the original splash behavior: startup screen no longer auto-hides on timer or on chat input focus, and the user must explicitly tap/click the splash icon to open the site. Idle re-show after inactivity remains active.
+
 ## 2026-07-06
 
 - Confirmed frontend still uses backend `/chat` and `/api/history`, reads `quota` from backend response, and does not write `diagnostic_requests` or use legacy `telegram_id` / `chat_id` fields.
