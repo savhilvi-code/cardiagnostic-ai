@@ -14,6 +14,7 @@
 - Fixed vehicle-card draft autosave so typing VIN/year no longer spawns extra blank cars. The active draft is now reused during input, and duplicate empty placeholder cards are collapsed back to a single draft until the user explicitly presses `Add vehicle`.
 - Fixed the `Add vehicle` draft flow after the autosave cleanup: one intentionally created blank card now stays active for editing, while stray inactive empty cards are still removed.
 - Removed the duplicate top `Add vehicle` button from the `My cars` header, leaving vehicle creation only in the lower chip row next to saved vehicles.
+- Switched the vehicle editor back to explicit-save behavior: typing in the form and `Decode VIN` now update only the current draft in the UI, while backend `/api/vehicles` writes happen only after the user presses `Save car`.
 
 ## 2026-07-06
 

@@ -875,6 +875,16 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
     let vehicleLookupTimer = null;
     let vehicleLookupRequestId = 0;
     let vehicleBackendSaveTimer = null;
+    let vehicleDraftProfile = null;
+
+    function setVehicleDraftProfile(profile = {}) {
+      vehicleDraftProfile = normalizeVehicleProfile(profile);
+      return vehicleDraftProfile;
+    }
+
+    function getVehicleDraftProfile() {
+      return normalizeVehicleProfile(vehicleDraftProfile || loadVehicleProfile());
+    }
 
     function getVinLookupCache(vin) {
       try {
@@ -946,15 +956,13 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
 
       const cached = getVinLookupCache(normalizedVin);
       if (cached && !force) {
-        const current = loadVehicleProfile();
+        const current = getVehicleDraftProfile();
         const preserveManualEdits = String(current.vin || "").trim().toUpperCase() === normalizedVin;
         const mergedCached = preserveManualEdits
           ? mergeVehicleProfiles(current, { ...cached, vin: normalizedVin })
           : mergeVehicleProfiles({ ...cached, vin: normalizedVin }, current);
         mergedCached.id = current.id;
         fillVehicleForm(mergedCached);
-        saveVehicleProfile(mergedCached);
-        saveVehicleProfileToBackend(mergedCached).catch((error) => console.warn("Could not save cached VIN vehicle to backend:", error));
         updateLookupStatus(t("car.lookupReady"), "ok");
         return mergedCached;
       }
@@ -982,7 +990,7 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
         }
 
         const decoded = decodeVinRecord({ ...record, VIN: normalizedVin });
-        const previous = loadVehicleProfile();
+        const previous = getVehicleDraftProfile();
         const keepPreviousModel = Boolean(previous.model && previous.brand && decoded.brand && previous.brand === decoded.brand);
         const preserveManualEdits = String(previous.vin || "").trim().toUpperCase() === normalizedVin;
         const lookupData = {
@@ -997,10 +1005,7 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
 
         setVinLookupCache(normalizedVin, merged);
         fillVehicleForm(merged);
-        saveVehicleProfile(merged);
-        saveVehicleProfileToBackend(merged).catch((error) => console.warn("Could not save VIN vehicle to backend:", error));
-        updateLookupStatus(t("car.formSaved"), "ok");
-        renderLists();
+        updateLookupStatus(t("car.lookupReady"), "ok");
         return merged;
       } catch (error) {
         console.error("VIN lookup failed:", error);
@@ -1014,7 +1019,7 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       return [normalized.brand, normalized.model].filter(Boolean).join(" ").trim() || t("hero.car");
     }
 
-    function setCarSummaryText(profile = loadVehicleProfile()) {
+    function setCarSummaryText(profile = getVehicleDraftProfile()) {
       const normalized = normalizeVehicleProfile(profile);
       const summary = getVehicleLabel(normalized);
       const yearText = normalized.year || t("hero.yearValue");
@@ -1088,7 +1093,7 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
     }
 
     function getVehicleFormValues() {
-      const active = loadVehicleProfile();
+      const active = getVehicleDraftProfile();
       return normalizeVehicleProfile({
         id: active.id,
         brand: $("#carBrandInput")?.value,
@@ -1112,8 +1117,8 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       });
     }
 
-    function fillVehicleForm(profile = loadVehicleProfile()) {
-      const normalized = normalizeVehicleProfile(profile);
+    function fillVehicleForm(profile = getVehicleDraftProfile()) {
+      const normalized = setVehicleDraftProfile(profile);
       const mapping = {
         "#carBrandInput": normalized.brand,
         "#carModelInput": normalized.model,
@@ -1138,20 +1143,17 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       if (!form) return;
 
       const initialProfile = loadVehicleProfile();
+      setVehicleDraftProfile(initialProfile);
       fillVehicleForm(initialProfile);
-      if (initialProfile.vin && isFullVin(initialProfile.vin)) {
-        updateLookupStatus(t("car.lookupSearching"), "info");
-        setTimeout(() => lookupVehicleByVin(initialProfile.vin), 50);
-      } else {
-        updateLookupStatus(t("car.lookupReady"), "info");
-      }
+      updateLookupStatus(t("car.lookupReady"), "info");
 
       const saveProfile = (profile, state = "saved", { syncBackend = true } = {}) => {
         if (!isSignedIn()) {
           requireSignedInForEdit();
           return;
         }
-        const savedProfile = saveVehicleProfile(profile);
+        const draftProfile = setVehicleDraftProfile(profile);
+        const savedProfile = saveVehicleProfile(draftProfile);
         const status = $("#carFormStatus");
         if (status) {
           status.dataset.state = state;
@@ -1164,6 +1166,7 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
           vehicleBackendSaveTimer = window.setTimeout(async () => {
             try {
               const backendProfile = await saveVehicleProfileToBackend(savedProfile);
+              setVehicleDraftProfile(backendProfile);
               fillVehicleForm(backendProfile);
               renderLists();
             } catch (error) {
@@ -1179,12 +1182,24 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       });
 
       form.addEventListener("input", () => {
-        saveProfile(getVehicleFormValues(), "typing");
+        const draftProfile = setVehicleDraftProfile(getVehicleFormValues());
+        const status = $("#carFormStatus");
+        if (status) {
+          status.dataset.state = "draft";
+          status.textContent = "";
+        }
+        setCarSummaryText(draftProfile);
       });
 
       ["#specDisplacement", "#specPower", "#specTorque", "#specEngineType", "#specCylinders", "#specEmissions", "#specTank"].forEach((selector) => {
         $(selector)?.addEventListener("input", () => {
-          saveProfile(getVehicleFormValues(), "typing");
+          const draftProfile = setVehicleDraftProfile(getVehicleFormValues());
+          const status = $("#carFormStatus");
+          if (status) {
+            status.dataset.state = "draft";
+            status.textContent = "";
+          }
+          setCarSummaryText(draftProfile);
         });
       });
 
@@ -1227,7 +1242,11 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
           vin: "JT1234567890"
         });
         fillVehicleForm(demo);
-        saveProfile(demo);
+        const status = $("#carFormStatus");
+        if (status) {
+          status.dataset.state = "draft";
+          status.textContent = "";
+        }
       });
     }
 
