@@ -1870,6 +1870,11 @@ html { scroll-behavior: smooth; }
       padding: 0;
       overflow: hidden;
       align-items: end;
+      cursor: default;
+      pointer-events: none;
+      background-size: contain, auto, auto !important;
+      background-position: center center, center, center !important;
+      background-color: rgba(7, 18, 29, .92);
     }
 
     #car .car-photo-upload input {
