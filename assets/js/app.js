@@ -165,6 +165,11 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
         "car.lookupError": "VIN lookup failed. Please try again in a few seconds.",
         "spec.displacement": "Engine displacement:",
         "spec.note": "These fields are filled automatically from vehicle data and can be edited manually.",
+        "spec.loadInternet": "Load from internet",
+        "spec.loadInternetHint": "Best results come from a full VIN. Loaded values can still be edited manually.",
+        "spec.loadNeedVin": "Enter a full VIN to load technical specs from the internet.",
+        "spec.loadStarted": "Loading technical specs from the internet...",
+        "spec.loadDone": "Technical specs loaded from the internet.",
         "spec.unavailable": "No data",
         "spec.displacementValue": "Auto-filled after car selection",
         "spec.power": "Power:",
@@ -381,6 +386,11 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
         "car.lookupError": "Не удалось получить данные по VIN. Попробуйте ещё раз через несколько секунд.",
         "spec.displacement": "Объем двигателя:",
         "spec.note": "Эти поля заполняются автоматически по данным автомобиля и могут редактироваться вручную.",
+        "spec.loadInternet": "Загрузить из интернета",
+        "spec.loadInternetHint": "Лучше всего работает с полным VIN. После загрузки значения всё равно можно изменить вручную.",
+        "spec.loadNeedVin": "Введите полный VIN, чтобы загрузить характеристики из интернета.",
+        "spec.loadStarted": "Загружаю технические характеристики из интернета...",
+        "spec.loadDone": "Технические характеристики загружены из интернета.",
         "spec.unavailable": "Нет данных",
         "spec.displacementValue": "Заполнится автоматически после выбора авто",
         "spec.power": "Мощность:",
@@ -595,7 +605,14 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
         mileage: row.mileage,
         vin: row.vin,
         nickname: row.nickname,
-        photoUrl: row.photo_url
+        photoUrl: row.photo_url,
+        displacement: row.displacement,
+        power: row.power,
+        torque: row.torque,
+        engineType: row.engine_type,
+        cylinders: row.cylinders,
+        emissions: row.emissions,
+        tank: row.tank
       });
     }
 
@@ -616,7 +633,14 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
         mileage: normalized.mileage,
         vin: normalized.vin,
         nickname: normalized.nickname,
-        photo_url: normalized.photoUrl
+        photo_url: normalized.photoUrl,
+        displacement: normalized.displacement,
+        power: normalized.power,
+        torque: normalized.torque,
+        engine_type: normalized.engineType,
+        cylinders: normalized.cylinders,
+        emissions: normalized.emissions,
+        tank: normalized.tank
       };
     }
 
@@ -1195,6 +1219,36 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
           </div>
         </div>
       `);
+    }
+
+    function ensureSpecLookupControls() {
+      const specList = $("#specDisplacement")?.closest(".spec-list");
+      if (!specList) return;
+      if ($("#specLookupBtn")) return;
+
+      specList.insertAdjacentHTML("beforebegin", `
+        <div class="spec-actions">
+          <button class="btn" id="specLookupBtn" type="button" data-i18n="spec.loadInternet">${escapeHtml(t("spec.loadInternet"))}</button>
+          <span class="spec-actions-hint" data-i18n="spec.loadInternetHint">${escapeHtml(t("spec.loadInternetHint"))}</span>
+        </div>
+      `);
+    }
+
+    async function loadSpecsFromInternet() {
+      if (!requireSignedInForEdit()) return null;
+      const vin = String($("#carVinInput")?.value || loadVehicleProfile().vin || "").trim().toUpperCase();
+      if (!isFullVin(vin)) {
+        updateLookupStatus(t("spec.loadNeedVin"), "warn");
+        toast(t("spec.loadNeedVin"));
+        return null;
+      }
+
+      updateLookupStatus(t("spec.loadStarted"), "info");
+      const result = await lookupVehicleByVin(vin, { force: true });
+      if (result) {
+        updateLookupStatus(t("spec.loadDone"), "ok");
+      }
+      return result;
     }
 
     function applyLanguage() {
@@ -2424,6 +2478,7 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       setPulsScreenState();
       injectIcons();
       ensureCarPhotoActions();
+      ensureSpecLookupControls();
       applyLanguage();
       initVehicleEditor();
       await syncVehicleStoreFromBackend();
@@ -2444,6 +2499,9 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       });
       $("#carPhotoInput")?.addEventListener("change", (event) => {
         updateCarPhoto(event.target.files?.[0]);
+      });
+      $("#specLookupBtn")?.addEventListener("click", () => {
+        void loadSpecsFromInternet();
       });
       $("#carPhotoMenuBtn")?.addEventListener("click", (event) => {
         event.preventDefault();

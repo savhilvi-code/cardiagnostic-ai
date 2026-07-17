@@ -5,6 +5,13 @@
 - Restored the original PULS access gate for guests: unauthenticated users can no longer send chat requests, and the login/register modal opens instead of calling backend `/chat`.
 - Restored the original splash behavior: startup screen no longer auto-hides on timer or on chat input focus, and the user must explicitly tap/click the splash icon to open the site. Idle re-show after inactivity remains active.
 
+## 2026-07-17
+
+- Restored the live frontend after an accidental broken UI sync so login, page scale and the composer visibility on non-PULS pages returned to the previous working behavior.
+- Connected car photo upload to Supabase Storage `vehicle-photos`, persisted `photo_url` through backend `/api/vehicles`, and added user-facing upload error messages for missing bucket/policy cases.
+- Refined the photo card without changing the surrounding page design: uploaded photos now fit the frame better, the inline attach label disappears once a photo exists, the image itself no longer reopens the file picker, and a dedicated bottom dropdown handles replace/delete actions.
+- Added the technical-spec autoload button inside the specs card. It reuses the existing internet VIN lookup flow, fills the editable spec fields, and keeps the values synced with the vehicle save flow.
+
 ## 2026-07-06
 
 - Confirmed frontend still uses backend `/chat` and `/api/history`, reads `quota` from backend response, and does not write `diagnostic_requests` or use legacy `telegram_id` / `chat_id` fields.

@@ -619,6 +619,20 @@ html { scroll-behavior: smooth; }
       box-shadow: 0 0 0 2px rgba(8, 125, 255, .12);
     }
 
+    .spec-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      margin: 14px 0 16px;
+    }
+
+    .spec-actions-hint {
+      color: var(--soft);
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
     .quick-grid {
       display: grid;
       grid-template-columns: repeat(5, minmax(90px, 1fr));
