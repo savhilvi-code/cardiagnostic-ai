@@ -11,6 +11,7 @@
 - Connected car photo upload to Supabase Storage `vehicle-photos`, persisted `photo_url` through backend `/api/vehicles`, and added user-facing upload error messages for missing bucket/policy cases.
 - Refined the photo card without changing the surrounding page design: uploaded photos now fit the frame better, the inline attach label disappears once a photo exists, the image itself no longer reopens the file picker, and a dedicated bottom dropdown handles replace/delete actions.
 - Added the technical-spec autoload button inside the specs card. It reuses the existing internet VIN lookup flow, fills the editable spec fields, and keeps the values synced with the vehicle save flow.
+- Fixed vehicle-card draft autosave so typing VIN/year no longer spawns extra blank cars. The active draft is now reused during input, and duplicate empty placeholder cards are collapsed back to a single draft until the user explicitly presses `Add vehicle`.
 
 ## 2026-07-06
 

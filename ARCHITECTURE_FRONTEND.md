@@ -151,6 +151,7 @@ flowchart LR
 - `assets/js/app.js` syncs "My car" through backend `GET/POST/PUT/DELETE /api/vehicles`.
 - LocalStorage remains a UI cache/fallback, but after login Supabase `vehicles` through backend is the source of truth.
 - Vehicle LocalStorage is scoped by the authenticated user id. Guest mode does not read the previous shared vehicle cache, so logout + refresh cannot show another user's saved cars.
+- Draft vehicle autosave reuses the active local card while the user is typing. Empty placeholder cards are collapsed to a single draft, so a new card appears only when the user explicitly clicks `Add vehicle`.
 - Car photos are uploaded to Supabase Storage `vehicle-photos`; frontend stores the public URL in `photo_url` and shows replace/delete actions from the dedicated photo menu.
 - Technical spec fields (`displacement`, `power`, `torque`, `engineType`, `cylinders`, `emissions`, `tank`) are editable in the UI and persist through `/api/vehicles`.
 - The specs card has a dedicated "Load from internet" button that reuses the existing official NHTSA vPIC VIN lookup flow, fills the spec inputs, and saves them through the normal vehicle sync path.

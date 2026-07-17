@@ -558,6 +558,30 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       return normalizeVehicleProfile(merged);
     }
 
+    function hasVehicleContent(profile = {}) {
+      const normalized = normalizeVehicleProfile(profile);
+      return [
+        normalized.brand,
+        normalized.model,
+        normalized.year,
+        normalized.engine,
+        normalized.fuel,
+        normalized.drive,
+        normalized.transmission,
+        normalized.mileage,
+        normalized.vin,
+        normalized.nickname,
+        normalized.photoUrl,
+        normalized.displacement,
+        normalized.power,
+        normalized.torque,
+        normalized.engineType,
+        normalized.cylinders,
+        normalized.emissions,
+        normalized.tank
+      ].some(Boolean);
+    }
+
     function createVehicleId() {
       return `veh_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     }
@@ -659,6 +683,16 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
         id: vehicle.id || vehicle.vehicleId || `${index}_${vehicle.vin || vehicle.model || "vehicle"}`
       }));
 
+      const filledVehicles = vehicles.filter((vehicle) => hasVehicleContent(vehicle));
+      const blankVehicles = vehicles.filter((vehicle) => !hasVehicleContent(vehicle));
+      if (filledVehicles.length) {
+        vehicles = filledVehicles;
+      } else if (blankVehicles.length > 1) {
+        const preferredBlankId = String(store.activeId || store.activeVehicleId || "").trim();
+        const preferredBlank = blankVehicles.find((vehicle) => vehicle.id === preferredBlankId) || blankVehicles[0];
+        vehicles = preferredBlank ? [preferredBlank] : blankVehicles.slice(0, 1);
+      }
+
       const activeId = String(store.activeId || store.activeVehicleId || vehicles[0]?.id || "").trim();
       if (!vehicles.length) {
         const fallback = normalizeVehicleProfile({ id: createVehicleId() });
@@ -705,14 +739,19 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       const store = loadVehicleStore();
       const targetId = String(profile?.id || store.activeId || createVehicleId()).trim();
       const index = store.vehicles.findIndex((vehicle) => vehicle.id === targetId);
-      const existing = index >= 0 ? store.vehicles[index] : getDefaultVehicleProfile();
+      const activeIndex = store.vehicles.findIndex((vehicle) => vehicle.id === store.activeId);
+      const draftIndex = store.vehicles.findIndex((vehicle) => !hasVehicleContent(vehicle));
+      const reusableIndex = index >= 0
+        ? index
+        : (activeIndex >= 0 ? activeIndex : draftIndex);
+      const existing = reusableIndex >= 0 ? store.vehicles[reusableIndex] : getDefaultVehicleProfile();
       const normalized = normalizeVehicleProfile({
         ...existing,
         ...profile,
         id: String(existing.id || targetId).trim()
       });
-      if (index >= 0) {
-        store.vehicles[index] = normalized;
+      if (reusableIndex >= 0) {
+        store.vehicles[reusableIndex] = normalized;
       } else {
         store.vehicles.unshift(normalized);
       }
