@@ -686,7 +686,9 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       const filledVehicles = vehicles.filter((vehicle) => hasVehicleContent(vehicle));
       const blankVehicles = vehicles.filter((vehicle) => !hasVehicleContent(vehicle));
       if (filledVehicles.length) {
-        vehicles = filledVehicles;
+        const preferredBlankId = String(store.activeId || store.activeVehicleId || "").trim();
+        const activeBlank = blankVehicles.find((vehicle) => vehicle.id === preferredBlankId) || null;
+        vehicles = activeBlank ? [activeBlank, ...filledVehicles] : filledVehicles;
       } else if (blankVehicles.length > 1) {
         const preferredBlankId = String(store.activeId || store.activeVehicleId || "").trim();
         const preferredBlank = blankVehicles.find((vehicle) => vehicle.id === preferredBlankId) || blankVehicles[0];
