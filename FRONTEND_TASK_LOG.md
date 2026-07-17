@@ -13,6 +13,7 @@
 - Added the technical-spec autoload button inside the specs card. It reuses the existing internet VIN lookup flow, fills the editable spec fields, and keeps the values synced with the vehicle save flow.
 - Fixed vehicle-card draft autosave so typing VIN/year no longer spawns extra blank cars. The active draft is now reused during input, and duplicate empty placeholder cards are collapsed back to a single draft until the user explicitly presses `Add vehicle`.
 - Fixed the `Add vehicle` draft flow after the autosave cleanup: one intentionally created blank card now stays active for editing, while stray inactive empty cards are still removed.
+- Removed the duplicate top `Add vehicle` button from the `My cars` header, leaving vehicle creation only in the lower chip row next to saved vehicles.
 
 ## 2026-07-06
 
@@ -43,3 +44,4 @@
 - Исправлена отправка сообщений на сайте: при отсутствии Supabase Auth создается локальный `web-guest-* auth_user_id`, поэтому кнопка отправки и Enter реально вызывают backend `/chat`.
 - Обновлен frontend dev `server.js`: старый PostgreSQL/n8n mini-backend заменен proxy на backend FastAPI, без прямой записи `diagnostic_requests`.
 - Обновлен cache-busting `assets/js/app.js` в `index.html` для GitHub Pages.
+
