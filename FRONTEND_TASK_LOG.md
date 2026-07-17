@@ -34,3 +34,4 @@
 - Исправлена отправка сообщений на сайте: при отсутствии Supabase Auth создается локальный `web-guest-* auth_user_id`, поэтому кнопка отправки и Enter реально вызывают backend `/chat`.
 - Обновлен frontend dev `server.js`: старый PostgreSQL/n8n mini-backend заменен proxy на backend FastAPI, без прямой записи `diagnostic_requests`.
 - Обновлен cache-busting `assets/js/app.js` в `index.html` для GitHub Pages.
+- 2026-07-17: В репозиторий `cardiagnostic-ai` перенесен обновленный экран "Мой автомобиль": фото машины сохраняется через backend `/api/vehicles`, после загрузки скрывается кнопка `Прикрепить фото`, снизу появляется выпадающее меню `Заменить фото / Удалить фото`, а удаление машины чистит связанные локальные сервисные записи и синхронизируется с backend/Supabase.

@@ -1835,6 +1835,12 @@ html { scroll-behavior: smooth; }
       grid-template-columns: 1fr minmax(210px, 320px);
     }
 
+    .car-photo-card {
+      display: grid;
+      gap: 12px;
+      align-self: stretch;
+    }
+
     #car .car-photo-upload,
     .vehicle-photo-box {
       --car-photo-image: none;
@@ -1859,6 +1865,10 @@ html { scroll-behavior: smooth; }
       padding: 16px;
     }
 
+    .car-photo-upload.has-photo {
+      min-height: 220px;
+    }
+
     #car .car-photo-upload input {
       position: absolute;
       inline-size: 1px;
@@ -1881,7 +1891,83 @@ html { scroll-behavior: smooth; }
     }
 
     .car-photo-upload.has-photo .car-photo-label {
-      align-self: end;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(8px);
+    }
+
+    .car-photo-actions {
+      position: relative;
+      display: flex;
+      justify-content: center;
+    }
+
+    .car-photo-actions[hidden] {
+      display: none !important;
+    }
+
+    .car-photo-menu-btn {
+      min-height: 42px;
+      border: 1px solid rgba(8, 125, 255, .5);
+      border-radius: 999px;
+      background: rgba(5, 18, 31, .92);
+      color: #fff;
+      padding: 0 16px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      box-shadow: 0 10px 26px rgba(0, 0, 0, .28);
+    }
+
+    .car-photo-menu-arrow {
+      font-size: 14px;
+      color: var(--cyan);
+    }
+
+    .car-photo-menu {
+      position: absolute;
+      top: calc(100% + 10px);
+      display: grid;
+      gap: 8px;
+      min-width: 210px;
+      padding: 10px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(4, 17, 29, .98);
+      box-shadow: var(--shadow);
+      z-index: 5;
+    }
+
+    .car-photo-menu[hidden] {
+      display: none !important;
+    }
+
+    .car-photo-menu button {
+      min-height: 40px;
+      border: 1px solid rgba(18, 58, 92, .9);
+      border-radius: 10px;
+      background: rgba(7, 26, 42, .86);
+      color: #fff;
+      text-align: left;
+      padding: 0 12px;
+      font-weight: 600;
+    }
+
+    .car-photo-menu button:hover {
+      border-color: var(--blue);
+      background: rgba(8, 38, 60, .94);
+    }
+
+    #removeCarPhotoBtn {
+      border-color: rgba(255, 102, 102, .34);
+      color: #ffc1c1;
+      background: rgba(68, 20, 20, .92);
+    }
+
+    #removeCarPhotoBtn:hover {
+      border-color: rgba(255, 102, 102, .7);
+      background: rgba(94, 24, 24, .96);
     }
 
     @media (max-width: 1050px) {
@@ -2008,8 +2094,7 @@ body.page-mode .content > .main-panel {
   height: calc(100% - 92px) !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
-  padding: 4px 4px calc(170px + env(safe-area-inset-bottom)) !important;
-  scroll-padding-bottom: calc(170px + env(safe-area-inset-bottom)) !important;
+  padding: 4px 4px clamp(320px, 36vh, 420px) !important;
 }
 
 body.assistant-mode .content,
@@ -2029,8 +2114,6 @@ body.assistant-mode .content > .main-panel {
 body.page-mode .view.active {
   height: auto !important;
   min-height: 100%;
-  padding-bottom: calc(170px + env(safe-area-inset-bottom)) !important;
-  scroll-padding-bottom: calc(170px + env(safe-area-inset-bottom)) !important;
 }
 
 body.page-mode #assistant.view {
@@ -2366,480 +2449,4 @@ body.assistant-mode .composer {
     right: 10px !important;
     transform: none;
   }
-}
-
-/* ===== PULS splash and idle screen ===== */
-body.puls-splash-active,
-body.puls-idle-active {
-  overflow: hidden !important;
-}
-
-#app {
-  transition: opacity .7s ease, transform .7s ease, filter .7s ease;
-}
-
-body.puls-splash-active #app,
-body.puls-idle-active #app {
-  opacity: 0;
-  transform: scale(.985);
-  filter: blur(1px);
-  pointer-events: none;
-}
-
-.puls-spline-screen {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transition: opacity .7s ease, visibility .7s ease;
-  background:
-    radial-gradient(circle at 50% 40%, rgba(8, 125, 255, .16), transparent 30%),
-    linear-gradient(135deg, #02070d 0%, #010409 48%, #000 100%);
-}
-
-body.puls-splash-active .puls-spline-screen,
-body.puls-idle-active .puls-spline-screen {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-}
-
-.puls-spline-backdrop {
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at 30% 20%, rgba(0, 128, 255, .22), transparent 32%),
-    radial-gradient(circle at 72% 80%, rgba(19, 217, 255, .10), transparent 34%),
-    linear-gradient(135deg, rgba(2, 7, 13, .92), rgba(1, 4, 9, .98));
-}
-
-.puls-spline-screen iframe {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  border: 0;
-  display: block;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  #app,
-  .puls-spline-screen {
-    transition: none;
-  }
-}
-
-/* ===== UI scale and bottom input safe area ===== */
-body {
-  font-size: 13px;
-}
-
-.app {
-  width: calc(100% - 20px);
-  max-width: none;
-  padding: 16px 0 20px;
-}
-
-@media (min-width: 1051px) {
-  body {
-    zoom: 0.9;
-  }
-}
-
-@media (max-width: 1050px) {
-  body {
-    zoom: 1;
-  }
-}
-
-.topbar {
-  margin-bottom: 12px !important;
-  padding-bottom: 6px !important;
-}
-
-.brand-logo {
-  width: 72px;
-  height: 72px;
-}
-
-.brand-title {
-  font-size: clamp(20px, 2.2vw, 26px);
-}
-
-.brand-subtitle {
-  font-size: 11px;
-}
-
-.system-pill {
-  padding: 8px 11px;
-  font-size: 11px;
-}
-
-.hero {
-  padding: clamp(10px, 1.8vw, 16px) clamp(12px, 2.4vw, 24px);
-  gap: clamp(12px, 2vw, 24px);
-  margin-bottom: 12px;
-}
-
-.hero-title {
-  font-size: clamp(20px, 2.4vw, 26px);
-  margin-bottom: 14px;
-}
-
-.facts {
-  gap: 10px;
-}
-
-.fact strong {
-  font-size: 16px;
-}
-
-.workspace {
-  gap: 12px;
-  grid-template-columns: 220px minmax(0, 1fr);
-}
-
-.side {
-  top: 12px;
-  gap: 10px;
-  max-height: calc(100vh - 24px);
-}
-
-.panel,
-.card {
-  border-radius: 12px;
-}
-
-.nav {
-  padding: 10px;
-}
-
-.nav button {
-  height: 42px;
-  font-size: 13px;
-  padding: 0 11px;
-}
-
-.nav button svg {
-  width: 20px;
-  height: 20px;
-}
-
-.sound-card {
-  padding: 12px;
-}
-
-.rings {
-  width: 126px;
-  height: 126px;
-}
-
-.main-panel {
-  min-height: 540px;
-  padding: 14px !important;
-}
-
-.head {
-  margin-bottom: 12px;
-}
-
-.head h1 {
-  font-size: clamp(19px, 2.1vw, 24px);
-}
-
-.btn {
-  min-height: 38px;
-  padding: 9px 12px;
-  font-size: 13px;
-  border-radius: 9px;
-}
-
-.card {
-  padding: 12px;
-}
-
-.composer {
-  padding: 8px;
-  bottom: calc(8px + env(safe-area-inset-bottom));
-}
-
-.composer-line {
-  gap: 6px;
-}
-
-.composer input {
-  height: 46px;
-  padding: 0 14px;
-  font-size: 14px;
-}
-
-.composer-icon-btn,
-.send {
-  width: 42px !important;
-  height: 42px !important;
-  min-width: 42px;
-}
-
-.send {
-  font-size: 20px !important;
-}
-
-body.page-mode .content > .main-panel,
-body.assistant-mode .content > .main-panel {
-  padding-bottom: calc(340px + env(safe-area-inset-bottom)) !important;
-}
-
-body.page-mode .view.active {
-  padding-bottom: calc(170px + env(safe-area-inset-bottom)) !important;
-}
-
-body.assistant-mode .messages {
-  padding-bottom: calc(340px + env(safe-area-inset-bottom)) !important;
-  scroll-padding-bottom: calc(340px + env(safe-area-inset-bottom)) !important;
-}
-
-body.assistant-mode .assistant-right {
-  padding-bottom: calc(340px + env(safe-area-inset-bottom)) !important;
-}
-
-body.assistant-mode #assistant .chat-grid {
-  grid-template-columns: minmax(0, 1fr) !important;
-  padding-right: clamp(350px, 24vw, 392px);
-}
-
-@media (min-width: 1051px) {
-  .composer {
-    width: min(1120px, calc(100vw - 250px)) !important;
-  }
-
-  body.assistant-mode .composer {
-    left: clamp(232px, 17vw, 318px) !important;
-    right: 18px !important;
-  }
-}
-
-@media (max-width: 1050px) {
-  .app {
-    width: calc(100% - 14px);
-    padding: 12px 0 16px;
-  }
-
-  .workspace {
-    grid-template-columns: 1fr;
-  }
-
-  .side {
-    top: auto;
-    max-height: none;
-  }
-
-  .hero {
-    padding: 12px;
-  }
-
-  .main-panel {
-    min-height: 500px;
-  }
-
-  body.page-mode .content > .main-panel,
-  body.assistant-mode .content > .main-panel {
-    padding-bottom: calc(280px + env(safe-area-inset-bottom)) !important;
-  }
-
-  body.assistant-mode .messages,
-  body.assistant-mode .assistant-right,
-  body.page-mode .view.active {
-    padding-bottom: calc(200px + env(safe-area-inset-bottom)) !important;
-  }
-
-  body.assistant-mode #assistant .chat-grid {
-    padding-right: 0 !important;
-  }
-
-  .composer {
-    left: 8px !important;
-    right: 8px !important;
-    bottom: calc(8px + env(safe-area-inset-bottom)) !important;
-    width: auto !important;
-  }
-}
-
-/* ===== Final page-mode and assistant-mode overrides ===== */
-body.page-mode {
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-}
-
-body.page-mode .app {
-  height: auto !important;
-  min-height: 100vh;
-  overflow: visible !important;
-  padding-bottom: 0 !important;
-}
-
-body.page-mode .workspace {
-  height: auto !important;
-  overflow: visible !important;
-  align-items: flex-start;
-}
-
-body.page-mode .side {
-  position: sticky !important;
-  top: 12px !important;
-  height: auto !important;
-  max-height: calc(100vh - 24px) !important;
-}
-
-body.page-mode .content,
-body.page-mode .content > .main-panel,
-body.page-mode .view.active {
-  height: auto !important;
-  min-height: 0 !important;
-  overflow: visible !important;
-}
-
-body.page-mode .content > .main-panel,
-body.page-mode .view.active {
-  padding-bottom: 0 !important;
-  scroll-padding-bottom: 0 !important;
-}
-
-body.page-mode .composer {
-  display: none !important;
-}
-
-body.assistant-mode .content > .main-panel {
-  padding-bottom: 0 !important;
-}
-
-body.assistant-mode .messages {
-  padding-bottom: calc(128px + env(safe-area-inset-bottom)) !important;
-  scroll-padding-bottom: calc(128px + env(safe-area-inset-bottom)) !important;
-  overflow: visible !important;
-}
-
-body.assistant-mode .assistant-right {
-  padding-bottom: calc(128px + env(safe-area-inset-bottom)) !important;
-  overflow: visible !important;
-}
-
-body.assistant-mode #assistant .chat-grid {
-  padding-right: 0 !important;
-  overflow: visible !important;
-  height: auto !important;
-}
-
-body.assistant-mode .composer {
-  padding: 8px !important;
-  bottom: 10px !important;
-  border-radius: 20px !important;
-}
-
-body.assistant-mode .composer-line {
-  gap: 6px !important;
-  grid-template-columns: 40px minmax(0, 1fr) 40px 44px !important;
-}
-
-body.assistant-mode .composer input {
-  height: 42px !important;
-  min-height: 42px !important;
-  padding: 0 14px !important;
-  font-size: 14px !important;
-}
-
-body.assistant-mode .composer-icon-btn,
-body.assistant-mode .send {
-  width: 40px !important;
-  height: 40px !important;
-  min-width: 40px !important;
-}
-
-@media (max-width: 1050px) {
-  body.page-mode .app {
-    padding-bottom: 0 !important;
-  }
-
-  body.page-mode .content > .main-panel,
-  body.page-mode .view.active {
-    padding-bottom: 0 !important;
-    scroll-padding-bottom: 0 !important;
-  }
-
-  body.assistant-mode .content > .main-panel {
-    padding-bottom: 0 !important;
-  }
-
-  body.assistant-mode .messages,
-  body.assistant-mode .assistant-right {
-    padding-bottom: calc(118px + env(safe-area-inset-bottom)) !important;
-    scroll-padding-bottom: calc(118px + env(safe-area-inset-bottom)) !important;
-    overflow: visible !important;
-  }
-
-  body.assistant-mode #assistant .chat-grid {
-    padding-right: 0 !important;
-    overflow: visible !important;
-  }
-}
-
-/* ===== Final assistant-mode normalization ===== */
-body.assistant-mode {
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-}
-
-body.assistant-mode .app {
-  height: auto !important;
-  min-height: 100vh;
-  overflow: visible !important;
-  padding-bottom: 0 !important;
-}
-
-body.assistant-mode .workspace {
-  height: auto !important;
-  min-height: 0 !important;
-  overflow: visible !important;
-  align-items: flex-start !important;
-}
-
-body.assistant-mode .side {
-  position: sticky !important;
-  top: 12px !important;
-  height: auto !important;
-  max-height: calc(100vh - 24px) !important;
-}
-
-body.assistant-mode .content,
-body.assistant-mode .content > .main-panel,
-body.assistant-mode #assistant.view.active,
-body.assistant-mode #assistant .chat-grid,
-body.assistant-mode .assistant-chat {
-  height: auto !important;
-  min-height: 0 !important;
-  overflow: visible !important;
-}
-
-body.assistant-mode .content > .main-panel {
-  padding-bottom: 0 !important;
-}
-
-body.assistant-mode #assistant .chat-grid {
-  grid-template-columns: minmax(0, 1fr) 340px !important;
-  gap: 16px !important;
-}
-
-.puls-splash-hitarea {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  border: 0;
-  padding: 0;
-  margin: 0;
-  background: transparent;
-  cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
-  touch-action: manipulation;
 }
