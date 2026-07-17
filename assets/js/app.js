@@ -515,6 +515,20 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
 
     window.pulsT = t;
 
+    Object.assign(i18n.en, {
+      "spec.loadInternetHint": "Best results come from a full VIN. PULS can verify specs and set a car photo automatically; you can still edit everything manually.",
+      "spec.loadNeedContext": "Enter a full VIN or at least brand and model to load data from the internet.",
+      "spec.loadDraftDone": "Internet data loaded into the draft. Save the car to keep it.",
+      "spec.loadError": "Could not load vehicle data from the internet. Please try again."
+    });
+
+    Object.assign(i18n.ru, {
+      "spec.loadInternetHint": "\u041b\u0443\u0447\u0448\u0435 \u0432\u0441\u0435\u0433\u043e \u0440\u0430\u0431\u043e\u0442\u0430\u0435\u0442 \u0441 \u043f\u043e\u043b\u043d\u044b\u043c VIN. PULS \u043f\u0440\u043e\u0432\u0435\u0440\u0438\u0442 \u0445\u0430\u0440\u0430\u043a\u0442\u0435\u0440\u0438\u0441\u0442\u0438\u043a\u0438 \u0438 \u0430\u0432\u0442\u043e\u043c\u0430\u0442\u0438\u0447\u0435\u0441\u043a\u0438 \u043f\u043e\u0441\u0442\u0430\u0432\u0438\u0442 \u0444\u043e\u0442\u043e \u043c\u0430\u0448\u0438\u043d\u044b; \u043f\u043e\u0442\u043e\u043c \u0432\u0441\u0451 \u0440\u0430\u0432\u043d\u043e \u043c\u043e\u0436\u043d\u043e \u0438\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u0432\u0440\u0443\u0447\u043d\u0443\u044e.",
+      "spec.loadNeedContext": "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u043f\u043e\u043b\u043d\u044b\u0439 VIN \u0438\u043b\u0438 \u0445\u043e\u0442\u044f \u0431\u044b \u043c\u0430\u0440\u043a\u0443 \u0438 \u043c\u043e\u0434\u0435\u043b\u044c, \u0447\u0442\u043e\u0431\u044b \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u0434\u0430\u043d\u043d\u044b\u0435 \u0438\u0437 \u0438\u043d\u0442\u0435\u0440\u043d\u0435\u0442\u0430.",
+      "spec.loadDraftDone": "\u0414\u0430\u043d\u043d\u044b\u0435 \u0438\u0437 \u0438\u043d\u0442\u0435\u0440\u043d\u0435\u0442\u0430 \u043f\u043e\u0434\u0441\u0442\u0430\u0432\u043b\u0435\u043d\u044b \u0432 \u0447\u0435\u0440\u043d\u043e\u0432\u0438\u043a. \u041d\u0430\u0436\u043c\u0438\u0442\u0435 \u00ab\u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c \u043c\u0430\u0448\u0438\u043d\u0443\u00bb, \u0447\u0442\u043e\u0431\u044b \u0441\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c \u0438\u0445.",
+      "spec.loadError": "\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u0434\u0430\u043d\u043d\u044b\u0435 \u043c\u0430\u0448\u0438\u043d\u044b \u0438\u0437 \u0438\u043d\u0442\u0435\u0440\u043d\u0435\u0442\u0430. \u041f\u043e\u043f\u0440\u043e\u0431\u0443\u0439\u0442\u0435 \u0435\u0449\u0451 \u0440\u0430\u0437."
+    });
+
     const VEHICLE_STORE_KEY = "puls_vehicle_store_v1";
     const VEHICLE_LEGACY_KEY = "puls_vehicle_profile_v1";
 
@@ -1296,19 +1310,52 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
 
     async function loadSpecsFromInternet() {
       if (!requireSignedInForEdit()) return null;
-      const vin = String($("#carVinInput")?.value || loadVehicleProfile().vin || "").trim().toUpperCase();
-      if (!isFullVin(vin)) {
-        updateLookupStatus(t("spec.loadNeedVin"), "warn");
-        toast(t("spec.loadNeedVin"));
+      let draftProfile = getVehicleFormValues();
+      const vin = String(draftProfile.vin || "").trim().toUpperCase();
+      const hasLookupContext = Boolean(vin && isFullVin(vin)) || Boolean(draftProfile.brand && draftProfile.model);
+      if (!hasLookupContext) {
+        updateLookupStatus(t("spec.loadNeedContext"), "warn");
+        toast(t("spec.loadNeedContext"));
         return null;
       }
 
       updateLookupStatus(t("spec.loadStarted"), "info");
-      const result = await lookupVehicleByVin(vin, { force: true });
-      if (result) {
-        updateLookupStatus(t("spec.loadDone"), "ok");
+
+      if (vin && isFullVin(vin)) {
+        const vinResult = await lookupVehicleByVin(vin, { force: true });
+        if (vinResult) {
+          draftProfile = vinResult;
+        }
       }
-      return result;
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/vehicles/enrich`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(vehicleToApi(draftProfile, window.pulsAppUser || null))
+        });
+        if (!response.ok) throw new Error(`Vehicle enrich returned ${response.status}`);
+        const data = await response.json();
+        const enrichedVehicle = data?.vehicle ? vehicleFromApi(data.vehicle) : null;
+        if (!enrichedVehicle) {
+          throw new Error("Vehicle enrich returned empty payload");
+        }
+        const mergedDraft = mergeVehicleProfiles(enrichedVehicle, draftProfile);
+        mergedDraft.id = draftProfile.id || enrichedVehicle.id || "";
+        fillVehicleForm(mergedDraft);
+        const status = $("#carFormStatus");
+        if (status) {
+          status.dataset.state = "draft";
+          status.textContent = t("spec.loadDraftDone");
+        }
+        updateLookupStatus(t("spec.loadDone"), "ok");
+        return mergedDraft;
+      } catch (error) {
+        console.error("Vehicle internet enrich failed:", error);
+        updateLookupStatus(t("spec.loadError"), "error");
+        toast(t("spec.loadError"));
+        return null;
+      }
     }
 
     function applyLanguage() {

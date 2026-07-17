@@ -155,7 +155,7 @@ flowchart LR
 - Empty placeholder cards are collapsed to a single draft, and one explicit blank draft created by `Add vehicle` stays active until the user edits, saves, or deletes it.
 - Car photos are uploaded to Supabase Storage `vehicle-photos`; frontend stores the public URL in `photo_url` and shows replace/delete actions from the dedicated photo menu.
 - Technical spec fields (`displacement`, `power`, `torque`, `engineType`, `cylinders`, `emissions`, `tank`) are editable in the UI and persist through `/api/vehicles`.
-- The specs card has a dedicated "Load from internet" button that reuses the existing official NHTSA vPIC VIN lookup flow and fills the current draft; the loaded data reaches backend sync only after `Save car`.
+- The specs card has a dedicated "Load from internet" button that first reuses VIN lookup when possible and then calls backend `POST /api/vehicles/enrich`. PULS can verify remaining fields, fill the current draft, and set a representative photo URL in the draft; the loaded data reaches backend sync only after `Save car`.
 - The active vehicle label is sent to `/chat` as `car_info` so backend can resolve `vehicles.id`.
 - Frontend does not send `conversation_history` to `/chat`; backend восстанавливает контекст сам из `conversations/messages/diagnostic_requests`.
 - If the user deletes a car, frontend removes the personal card; confirmed solved cases remain in backend shared knowledge/history.
