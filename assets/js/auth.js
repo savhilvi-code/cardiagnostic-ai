@@ -1,6 +1,9 @@
 const AUTH_STATUS_READY = "Введите email и пароль.";
 const AUTH_STATUS_CONFIG = "Добавьте Supabase URL и anon key в assets/js/supabaseClient.js.";
-const CURRENT_EMAIL_KEY = "puls_current_email_v1";
+
+function authText(key, fallback) {
+  return window.pulsT ? window.pulsT(key) : fallback;
+}
 
 function getAuthElements() {
   return {
@@ -11,8 +14,20 @@ function getAuthElements() {
     name: document.getElementById("profileName"),
     profileEmail: document.getElementById("profileEmail"),
     authBtn: document.getElementById("authBtn"),
-    logoutBtn: document.getElementById("logoutBtn")
+    logoutBtn: document.getElementById("logoutBtn"),
+    deleteProfileBtn: document.getElementById("deleteProfileBtn")
   };
+}
+
+function publishAuthState(user, appUser = null) {
+  window.pulsCurrentUser = user || null;
+  window.pulsAppUser = appUser || null;
+  window.dispatchEvent(new CustomEvent("puls-auth-change", {
+    detail: {
+      user: window.pulsCurrentUser,
+      appUser: window.pulsAppUser
+    }
+  }));
 }
 
 function setAuthStatus(message, isError = false) {
@@ -27,7 +42,12 @@ function openAuthModal() {
   if (!modal) return;
   modal.classList.add("show");
   modal.setAttribute("aria-hidden", "false");
-  setAuthStatus(window.supabaseClient ? AUTH_STATUS_READY : AUTH_STATUS_CONFIG, !window.supabaseClient);
+  setAuthStatus(
+    window.supabaseClient
+      ? authText("auth.statusReady", AUTH_STATUS_READY)
+      : authText("auth.statusConfig", AUTH_STATUS_CONFIG),
+    !window.supabaseClient
+  );
   setTimeout(() => email?.focus(), 0);
 }
 
@@ -39,17 +59,16 @@ function closeAuthModal() {
 }
 
 async function updateProfileBlock() {
-  const { name, profileEmail, authBtn, logoutBtn } = getAuthElements();
+  const { name, profileEmail, authBtn, logoutBtn, deleteProfileBtn } = getAuthElements();
   if (!name || !profileEmail || !authBtn || !logoutBtn) return;
 
   if (!window.supabaseClient) {
-    window.pulsCurrentUser = null;
-    window.pulsAppUser = null;
-    name.textContent = "Гость";
-    profileEmail.textContent = "Supabase не настроен";
+    publishAuthState(null);
+    name.textContent = authText("profile.guest", "Гость");
+    profileEmail.textContent = authText("profile.supabaseMissing", "Supabase не настроен");
     authBtn.style.display = "inline-flex";
     logoutBtn.style.display = "none";
-    localStorage.removeItem(CURRENT_EMAIL_KEY);
+    if (deleteProfileBtn) deleteProfileBtn.style.display = "none";
     return;
   }
 
@@ -57,67 +76,103 @@ async function updateProfileBlock() {
   const user = error ? null : data.user;
 
   if (!user) {
-    window.pulsCurrentUser = null;
-    window.pulsAppUser = null;
-    name.textContent = "Гость";
-    profileEmail.textContent = "Войдите в аккаунт";
+    publishAuthState(null);
+    name.textContent = authText("profile.guest", "Гость");
+    profileEmail.textContent = authText("profile.signIn", "Войдите в аккаунт");
     authBtn.style.display = "inline-flex";
     logoutBtn.style.display = "none";
-    localStorage.removeItem(CURRENT_EMAIL_KEY);
+    if (deleteProfileBtn) deleteProfileBtn.style.display = "none";
     return;
   }
 
-  name.textContent = user.user_metadata?.full_name || "Пользователь PULS";
-  profileEmail.textContent = user.email || "Email не указан";
-  if (user.email) localStorage.setItem(CURRENT_EMAIL_KEY, user.email);
-  window.pulsCurrentUser = user;
+  const appUser = await syncAuthUserProfile(user);
+  publishAuthState(user, appUser);
+  name.textContent = appUser?.name || user.user_metadata?.full_name || authText("profile.user", "Пользователь PULS");
+  profileEmail.textContent = user.email || authText("profile.emailMissing", "Email не указан");
   authBtn.style.display = "none";
   logoutBtn.style.display = "inline-flex";
-  await syncAuthUserProfile(user);
+  if (deleteProfileBtn) deleteProfileBtn.style.display = "inline-flex";
 }
 
 async function syncAuthUserProfile(user) {
   if (!window.supabaseClient || !user?.id) return null;
 
+  const normalizedEmail = user.email?.trim().toLowerCase() || null;
   const payload = {
     auth_user_id: user.id,
-    email: user.email,
-    name: user.user_metadata?.full_name || "Пользователь PULS",
+    email: normalizedEmail,
     last_login: new Date().toISOString()
   };
+  const authName = user.user_metadata?.full_name;
+  if (authName) payload.name = authName;
 
-  const { data, error } = await window.supabaseClient
+  const selectColumns = "id,email,name,language,country,city,auth_user_id,last_login,source,created_at,last_seen_at";
+
+  const { data: byAuth, error: byAuthError } = await window.supabaseClient
     .from("users")
-    .upsert(payload, { onConflict: "auth_user_id" })
-    .select("*")
-    .single();
+    .select(selectColumns)
+    .eq("auth_user_id", user.id)
+    .maybeSingle();
 
-  if (!error && user.email) {
-    localStorage.setItem(CURRENT_EMAIL_KEY, user.email);
+  if (byAuthError) {
+    console.warn("Не удалось найти профиль по auth_user_id:", byAuthError.message);
   }
 
-  if (!error) {
-    window.pulsAppUser = data || null;
-    return window.pulsAppUser;
-  }
-
-  const duplicateEmail = error.code === "23505" && user.email;
-  if (duplicateEmail) {
-    const { data: updatedRow, error: updateError } = await window.supabaseClient
+  if (normalizedEmail) {
+    const { data: byEmail, error: byEmailError } = await window.supabaseClient
       .from("users")
-      .update(payload)
-      .eq("email", user.email)
-      .select("*")
-      .single();
+      .select(selectColumns)
+      .ilike("email", normalizedEmail)
+      .maybeSingle();
 
-    if (!updateError) {
-      window.pulsAppUser = updatedRow || null;
-      return window.pulsAppUser;
+    if (byEmailError) {
+      console.warn("Не удалось найти профиль по email:", byEmailError.message);
+    }
+
+    if (byEmail) {
+      if (byAuth && byAuth.id !== byEmail.id) {
+        await window.supabaseClient
+          .from("users")
+          .update({ auth_user_id: null })
+          .eq("id", byAuth.id);
+      }
+
+      const { data, error } = await window.supabaseClient
+        .from("users")
+        .update(payload)
+        .eq("id", byEmail.id)
+        .select(selectColumns)
+        .single();
+
+      if (!error) return data;
+      console.warn("Не удалось привязать auth_user_id к существующему email:", error.message);
+      return byEmail;
     }
   }
 
-  console.warn("Не удалось синхронизировать профиль users.auth_user_id:", error.message);
-  return window.pulsAppUser || null;
+  if (byAuth) {
+    const { data, error } = await window.supabaseClient
+      .from("users")
+      .update(payload)
+      .eq("id", byAuth.id)
+      .select(selectColumns)
+      .single();
+
+    if (!error) return data;
+    console.warn("Не удалось обновить профиль по auth_user_id:", error.message);
+    return byAuth;
+  }
+
+  const { data, error } = await window.supabaseClient
+    .from("users")
+    .insert(payload)
+    .select(selectColumns)
+    .single();
+
+  if (!error) return data;
+
+  console.warn("Не удалось создать профиль users:", error.message);
+  return null;
 }
 
 function readAuthCredentials() {
@@ -130,17 +185,17 @@ function readAuthCredentials() {
 
 function validateAuthCredentials(email, password) {
   if (!email) {
-    setAuthStatus("Введите email.", true);
+    setAuthStatus(authText("auth.enterEmail", "Введите email."), true);
     return false;
   }
 
   if (!password) {
-    setAuthStatus("Введите пароль.", true);
+    setAuthStatus(authText("auth.enterPassword", "Введите пароль."), true);
     return false;
   }
 
   if (password.length < 6) {
-    setAuthStatus("Пароль должен быть минимум 6 символов.", true);
+    setAuthStatus(authText("auth.shortPassword", "Пароль должен быть минимум 6 символов."), true);
     return false;
   }
 
@@ -149,7 +204,7 @@ function validateAuthCredentials(email, password) {
 
 async function registerUser(email, password) {
   if (!window.supabaseClient) {
-    setAuthStatus(AUTH_STATUS_CONFIG, true);
+    setAuthStatus(authText("auth.statusConfig", AUTH_STATUS_CONFIG), true);
     return;
   }
 
@@ -157,10 +212,7 @@ async function registerUser(email, password) {
 
   const { data, error } = await window.supabaseClient.auth.signUp({
     email,
-    password,
-    options: {
-      emailRedirectTo: window.location.origin
-    }
+    password
   });
 
   if (error) {
@@ -168,14 +220,14 @@ async function registerUser(email, password) {
     return;
   }
 
-  if (data.user) await syncAuthUserProfile(data.user);
-  setAuthStatus("Регистрация успешна. Проверьте почту для подтверждения.");
+  if (data.user) publishAuthState(data.user, await syncAuthUserProfile(data.user));
+  setAuthStatus(authText("auth.registerSuccess", "Регистрация успешна. Проверьте почту для подтверждения."));
   await updateProfileBlock();
 }
 
 async function loginUser(email, password) {
   if (!window.supabaseClient) {
-    setAuthStatus(AUTH_STATUS_CONFIG, true);
+    setAuthStatus(authText("auth.statusConfig", AUTH_STATUS_CONFIG), true);
     return;
   }
 
@@ -191,7 +243,7 @@ async function loginUser(email, password) {
     return;
   }
 
-  if (data.user) await syncAuthUserProfile(data.user);
+  if (data.user) publishAuthState(data.user, await syncAuthUserProfile(data.user));
   closeAuthModal();
   await updateProfileBlock();
 }
@@ -199,24 +251,63 @@ async function loginUser(email, password) {
 async function logoutUser() {
   if (!window.supabaseClient) return;
   await window.supabaseClient.auth.signOut();
-  window.pulsCurrentUser = null;
-  window.pulsAppUser = null;
+  publishAuthState(null);
+  await updateProfileBlock();
+}
+
+async function deleteProfileUser() {
+  if (!window.supabaseClient) return;
+
+  const { data, error } = await window.supabaseClient.auth.getUser();
+  const user = error ? null : data.user;
+  if (!user?.email) {
+    setAuthStatus(authText("auth.signInToDelete", "Sign in before deleting profile."), true);
+    window.alert(authText("auth.signInToDelete", "Sign in before deleting profile."));
+    return;
+  }
+
+  const confirmation = window.prompt(authText("auth.deleteConfirmPrompt", "Type your email to confirm profile deletion."));
+  if (confirmation !== user.email) {
+    setAuthStatus(authText("auth.deleteCancelled", "Profile deletion cancelled."), true);
+    if (confirmation !== null) window.alert(authText("auth.deleteCancelled", "Profile deletion cancelled."));
+    return;
+  }
+
+  await window.supabaseClient.auth.updateUser({
+    data: {
+      deletion_requested: true,
+      deletion_requested_at: new Date().toISOString()
+    }
+  });
+
+  await window.supabaseClient
+    .from("users")
+    .delete()
+    .eq("auth_user_id", user.id);
+
+  setAuthStatus(authText("auth.deleteRequested", "Profile deletion request saved. Check your email if confirmation is required."));
+  window.alert(authText("auth.deleteRequested", "Profile deletion request saved. Check your email if confirmation is required."));
+  await window.supabaseClient.auth.signOut();
+  publishAuthState(null);
   await updateProfileBlock();
 }
 
 window.registerUser = registerUser;
 window.loginUser = loginUser;
 window.logoutUser = logoutUser;
+window.deleteProfileUser = deleteProfileUser;
 window.updateProfileBlock = updateProfileBlock;
+window.syncAuthUserProfile = syncAuthUserProfile;
+window.openAuthModal = openAuthModal;
+window.closeAuthModal = closeAuthModal;
 
 document.addEventListener("DOMContentLoaded", () => {
-  Promise.resolve(updateProfileBlock()).then(() => {
-    window.dispatchEvent(new CustomEvent("puls-auth-change", { detail: { user: window.pulsAppUser || null } }));
-  });
+  updateProfileBlock();
 
   document.getElementById("authBtn")?.addEventListener("click", openAuthModal);
   document.getElementById("authCloseBtn")?.addEventListener("click", closeAuthModal);
   document.getElementById("logoutBtn")?.addEventListener("click", logoutUser);
+  document.getElementById("deleteProfileBtn")?.addEventListener("click", deleteProfileUser);
 
   document.getElementById("authModal")?.addEventListener("click", (event) => {
     if (event.target.id === "authModal") closeAuthModal();
@@ -238,8 +329,7 @@ document.addEventListener("DOMContentLoaded", () => {
     registerUser(email, password);
   });
 
-  window.supabaseClient?.auth.onAuthStateChange(async () => {
-    await updateProfileBlock();
-    window.dispatchEvent(new CustomEvent("puls-auth-change", { detail: { user: window.pulsAppUser || null } }));
+  window.supabaseClient?.auth.onAuthStateChange(() => {
+    updateProfileBlock();
   });
 });

@@ -1,5 +1,5 @@
 const SUPABASE_URL = "https://brvutpegdjgwobjsyfgz.supabase.co";
-const SUPABASE_ANON_KEY = "YOUR-ANON-KEY";
+const SUPABASE_ANON_KEY = "sb_publishable_o3k8kBVyyWqTnvnMiIj21Q_BXsKAKJr";
 
 const hasSupabaseConfig =
   SUPABASE_URL.startsWith("https://") &&
@@ -13,3 +13,4 @@ if (window.supabase && hasSupabaseConfig) {
   window.supabaseClient = null;
   window.supabaseConfigMissing = true;
 }
+

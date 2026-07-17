@@ -1,5 +1,7 @@
-const CHAT_API_URL = "https://puls-backend-t3sn.onrender.com/chat";
-const SPLINE_SCENE_URL = "";
+const PULS_CONFIG = window.PULS_CONFIG || {};
+const API_BASE_URL = String(PULS_CONFIG.API_BASE_URL || "https://puls-backend-t3sn.onrender.com").replace(/\/$/, "");
+const CHAT_API_URL = PULS_CONFIG.CHAT_API_URL || `${API_BASE_URL}/chat`;
+const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.design/starterscenecopy-RDKY0gQFbXbkko9LN657PtBA/";
 
     const iconMap = {
       bot: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="8" width="14" height="10" rx="3"/><path d="M12 4v4M8 13h.01M16 13h.01M7 21h10M3 11v4M21 11v4"/></svg>',
@@ -114,13 +116,6 @@ const SPLINE_SCENE_URL = "";
         "car.serviceAdd": "Add record",
         "car.serviceHelp": "All maintenance records stay inside the selected car so the assistant always knows what has already been done.",
         "car.photoUpload": "Attach car photo",
-        "car.photoMenu": "Photo actions",
-        "car.photoReplace": "Replace photo",
-        "car.photoDelete": "Delete photo",
-        "car.photoSaved": "Car photo saved.",
-        "car.photoRemoved": "Car photo removed.",
-        "car.vehicleDeleted": "Vehicle deleted.",
-        "car.vehicleSyncError": "Could not sync the vehicle with Supabase. Please try again.",
         "car.vehicleTitle": "My cars",
         "car.vehicleSubtitle": "Save several vehicles and switch between them without losing context.",
         "car.addVehicle": "Add vehicle",
@@ -328,13 +323,6 @@ const SPLINE_SCENE_URL = "";
         "car.serviceAdd": "Добавить запись",
         "car.serviceHelp": "Все записи обслуживания и ТО отображаются внутри карточки выбранного автомобиля, чтобы контекст машины не терялся.",
         "car.photoUpload": "Прикрепить фото авто",
-        "car.photoMenu": "Действия с фото",
-        "car.photoReplace": "Заменить фото",
-        "car.photoDelete": "Удалить фото",
-        "car.photoSaved": "Фото автомобиля сохранено.",
-        "car.photoRemoved": "Фото автомобиля удалено.",
-        "car.vehicleDeleted": "Автомобиль удалён.",
-        "car.vehicleSyncError": "Не удалось синхронизировать автомобиль с Supabase. Попробуйте ещё раз.",
         "car.formTitle": "Редактор автомобиля",
         "car.formSubtitle": "Заполните данные машины один раз, чтобы PULS всегда понимал, какой автомобиль использовать.",
         "car.formBrand": "Марка",
@@ -497,7 +485,6 @@ const SPLINE_SCENE_URL = "";
 
     window.pulsT = t;
 
-    const VEHICLES_API_URL = "https://puls-backend-t3sn.onrender.com/api/vehicles";
     const VEHICLE_STORE_KEY = "puls_vehicle_store_v1";
     const VEHICLE_LEGACY_KEY = "puls_vehicle_profile_v1";
 
@@ -545,6 +532,74 @@ const SPLINE_SCENE_URL = "";
       return `veh_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     }
 
+    let guestVehicleStore = null;
+
+    function getBlankVehicleStore() {
+      if (!guestVehicleStore) {
+        const blank = normalizeVehicleProfile({ id: createVehicleId() });
+        guestVehicleStore = { activeId: blank.id, vehicles: [blank] };
+      }
+      return guestVehicleStore;
+    }
+
+    function getVehicleStoreKey() {
+      const userId = window.pulsCurrentUser?.id || window.pulsAppUser?.auth_user_id || window.pulsAppUser?.id || "";
+      return userId ? `${VEHICLE_STORE_KEY}:${userId}` : "";
+    }
+
+    function clearPrivateUiCache() {
+      try {
+        localStorage.removeItem(HISTORY_STORAGE_KEY);
+        localStorage.removeItem(VEHICLE_STORE_KEY);
+        localStorage.removeItem(VEHICLE_LEGACY_KEY);
+        guestVehicleStore = null;
+      } catch (error) {
+        console.warn("Could not clear private UI cache:", error);
+      }
+    }
+
+    function isBackendVehicleId(value) {
+      return /^\d+$/.test(String(value || "").trim());
+    }
+
+    function vehicleFromApi(row = {}) {
+      return normalizeVehicleProfile({
+        id: row.id,
+        brand: row.brand,
+        model: row.model,
+        year: row.year,
+        engine: row.engine,
+        fuel: row.fuel || row.fuel_type,
+        drive: row.drive || row.drive_type,
+        transmission: row.transmission,
+        mileage: row.mileage,
+        vin: row.vin,
+        nickname: row.nickname,
+        photoUrl: row.photo_url
+      });
+    }
+
+    function vehicleToApi(profile = {}, appUser = window.pulsAppUser || null) {
+      const normalized = normalizeVehicleProfile(profile);
+      return {
+        user_id: appUser?.id || null,
+        auth_user_id: window.pulsCurrentUser?.id || "",
+        email: window.pulsCurrentUser?.email || appUser?.email || "",
+        brand: normalized.brand,
+        model: normalized.model,
+        year: normalized.year,
+        engine: normalized.engine,
+        fuel: normalized.fuel,
+        fuel_type: normalized.fuel,
+        drive: normalized.drive,
+        transmission: normalized.transmission,
+        mileage: normalized.mileage,
+        vin: normalized.vin,
+        nickname: normalized.nickname,
+        photo_url: normalized.photoUrl
+      };
+    }
+
     function normalizeVehicleStore(store = {}) {
       const rawVehicles = Array.isArray(store.vehicles) ? store.vehicles : [];
       let vehicles = rawVehicles.length ? rawVehicles : [];
@@ -571,18 +626,14 @@ const SPLINE_SCENE_URL = "";
     }
 
     function loadVehicleStore() {
+      const storeKey = getVehicleStoreKey();
+      if (!storeKey) return getBlankVehicleStore();
+
       try {
-        const raw = localStorage.getItem(VEHICLE_STORE_KEY);
+        const raw = localStorage.getItem(storeKey);
         if (raw) return normalizeVehicleStore(JSON.parse(raw));
 
-        const legacyRaw = localStorage.getItem(VEHICLE_LEGACY_KEY);
-        if (legacyRaw) {
-          const profile = normalizeVehicleProfile(JSON.parse(legacyRaw));
-          const withId = { ...profile, id: createVehicleId() };
-          const store = { activeId: withId.id, vehicles: [withId] };
-          localStorage.setItem(VEHICLE_STORE_KEY, JSON.stringify(store));
-          return store;
-        }
+        localStorage.removeItem(VEHICLE_LEGACY_KEY);
 
         return normalizeVehicleStore();
       } catch (error) {
@@ -591,26 +642,18 @@ const SPLINE_SCENE_URL = "";
     }
 
     function saveVehicleStore(store) {
+      const storeKey = getVehicleStoreKey();
+      if (!storeKey) return;
       try {
-        localStorage.setItem(VEHICLE_STORE_KEY, JSON.stringify(normalizeVehicleStore(store)));
+        localStorage.setItem(storeKey, JSON.stringify(normalizeVehicleStore(store)));
       } catch (error) {
         console.warn("Could not save vehicle store:", error);
       }
     }
 
-    function setVehicleStore(store) {
-      const normalized = normalizeVehicleStore(store);
-      saveVehicleStore(normalized);
-      return normalized;
-    }
-
     function loadVehicleProfile() {
       const store = loadVehicleStore();
       return store.vehicles.find((vehicle) => vehicle.id === store.activeId) || store.vehicles[0] || getDefaultVehicleProfile();
-    }
-
-    function vehicleHasMeaningfulData(profile = {}) {
-      return ["brand", "model", "year", "engine", "vin", "photoUrl"].some((key) => String(profile?.[key] || "").trim());
     }
 
     function saveVehicleProfile(profile, { activate = true } = {}) {
@@ -632,6 +675,72 @@ const SPLINE_SCENE_URL = "";
       if (activate) store.activeId = normalized.id;
       saveVehicleStore(store);
       return normalized;
+    }
+
+    async function fetchBackendVehicles() {
+      const appUser = window.pulsAppUser || null;
+      const currentUser = window.pulsCurrentUser || null;
+      if (!appUser?.id && !currentUser?.id && !currentUser?.email) return [];
+
+      const params = new URLSearchParams();
+      if (appUser?.id) params.set("user_id", appUser.id);
+      if (currentUser?.id) params.set("auth_user_id", currentUser.id);
+      if (currentUser?.email) params.set("email", currentUser.email);
+
+      const res = await fetch(`${API_BASE_URL}/api/vehicles?${params.toString()}`);
+      if (!res.ok) throw new Error(`Vehicle API returned ${res.status}`);
+      const data = await res.json();
+      return Array.isArray(data.vehicles) ? data.vehicles.map(vehicleFromApi) : [];
+    }
+
+    async function syncVehicleStoreFromBackend() {
+      if (!isSignedIn()) return loadVehicleStore();
+      try {
+        const backendVehicles = await fetchBackendVehicles();
+        if (!backendVehicles.length) return loadVehicleStore();
+
+        const currentStore = loadVehicleStore();
+        const activeId = backendVehicles.some((vehicle) => vehicle.id === currentStore.activeId)
+          ? currentStore.activeId
+          : backendVehicles[0].id;
+        const nextStore = { activeId, vehicles: backendVehicles };
+        saveVehicleStore(nextStore);
+        fillVehicleForm(loadVehicleProfile());
+        return nextStore;
+      } catch (error) {
+        console.warn("Could not sync vehicles from backend:", error);
+        return loadVehicleStore();
+      }
+    }
+
+    async function saveVehicleProfileToBackend(profile) {
+      if (!isSignedIn()) return profile;
+      const appUser = window.pulsAppUser || null;
+      if (!appUser?.id && !window.pulsCurrentUser?.id) return profile;
+
+      const normalized = normalizeVehicleProfile(profile);
+      const method = isBackendVehicleId(normalized.id) ? "PUT" : "POST";
+      const url = method === "PUT" ? `${API_BASE_URL}/api/vehicles/${encodeURIComponent(normalized.id)}` : `${API_BASE_URL}/api/vehicles`;
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(vehicleToApi(normalized, appUser))
+      });
+      if (!res.ok) throw new Error(`Vehicle save returned ${res.status}`);
+      const data = await res.json();
+      if (!data.vehicle) return normalized;
+      return saveVehicleProfile(vehicleFromApi(data.vehicle));
+    }
+
+    async function deleteVehicleFromBackend(vehicle) {
+      if (!isSignedIn() || !isBackendVehicleId(vehicle?.id)) return true;
+      const params = new URLSearchParams();
+      if (window.pulsAppUser?.id) params.set("user_id", window.pulsAppUser.id);
+      if (window.pulsCurrentUser?.id) params.set("auth_user_id", window.pulsCurrentUser.id);
+      if (window.pulsCurrentUser?.email) params.set("email", window.pulsCurrentUser.email);
+      const res = await fetch(`${API_BASE_URL}/api/vehicles/${encodeURIComponent(vehicle.id)}?${params.toString()}`, { method: "DELETE" });
+      if (!res.ok) throw new Error(`Vehicle delete returned ${res.status}`);
+      return true;
     }
 
     function addVehicleProfile(profile = {}) {
@@ -671,151 +780,11 @@ const SPLINE_SCENE_URL = "";
       return nextActive;
     }
 
-    function mapVehicleFromApi(row = {}) {
-      return normalizeVehicleProfile({
-        id: row.id,
-        brand: row.brand,
-        model: row.model,
-        year: row.year,
-        engine: row.engine,
-        fuel: row.fuel || row.fuel_type,
-        drive: row.drive,
-        transmission: row.transmission,
-        mileage: row.mileage,
-        vin: row.vin,
-        nickname: row.nickname,
-        photoUrl: row.photo_url
-      });
-    }
-
-    async function resolveAppUser() {
-      const authUser = await getCurrentAuthUser();
-      if (!authUser) return null;
-      const appUser = window.pulsAppUser || await window.syncAuthUserProfile?.(authUser);
-      if (appUser) window.pulsAppUser = appUser;
-      return appUser || null;
-    }
-
-    async function fetchVehiclesFromApi() {
-      const authUser = await getCurrentAuthUser();
-      const appUser = await resolveAppUser();
-      if (!authUser || !appUser?.id) return [];
-
-      const params = new URLSearchParams({
-        user_id: String(appUser.id),
-        auth_user_id: authUser.id,
-        email: authUser.email || ""
-      });
-      const response = await fetch(`${VEHICLES_API_URL}?${params.toString()}`);
-      if (!response.ok) {
-        throw new Error(`Vehicle API returned ${response.status}`);
-      }
-
-      const payload = await response.json();
-      return Array.isArray(payload?.vehicles) ? payload.vehicles.map(mapVehicleFromApi) : [];
-    }
-
-    async function persistVehicleProfile(profile) {
-      const authUser = await getCurrentAuthUser();
-      const appUser = await resolveAppUser();
-      if (!authUser || !appUser?.id) {
-        throw new Error("Auth user is missing.");
-      }
-
-      const normalized = normalizeVehicleProfile(profile);
-      const payload = {
-        user_id: appUser.id,
-        auth_user_id: authUser.id,
-        email: authUser.email || "",
-        brand: normalized.brand,
-        model: normalized.model,
-        year: normalized.year,
-        engine: normalized.engine,
-        fuel: normalized.fuel,
-        transmission: normalized.transmission,
-        drive: normalized.drive,
-        vin: normalized.vin,
-        nickname: normalized.nickname,
-        mileage: normalized.mileage,
-        photo_url: normalized.photoUrl
-      };
-      const hasServerId = /^\d+$/.test(String(normalized.id || "").trim());
-      const url = hasServerId ? `${VEHICLES_API_URL}/${encodeURIComponent(normalized.id)}` : VEHICLES_API_URL;
-      const method = hasServerId ? "PUT" : "POST";
-      const response = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      if (!response.ok) {
-        throw new Error(`Vehicle save failed with ${response.status}`);
-      }
-
-      const data = await response.json();
-      const savedVehicle = mapVehicleFromApi(data?.vehicle || {});
-      saveVehicleProfile(savedVehicle);
-      return savedVehicle;
-    }
-
-    async function deleteVehicleFromApi(vehicleId) {
-      const authUser = await getCurrentAuthUser();
-      const appUser = await resolveAppUser();
-      if (!authUser || !appUser?.id || !/^\d+$/.test(String(vehicleId || "").trim())) {
-        return false;
-      }
-
-      const params = new URLSearchParams({
-        user_id: String(appUser.id),
-        auth_user_id: authUser.id,
-        email: authUser.email || ""
-      });
-      const response = await fetch(`${VEHICLES_API_URL}/${encodeURIComponent(vehicleId)}?${params.toString()}`, {
-        method: "DELETE"
-      });
-      if (!response.ok) {
-        throw new Error(`Vehicle delete failed with ${response.status}`);
-      }
-
-      const data = await response.json();
-      return Boolean(data?.deleted);
-    }
-
-    async function syncVehicleStoreFromApi() {
-      const remoteVehicles = await fetchVehiclesFromApi();
-      if (remoteVehicles.length) {
-        const currentActive = loadVehicleProfile();
-        const preferredActive = remoteVehicles.find((vehicle) => vehicle.id === currentActive.id)?.id || remoteVehicles[0].id;
-        const syncedStore = setVehicleStore({ activeId: preferredActive, vehicles: remoteVehicles });
-        return syncedStore.vehicles.find((vehicle) => vehicle.id === syncedStore.activeId) || syncedStore.vehicles[0];
-      }
-
-      const localStore = loadVehicleStore();
-      const localVehicles = localStore.vehicles.filter(vehicleHasMeaningfulData);
-      if (!localVehicles.length) {
-        return loadVehicleProfile();
-      }
-
-      const savedVehicles = [];
-      for (const vehicle of localVehicles) {
-        try {
-          savedVehicles.push(await persistVehicleProfile(vehicle));
-        } catch (error) {
-          console.warn("Could not migrate local vehicle to API:", error);
-        }
-      }
-
-      if (!savedVehicles.length) {
-        return loadVehicleProfile();
-      }
-
-      const syncedStore = setVehicleStore({ activeId: savedVehicles[0].id, vehicles: savedVehicles });
-      return syncedStore.vehicles[0];
-    }
-
     const VIN_LOOKUP_URL = "https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/";
     const VIN_LOOKUP_CACHE_KEY = "puls_vin_lookup_v1";
     let vehicleLookupTimer = null;
     let vehicleLookupRequestId = 0;
+    let vehicleBackendSaveTimer = null;
 
     function getVinLookupCache(vin) {
       try {
@@ -895,9 +864,7 @@ const SPLINE_SCENE_URL = "";
         mergedCached.id = current.id;
         fillVehicleForm(mergedCached);
         saveVehicleProfile(mergedCached);
-        void persistVehicleProfile(mergedCached).catch((error) => {
-          console.error("VIN cache sync failed:", error);
-        });
+        saveVehicleProfileToBackend(mergedCached).catch((error) => console.warn("Could not save cached VIN vehicle to backend:", error));
         updateLookupStatus(t("car.lookupReady"), "ok");
         return mergedCached;
       }
@@ -941,9 +908,7 @@ const SPLINE_SCENE_URL = "";
         setVinLookupCache(normalizedVin, merged);
         fillVehicleForm(merged);
         saveVehicleProfile(merged);
-        void persistVehicleProfile(merged).catch((error) => {
-          console.error("VIN lookup sync failed:", error);
-        });
+        saveVehicleProfileToBackend(merged).catch((error) => console.warn("Could not save VIN vehicle to backend:", error));
         updateLookupStatus(t("car.formSaved"), "ok");
         renderLists();
         return merged;
@@ -1014,22 +979,15 @@ const SPLINE_SCENE_URL = "";
 
     function setCarPhotoPreview(photoUrl = "") {
       const box = $(".car-photo-upload");
-      const actions = $("#carPhotoActions");
-      const menu = $("#carPhotoMenu");
-      const menuButton = $("#carPhotoMenuBtn");
       if (!box) return;
       if (!photoUrl) {
         box.style.removeProperty("--car-photo-image");
         box.classList.remove("has-photo");
-        if (actions) actions.hidden = true;
-        if (menu) menu.hidden = true;
-        if (menuButton) menuButton.setAttribute("aria-expanded", "false");
         return;
       }
 
       box.style.setProperty("--car-photo-image", `url("${photoUrl}")`);
       box.classList.add("has-photo");
-      if (actions) actions.hidden = false;
     }
 
     function getVehicleFormValues() {
@@ -1091,40 +1049,45 @@ const SPLINE_SCENE_URL = "";
         updateLookupStatus(t("car.lookupReady"), "info");
       }
 
-      const saveProfile = async (profile, state = "saved") => {
+      const saveProfile = (profile, state = "saved", { syncBackend = true } = {}) => {
         if (!isSignedIn()) {
           requireSignedInForEdit();
           return;
         }
-        const localProfile = saveVehicleProfile(profile);
+        const savedProfile = saveVehicleProfile(profile);
         const status = $("#carFormStatus");
         if (status) {
           status.dataset.state = state;
           status.textContent = state === "saved" ? t("car.formSaved") : "";
         }
-        setCarSummaryText(localProfile);
-        if (state !== "saved") return;
-        try {
-          const syncedProfile = await persistVehicleProfile(localProfile);
-          fillVehicleForm(syncedProfile);
-        } catch (error) {
-          console.error("Vehicle sync failed:", error);
-          if (status) status.textContent = t("car.vehicleSyncError");
+        setCarSummaryText(savedProfile);
+        if (syncBackend) {
+          clearTimeout(vehicleBackendSaveTimer);
+          const delay = state === "typing" ? 900 : 0;
+          vehicleBackendSaveTimer = window.setTimeout(async () => {
+            try {
+              const backendProfile = await saveVehicleProfileToBackend(savedProfile);
+              fillVehicleForm(backendProfile);
+              renderLists();
+            } catch (error) {
+              console.warn("Could not save vehicle to backend:", error);
+            }
+          }, delay);
         }
       };
 
       form.addEventListener("submit", (event) => {
         event.preventDefault();
-        void saveProfile(getVehicleFormValues());
+        saveProfile(getVehicleFormValues());
       });
 
       form.addEventListener("input", () => {
-        void saveProfile(getVehicleFormValues(), "typing");
+        saveProfile(getVehicleFormValues(), "typing");
       });
 
       ["#specDisplacement", "#specPower", "#specTorque", "#specEngineType", "#specCylinders", "#specEmissions", "#specTank"].forEach((selector) => {
         $(selector)?.addEventListener("input", () => {
-          void saveProfile(getVehicleFormValues(), "typing");
+          saveProfile(getVehicleFormValues(), "typing");
         });
       });
 
@@ -1167,7 +1130,7 @@ const SPLINE_SCENE_URL = "";
           vin: "JT1234567890"
         });
         fillVehicleForm(demo);
-        void saveProfile(demo);
+        saveProfile(demo);
       });
     }
 
@@ -1226,55 +1189,13 @@ const SPLINE_SCENE_URL = "";
       if (!url) return "";
       setCarPhotoPreview(url);
       const active = loadVehicleProfile();
-      const nextProfile = saveVehicleProfile({ ...active, photoUrl: url });
-      setCarSummaryText(nextProfile);
-      try {
-        const syncedProfile = await persistVehicleProfile(nextProfile);
-        fillVehicleForm(syncedProfile);
-        toast(t("car.photoSaved"));
-      } catch (error) {
-        console.error("Car photo sync failed:", error);
-        toast(t("car.vehicleSyncError"));
-      }
+      saveVehicleProfile({ ...active, photoUrl: url });
+      setCarSummaryText({ ...active, photoUrl: url });
       return url;
     }
 
-    async function removeCarPhoto() {
-      if (!requireSignedInForEdit()) return;
-      const photoInput = $("#carPhotoInput");
-      if (photoInput) photoInput.value = "";
-      const active = loadVehicleProfile();
-      const nextProfile = saveVehicleProfile({ ...active, photoUrl: "" });
-      setCarPhotoPreview("");
-      setCarSummaryText(nextProfile);
-      try {
-        const syncedProfile = await persistVehicleProfile(nextProfile);
-        fillVehicleForm(syncedProfile);
-        toast(t("car.photoRemoved"));
-      } catch (error) {
-        console.error("Car photo remove failed:", error);
-        toast(t("car.vehicleSyncError"));
-      }
-    }
-
-    function closeCarPhotoMenu() {
-      const menu = $("#carPhotoMenu");
-      const button = $("#carPhotoMenuBtn");
-      if (menu) menu.hidden = true;
-      if (button) button.setAttribute("aria-expanded", "false");
-    }
-
-    function toggleCarPhotoMenu() {
-      const menu = $("#carPhotoMenu");
-      const button = $("#carPhotoMenuBtn");
-      if (!menu || !button) return;
-      const nextOpen = menu.hidden;
-      menu.hidden = !nextOpen;
-      button.setAttribute("aria-expanded", String(nextOpen));
-    }
-
     function isSignedIn() {
-      return Boolean(window.pulsAppUser || window.pulsCurrentUser);
+      return Boolean(window.pulsCurrentUser);
     }
 
     function requireSignedInForEdit() {
@@ -1284,12 +1205,19 @@ const SPLINE_SCENE_URL = "";
       return false;
     }
 
+    function requireSignedInForChat() {
+      if (isSignedIn()) return true;
+      toast(t("assistant.authRequired"));
+      window.openAuthModal?.();
+      return false;
+    }
+
     function applyAuthLockedState() {
       const signedIn = isSignedIn();
       $$(".auth-required").forEach((node) => {
         node.classList.toggle("locked", !signedIn);
         if ("disabled" in node) node.disabled = !signedIn;
-        const input = node.matches(".car-photo-card") ? node.querySelector("input") : null;
+        const input = node.matches(".car-photo-upload") ? node.querySelector("input") : null;
         if (input) input.disabled = !signedIn;
         node.setAttribute("aria-disabled", String(!signedIn));
       });
@@ -1300,7 +1228,13 @@ const SPLINE_SCENE_URL = "";
           node.disabled = !signedIn;
         });
       });
-      if (!signedIn) closeCarPhotoMenu();
+      ["#deleteVehicleBtn"].forEach((selector) => {
+        const node = $(selector);
+        if (!node) return;
+        node.disabled = !signedIn;
+        node.classList.toggle("locked", !signedIn);
+        node.setAttribute("aria-disabled", String(!signedIn));
+      });
     }
 
     function guardAuthAction(target) {
@@ -1455,13 +1389,13 @@ const SPLINE_SCENE_URL = "";
         date: item.date,
         vehicle: item.vehicle,
         status: completedLabel
-      })) : [{
+      })) : (isSignedIn() ? [{
         question: t("journal.sampleQuestion"),
         answer: t("journal.sampleSolution"),
         date: english ? "Example" : "Пример",
         vehicle: selectCar,
         status: completedLabel
-      }];
+      }] : []);
 
       const journalQuery = getSearchValue("#journalSearch");
       const visibleCases = closedCases.filter((item) => matchesSearch([item.question, item.answer, item.vehicle, item.status], journalQuery));
@@ -1578,9 +1512,6 @@ const SPLINE_SCENE_URL = "";
       if (!messagesBox) return;
       requestAnimationFrame(() => {
         const isAssistantMode = document.body.classList.contains("assistant-mode");
-        const scrollBox = document.body.classList.contains("assistant-mode")
-          ? $(".content > .main-panel")
-          : messagesBox;
 
         if (!isAssistantMode && getComputedStyle(messagesBox).overflowY !== "visible") {
           messagesBox.scrollTop = messagesBox.scrollHeight;
@@ -1589,26 +1520,20 @@ const SPLINE_SCENE_URL = "";
 
         const lastBubble = messagesBox.querySelector(".bubble:last-child");
         const composer = $(".composer");
+        const scrollBox = $(".content > .main-panel");
 
-        if (!lastBubble || !composer) return;
+        if (!lastBubble || !composer || !scrollBox) return;
+        if (!isAssistantMode) return;
 
-        if (scrollBox && scrollBox !== messagesBox) {
-          scrollBox.scrollTo({ top: scrollBox.scrollHeight, behavior: "smooth" });
+        const bubbleBottom = lastBubble.getBoundingClientRect().bottom;
+        const scrollBoxBottom = scrollBox.getBoundingClientRect().bottom;
+        const composerHeight = composer.getBoundingClientRect().height;
+        const safeGap = 24;
+        const hiddenByComposer = bubbleBottom - (scrollBoxBottom - composerHeight - safeGap);
+
+        if (hiddenByComposer > 0) {
+          scrollBox.scrollBy({ top: hiddenByComposer, behavior: "smooth" });
         }
-
-        requestAnimationFrame(() => {
-          const bubbleBottom = lastBubble.getBoundingClientRect().bottom;
-          const composerTop = composer.getBoundingClientRect().top;
-          const hiddenByComposer = bubbleBottom - composerTop + 52;
-
-          if (hiddenByComposer <= 0) return;
-
-          if (scrollBox && scrollBox !== messagesBox) {
-            scrollBox.scrollBy({ top: hiddenByComposer, behavior: "smooth" });
-          } else {
-            window.scrollBy({ top: hiddenByComposer, behavior: "smooth" });
-          }
-        });
       });
     }
 
@@ -1757,13 +1682,6 @@ const SPLINE_SCENE_URL = "";
     function readServiceRecordsForVehicle(vehicleId) {
       const id = String(vehicleId || "").trim();
       return loadServiceRecords().filter((record) => String(record.vehicleId || "") === id);
-    }
-
-    function removeServiceRecordsForVehicle(vehicleId) {
-      const id = String(vehicleId || "").trim();
-      if (!id) return;
-      const nextRecords = loadServiceRecords().filter((record) => String(record.vehicleId || "") !== id);
-      saveServiceRecords(nextRecords);
     }
 
     function closeServiceRecordMenus(exceptId = "") {
@@ -1998,50 +1916,48 @@ const SPLINE_SCENE_URL = "";
     }
 
     const HISTORY_STORAGE_KEY = "puls_request_history_v2";
+    const GUEST_AUTH_STORAGE_KEY = "puls_guest_auth_user_id";
 
     function loadLocalHistory() {
-      try {
-        return JSON.parse(localStorage.getItem(HISTORY_STORAGE_KEY) || "[]");
-      } catch (error) {
-        return [];
-      }
+      return [];
     }
 
     async function loadUserHistory() {
       const appUser = window.pulsAppUser;
-      if (!window.supabaseClient || !appUser?.id) return [];
+      if (!isSignedIn() || !appUser?.id) return [];
 
-      const { data, error } = await window.supabaseClient
-        .from("diagnostic_requests")
-        .select("id,question,answer,language,request_type,status,created_at,vehicle_id")
-        .eq("user_id", appUser.id)
-        .order("created_at", { ascending: false })
-        .limit(100);
-
-      if (error) {
-        console.warn("Не удалось загрузить diagnostic_requests:", error.message);
-        return loadLocalHistory();
-      }
-
-      return (data || []).map((row) => {
-        const createdAt = row.created_at ? new Date(row.created_at) : new Date();
-        return {
+      try {
+        const apiBase = String(PULS_CONFIG.API_BASE_URL || "https://puls-backend-t3sn.onrender.com").replace(/\/$/, "");
+        const response = await fetch(`${apiBase}/api/history?user_id=${encodeURIComponent(appUser.id)}&limit=100`);
+        if (!response.ok) throw new Error(`History API returned ${response.status}`);
+        const payload = await response.json();
+        const data = Array.isArray(payload.items) ? payload.items : [];
+        return data.map((row) => ({
           id: row.id,
           question: row.question,
           answer: row.answer || "",
-          links: extractLinks(row.answer || ""),
-          date: createdAt.toLocaleDateString(currentLocale(), { day: "2-digit", month: "short" }) + ", " +
-            createdAt.toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" }),
-          vehicle: `${t("hero.car")} • ${t("hero.engineValue")} • ${t("hero.driveValue")}`,
-          type: row.request_type === "voice"
-            ? (getLanguage() === "en" ? "Voice request" : "Голосовой запрос")
-            : (getLanguage() === "en" ? "Text request" : "Текстовый запрос"),
+          links: Array.isArray(row.sources) ? row.sources : extractLinks(row.answer || ""),
+          videos: Array.isArray(row.videos) ? row.videos : [],
+          date: row.date || "",
+          vehicle: row.vehicle || `${t("hero.car")} • ${t("hero.engineValue")} • ${t("hero.driveValue")}`,
+          type: row.deep_search_used
+            ? (getLanguage() === "en" ? "Deep Search" : "Deep Search")
+            : row.parser_used
+              ? (getLanguage() === "en" ? "Parser" : "Parser")
+              : (getLanguage() === "en" ? "Text request" : "Текстовый запрос"),
           status: row.status || "new"
-        };
-      });
+        }));
+      } catch (error) {
+        console.warn("Не удалось загрузить историю из backend:", error.message);
+        return [];
+      }
     }
 
     async function saveHistoryItem(question, answer, links = []) {
+      if (!isSignedIn()) return;
+      await renderLists();
+      return;
+
       const item = {
         question,
         answer,
@@ -2055,25 +1971,6 @@ const SPLINE_SCENE_URL = "";
         ...item,
         date: now.toLocaleDateString(currentLocale(), { day: "2-digit", month: "short" }) + ", " + now.toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" })
       };
-
-      const appUser = window.pulsAppUser;
-      if (window.supabaseClient && appUser?.id) {
-        const { error } = await window.supabaseClient
-          .from("diagnostic_requests")
-          .insert({
-            user_id: appUser.id,
-            question,
-            answer,
-            language: getLanguage(),
-            request_type: "text",
-            status: "new",
-            source: "web"
-          });
-
-        if (error) {
-          console.warn("Не удалось сохранить diagnostic_requests:", error.message);
-        }
-      }
 
       const history = loadLocalHistory();
       history.unshift(localItem);
@@ -2113,26 +2010,56 @@ const SPLINE_SCENE_URL = "";
       return error ? null : data.user;
     }
 
+    function getGuestAuthId() {
+      let guestId = localStorage.getItem(GUEST_AUTH_STORAGE_KEY);
+      if (!guestId) {
+        const randomId = window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        guestId = `web-guest-${randomId}`;
+        localStorage.setItem(GUEST_AUTH_STORAGE_KEY, guestId);
+      }
+      return guestId;
+    }
+
+    async function getChatUserContext() {
+      const user = await getCurrentAuthUser();
+      if (!user) return null;
+
+      const appUser = window.pulsAppUser || await window.syncAuthUserProfile?.(user);
+      window.pulsAppUser = appUser || window.pulsAppUser || null;
+      const activeVehicle = loadVehicleProfile();
+      const activeVehicleLabel = getVehicleLabel(activeVehicle);
+      const activeVehicleContext = [
+        activeVehicleLabel && activeVehicleLabel !== t("hero.car") ? activeVehicleLabel : "",
+        activeVehicle.year,
+        activeVehicle.engine,
+        activeVehicle.drive
+      ].filter(Boolean).join(" ");
+
+      return {
+        isGuest: false,
+        appUser,
+        payload: {
+          auth_user_id: user.id,
+          username: user.email || "web_user",
+          first_name: user.user_metadata?.full_name || "Web",
+          email: user.email || "",
+          car_info: activeVehicleContext || ""
+        }
+      };
+    }
+
     async function sendPrompt() {
       const input = $("#promptInput");
       const prompt = input.value.trim();
       if (!prompt) return;
+      if (!requireSignedInForChat()) return;
       showView("assistant");
 
-      const user = await getCurrentAuthUser();
-      if (!user) {
-        toast(t("assistant.authRequired"));
+      const chatUser = await getChatUserContext();
+      if (!chatUser?.payload) {
         window.openAuthModal?.();
         return;
       }
-
-      const appUser = window.pulsAppUser || await window.syncAuthUserProfile?.(user);
-      if (!appUser || appUser.auth_user_id !== user.id) {
-        toast(t("assistant.authRequired"));
-        return;
-      }
-
-      window.pulsAppUser = appUser;
 
       appendMessage(prompt, true);
       input.value = "";
@@ -2145,13 +2072,12 @@ const SPLINE_SCENE_URL = "";
           body: JSON.stringify({
             message: prompt,
             source: "web",
-            auth_user_id: user.id,
-            username: user.email || "web_user",
-            first_name: user.user_metadata?.full_name || "Web",
-            email: user.email,
+            auth_user_id: chatUser.payload.auth_user_id,
+            username: chatUser.payload.username,
+            first_name: chatUser.payload.first_name,
+            email: chatUser.payload.email,
             language: getLanguage(),
-            car_info: appUser.car_info || "",
-            conversation_history: appUser.conversation_history || ""
+            car_info: chatUser.payload.car_info
           })
         });
 
@@ -2193,35 +2119,81 @@ const SPLINE_SCENE_URL = "";
       $("#splineBox").innerHTML = `<iframe title="Spline scene" src="${SPLINE_SCENE_URL}" allow="autoplay; fullscreen; xr-spatial-tracking"></iframe>`;
     }
 
+    const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
+    const SPLASH_ACTIVATE_EVENTS = ["click", "touchstart", "keydown"];
+    const IDLE_ACTIVITY_EVENTS = ["mousemove", "click", "touchstart", "keydown", "scroll"];
+    let idleTimerId = null;
+    let splashVisible = true;
+    let idleVisible = false;
+
+    function setPulsScreenState() {
+      document.body.classList.toggle("puls-splash-active", splashVisible);
+      document.body.classList.toggle("puls-idle-active", idleVisible);
+    }
+
+    function hideSplashScreen() {
+      if (!splashVisible) return;
+      splashVisible = false;
+      setPulsScreenState();
+      resetIdleTimer();
+    }
+
+    function showIdleScreen() {
+      if (idleVisible || splashVisible) return;
+      idleVisible = true;
+      setPulsScreenState();
+    }
+
+    function hideIdleScreen() {
+      if (!idleVisible) return;
+      idleVisible = false;
+      setPulsScreenState();
+    }
+
+    function resetIdleTimer() {
+      clearTimeout(idleTimerId);
+      if (splashVisible) return;
+      idleTimerId = window.setTimeout(showIdleScreen, IDLE_TIMEOUT_MS);
+    }
+
+    function handlePulsActivity() {
+      if (splashVisible) return;
+      if (idleVisible) hideIdleScreen();
+      resetIdleTimer();
+    }
+
+    function handleSplashActivation(event) {
+      if (!splashVisible) return;
+      hideSplashScreen();
+      SPLASH_ACTIVATE_EVENTS.forEach((eventName) => {
+        document.removeEventListener(eventName, handleSplashActivation);
+      });
+    }
+
     document.addEventListener("DOMContentLoaded", async () => {
       document.body.classList.add("assistant-mode");
+      setPulsScreenState();
       injectIcons();
       applyLanguage();
       initVehicleEditor();
+      await syncVehicleStoreFromBackend();
       await renderLists();
       connectSpline();
 
       $("#sendBtn").addEventListener("click", sendPrompt);
       $("#promptInput").addEventListener("keydown", (event) => {
-        if (event.key === "Enter") sendPrompt();
+        if (event.key === "Enter") {
+          event.preventDefault();
+          sendPrompt();
+        }
       });
+      $("#pulsSplashHitArea")?.addEventListener("pointerdown", handleSplashActivation);
+      $("#pulsSplashHitArea")?.addEventListener("click", handleSplashActivation);
       ["#journalSearch", "#historySearch", "#manualSearch", "#videoSearch"].forEach((selector) => {
         $(selector)?.addEventListener("input", () => renderLists());
       });
       $("#carPhotoInput")?.addEventListener("change", (event) => {
-        void updateCarPhoto(event.target.files?.[0]);
-      });
-      $("#carPhotoMenuBtn")?.addEventListener("click", (event) => {
-        event.stopPropagation();
-        toggleCarPhotoMenu();
-      });
-      $("#replaceCarPhotoBtn")?.addEventListener("click", () => {
-        closeCarPhotoMenu();
-        $("#carPhotoInput")?.click();
-      });
-      $("#removeCarPhotoBtn")?.addEventListener("click", () => {
-        closeCarPhotoMenu();
-        void removeCarPhoto();
+        updateCarPhoto(event.target.files?.[0]);
       });
       $("#serviceForm")?.addEventListener("submit", saveServiceRecord);
       ["#serviceTitleInput", "#serviceDescriptionInput", "#serviceDateInput", "#serviceMileageInput"].forEach((selector) => {
@@ -2236,30 +2208,26 @@ const SPLINE_SCENE_URL = "";
       $("#languageSelect")?.addEventListener("change", (event) => {
         setLanguage(event.target.value);
       });
-      window.addEventListener("puls-auth-change", async () => {
-        applyAuthLockedState();
-        if (isSignedIn()) {
-          try {
-            const activeVehicle = await syncVehicleStoreFromApi();
-            fillVehicleForm(activeVehicle);
-          } catch (error) {
-            console.error("Vehicle sync after auth failed:", error);
-          }
+      window.addEventListener("puls-auth-change", async (event) => {
+        if (!event.detail?.user) {
+          clearPrivateUiCache();
+          window.pulsAppUser = null;
+          fillVehicleForm(loadVehicleProfile());
         }
+        applyAuthLockedState();
+        await syncVehicleStoreFromBackend();
         await renderLists();
+      });
+      SPLASH_ACTIVATE_EVENTS.forEach((eventName) => {
+        document.addEventListener(eventName, handleSplashActivation, { passive: eventName !== "keydown" });
+      });
+      IDLE_ACTIVITY_EVENTS.forEach((eventName) => {
+        window.addEventListener(eventName, handlePulsActivity, { passive: eventName !== "keydown" });
       });
       applyAuthLockedState();
       window.addEventListener("resize", syncAssistantMessageHeight);
       syncAssistantMessageHeight();
-      if (isSignedIn()) {
-        try {
-          const activeVehicle = await syncVehicleStoreFromApi();
-          fillVehicleForm(activeVehicle);
-        } catch (error) {
-          console.error("Initial vehicle sync failed:", error);
-        }
-      }
-      document.addEventListener("click", (event) => {
+      document.addEventListener("click", async (event) => {
         if (event.target.closest("#requestCloseBtn") || event.target.closest("#requestModal") && event.target.id === "requestModal") {
           closeRequestModal();
           return;
@@ -2300,7 +2268,6 @@ const SPLINE_SCENE_URL = "";
         const addVehicleButton = event.target.closest("#addVehicleBtn, #vehicleAddChip");
         if (addVehicleButton) {
           const vehicle = addVehicleProfile();
-          closeCarPhotoMenu();
           fillVehicleForm(vehicle);
           renderLists();
           showView("car");
@@ -2314,29 +2281,20 @@ const SPLINE_SCENE_URL = "";
           const label = getVehicleLabel(activeVehicle);
           const confirmed = window.confirm(`${t("car.deleteVehicle")}: ${label}?`);
           if (!confirmed) return;
-          closeCarPhotoMenu();
-          (async () => {
-            try {
-              if (/^\d+$/.test(String(activeVehicle?.id || "").trim())) {
-                await deleteVehicleFromApi(activeVehicle.id);
-              }
-              removeServiceRecordsForVehicle(activeVehicle?.id);
-              const nextVehicle = removeActiveVehicleProfile();
-              fillVehicleForm(nextVehicle);
-              await renderLists();
-              toast(t("car.vehicleDeleted"));
-              showView("car");
-            } catch (error) {
-              console.error("Vehicle delete failed:", error);
-              toast(t("car.vehicleSyncError"));
-            }
-          })();
+          try {
+            await deleteVehicleFromBackend(activeVehicle);
+          } catch (error) {
+            console.warn("Could not delete vehicle from backend:", error);
+          }
+          const nextVehicle = removeActiveVehicleProfile();
+          fillVehicleForm(nextVehicle);
+          renderLists();
+          showView("car");
           return;
         }
 
         const vehicleChip = event.target.closest("[data-vehicle-id]");
         if (vehicleChip) {
-          closeCarPhotoMenu();
           const active = setActiveVehicleProfile(vehicleChip.dataset.vehicleId);
           fillVehicleForm(active);
           renderLists();
@@ -2374,10 +2332,6 @@ const SPLINE_SCENE_URL = "";
 
         if (!event.target.closest(".service-actions")) {
           closeServiceRecordMenus();
-        }
-
-        if (!event.target.closest(".car-photo-actions")) {
-          closeCarPhotoMenu();
         }
 
         const infoButton = event.target.closest(".info-btn[data-info]");
