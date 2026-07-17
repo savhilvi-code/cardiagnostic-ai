@@ -1494,6 +1494,12 @@ html { scroll-behavior: smooth; }
       pointer-events: auto;
     }
 
+    .auth-required.locked .car-photo-upload,
+    .auth-required.locked .car-photo-menu-btn,
+    .auth-required.locked .car-photo-menu button {
+      pointer-events: auto;
+    }
+
     .danger-btn {
       border-color: rgba(255, 76, 76, .55);
       color: #ffdede;
@@ -1859,6 +1865,13 @@ html { scroll-behavior: smooth; }
       padding: 16px;
     }
 
+    .car-photo-upload.has-photo {
+      min-height: 220px;
+      padding: 0;
+      overflow: hidden;
+      align-items: end;
+    }
+
     #car .car-photo-upload input {
       position: absolute;
       inline-size: 1px;
@@ -1881,7 +1894,73 @@ html { scroll-behavior: smooth; }
     }
 
     .car-photo-upload.has-photo .car-photo-label {
-      align-self: end;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(8px);
+    }
+
+    .car-photo-actions {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      margin-top: 12px;
+    }
+
+    .car-photo-actions[hidden] {
+      display: none !important;
+    }
+
+    .car-photo-menu-btn {
+      min-height: 42px;
+      border: 1px solid rgba(8, 125, 255, .5);
+      border-radius: 999px;
+      background: rgba(5, 18, 31, .92);
+      color: #fff;
+      padding: 0 16px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      box-shadow: 0 10px 26px rgba(0, 0, 0, .28);
+    }
+
+    .car-photo-menu-arrow {
+      font-size: 14px;
+      color: var(--cyan);
+    }
+
+    .car-photo-menu {
+      position: absolute;
+      top: calc(100% + 10px);
+      display: grid;
+      gap: 8px;
+      min-width: 210px;
+      padding: 10px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(4, 17, 29, .98);
+      box-shadow: var(--shadow);
+      z-index: 5;
+    }
+
+    .car-photo-menu[hidden] {
+      display: none !important;
+    }
+
+    .car-photo-menu button {
+      min-height: 40px;
+      border: 1px solid rgba(18, 58, 92, .9);
+      border-radius: 10px;
+      background: rgba(7, 26, 42, .86);
+      color: #fff;
+      text-align: left;
+      padding: 0 12px;
+      font-weight: 600;
+    }
+
+    .car-photo-menu button:hover {
+      border-color: rgba(8, 125, 255, .52);
+      background: rgba(8, 125, 255, .14);
     }
 
     @media (max-width: 1050px) {

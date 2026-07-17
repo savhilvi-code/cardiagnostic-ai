@@ -118,7 +118,11 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
         "car.serviceAdd": "Add record",
         "car.serviceHelp": "All maintenance records stay inside the selected car so the assistant always knows what has already been done.",
         "car.photoUpload": "Attach car photo",
+        "car.photoMenu": "Photo actions",
+        "car.photoReplace": "Replace photo",
+        "car.photoDelete": "Delete photo",
         "car.photoSaved": "Car photo saved.",
+        "car.photoRemoved": "Car photo removed.",
         "car.photoConfigMissing": "Supabase photo storage is not configured.",
         "car.photoStorageMissing": "Create the public Supabase bucket \"vehicle-photos\" and allow uploads for signed-in users.",
         "car.photoUploadError": "Could not upload the car photo. Please try again.",
@@ -330,7 +334,11 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
         "car.serviceAdd": "Добавить запись",
         "car.serviceHelp": "Все записи обслуживания и ТО отображаются внутри карточки выбранного автомобиля, чтобы контекст машины не терялся.",
         "car.photoUpload": "Прикрепить фото авто",
+        "car.photoMenu": "Действия с фото",
+        "car.photoReplace": "Заменить фото",
+        "car.photoDelete": "Удалить фото",
         "car.photoSaved": "Фото автомобиля сохранено.",
+        "car.photoRemoved": "Фото автомобиля удалено.",
         "car.photoConfigMissing": "Хранилище фото Supabase не настроено.",
         "car.photoStorageMissing": "Создайте публичный bucket Supabase \"vehicle-photos\" и разрешите загрузку для авторизованных пользователей.",
         "car.photoUploadError": "Не удалось загрузить фото автомобиля. Попробуйте ещё раз.",
@@ -996,15 +1004,22 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
 
     function setCarPhotoPreview(photoUrl = "") {
       const box = $(".car-photo-upload");
+      const actions = $("#carPhotoActions");
+      const menu = $("#carPhotoMenu");
+      const menuButton = $("#carPhotoMenuBtn");
       if (!box) return;
       if (!photoUrl) {
         box.style.removeProperty("--car-photo-image");
         box.classList.remove("has-photo");
+        if (actions) actions.hidden = true;
+        if (menu) menu.hidden = true;
+        if (menuButton) menuButton.setAttribute("aria-expanded", "false");
         return;
       }
 
       box.style.setProperty("--car-photo-image", `url("${photoUrl}")`);
       box.classList.add("has-photo");
+      if (actions) actions.hidden = false;
     }
 
     function getVehicleFormValues() {
@@ -1155,12 +1170,31 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       if (node.firstElementChild?.tagName?.toLowerCase() === "svg") {
         Array.from(node.childNodes).forEach((child) => {
           if (child !== node.firstElementChild) child.remove();
-        });
+          });
         node.appendChild(document.createTextNode(value));
         return;
       }
 
       node.innerHTML = value;
+    }
+
+    function ensureCarPhotoActions() {
+      const photoBox = $("#carPhotoUpload") || $(".car-photo-upload");
+      if (!photoBox) return;
+      if ($("#carPhotoActions")) return;
+
+      photoBox.insertAdjacentHTML("afterend", `
+        <div class="car-photo-actions" id="carPhotoActions" hidden>
+          <button class="car-photo-menu-btn" id="carPhotoMenuBtn" type="button" aria-haspopup="menu" aria-expanded="false">
+            <span data-i18n="car.photoMenu">${escapeHtml(t("car.photoMenu"))}</span>
+            <span class="car-photo-menu-arrow" aria-hidden="true">▾</span>
+          </button>
+          <div class="car-photo-menu" id="carPhotoMenu" hidden>
+            <button type="button" id="replaceCarPhotoBtn" data-i18n="car.photoReplace">${escapeHtml(t("car.photoReplace"))}</button>
+            <button type="button" id="removeCarPhotoBtn" data-i18n="car.photoDelete">${escapeHtml(t("car.photoDelete"))}</button>
+          </div>
+        </div>
+      `);
     }
 
     function applyLanguage() {
@@ -1352,6 +1386,55 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       }
     }
 
+    async function removeCarPhoto() {
+      if (!requireSignedInForEdit()) return "";
+      const input = $("#carPhotoInput");
+      const previousProfile = loadVehicleProfile();
+      if (!previousProfile.photoUrl) return "";
+      if (input) input.disabled = true;
+
+      try {
+        const nextProfile = saveVehicleProfile({ ...previousProfile, photoUrl: "" });
+        setCarPhotoPreview("");
+        setCarSummaryText(nextProfile);
+        const syncedProfile = await saveVehicleProfileToBackend(nextProfile);
+        fillVehicleForm(syncedProfile);
+        await removeVehiclePhotoFromStorage(previousProfile.photoUrl).catch((error) => {
+          console.warn("Could not remove vehicle photo from storage:", error);
+          throw error;
+        });
+        toast(t("car.photoRemoved"));
+        return "";
+      } catch (error) {
+        console.error("Car photo remove failed:", error);
+        fillVehicleForm(previousProfile);
+        toast(describeVehiclePhotoUploadError(error));
+        return previousProfile.photoUrl || "";
+      } finally {
+        closeCarPhotoMenu();
+        if (input) {
+          input.value = "";
+          input.disabled = !isSignedIn();
+        }
+      }
+    }
+
+    function closeCarPhotoMenu() {
+      const menu = $("#carPhotoMenu");
+      const button = $("#carPhotoMenuBtn");
+      if (menu) menu.hidden = true;
+      if (button) button.setAttribute("aria-expanded", "false");
+    }
+
+    function toggleCarPhotoMenu() {
+      const menu = $("#carPhotoMenu");
+      const button = $("#carPhotoMenuBtn");
+      if (!menu || !button) return;
+      const nextOpen = menu.hidden;
+      menu.hidden = !nextOpen;
+      button.setAttribute("aria-expanded", String(nextOpen));
+    }
+
     function isSignedIn() {
       return Boolean(window.pulsCurrentUser);
     }
@@ -1375,7 +1458,7 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       $$(".auth-required").forEach((node) => {
         node.classList.toggle("locked", !signedIn);
         if ("disabled" in node) node.disabled = !signedIn;
-        const input = node.matches(".car-photo-upload") ? node.querySelector("input") : null;
+        const input = node.matches(".car-photo-card") || node.matches(".car-photo-upload") ? node.querySelector("input") : null;
         if (input) input.disabled = !signedIn;
         node.setAttribute("aria-disabled", String(!signedIn));
       });
@@ -1393,6 +1476,14 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
         node.classList.toggle("locked", !signedIn);
         node.setAttribute("aria-disabled", String(!signedIn));
       });
+      ["#carPhotoMenuBtn", "#replaceCarPhotoBtn", "#removeCarPhotoBtn"].forEach((selector) => {
+        const node = $(selector);
+        if (!node) return;
+        node.disabled = !signedIn;
+        node.classList.toggle("locked", !signedIn);
+        node.setAttribute("aria-disabled", String(!signedIn));
+      });
+      if (!signedIn) closeCarPhotoMenu();
     }
 
     function guardAuthAction(target) {
@@ -2332,6 +2423,7 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       document.body.classList.add("assistant-mode");
       setPulsScreenState();
       injectIcons();
+      ensureCarPhotoActions();
       applyLanguage();
       initVehicleEditor();
       await syncVehicleStoreFromBackend();
@@ -2352,6 +2444,18 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       });
       $("#carPhotoInput")?.addEventListener("change", (event) => {
         updateCarPhoto(event.target.files?.[0]);
+      });
+      $("#carPhotoMenuBtn")?.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        toggleCarPhotoMenu();
+      });
+      $("#replaceCarPhotoBtn")?.addEventListener("click", () => {
+        closeCarPhotoMenu();
+        $("#carPhotoInput")?.click();
+      });
+      $("#removeCarPhotoBtn")?.addEventListener("click", () => {
+        void removeCarPhoto();
       });
       $("#serviceForm")?.addEventListener("submit", saveServiceRecord);
       ["#serviceTitleInput", "#serviceDescriptionInput", "#serviceDateInput", "#serviceMileageInput"].forEach((selector) => {
@@ -2490,6 +2594,10 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
 
         if (!event.target.closest(".service-actions")) {
           closeServiceRecordMenus();
+        }
+
+        if (!event.target.closest(".car-photo-actions")) {
+          closeCarPhotoMenu();
         }
 
         const infoButton = event.target.closest(".info-btn[data-info]");
