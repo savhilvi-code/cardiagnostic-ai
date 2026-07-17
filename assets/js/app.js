@@ -2,6 +2,8 @@ const PULS_CONFIG = window.PULS_CONFIG || {};
 const API_BASE_URL = String(PULS_CONFIG.API_BASE_URL || "https://puls-backend-t3sn.onrender.com").replace(/\/$/, "");
 const CHAT_API_URL = PULS_CONFIG.CHAT_API_URL || `${API_BASE_URL}/chat`;
 const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.design/starterscenecopy-RDKY0gQFbXbkko9LN657PtBA/";
+const VEHICLE_PHOTO_BUCKET = String(PULS_CONFIG.VEHICLE_PHOTO_BUCKET || "vehicle-photos").trim();
+const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10 * 1024 * 1024);
 
     const iconMap = {
       bot: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="8" width="14" height="10" rx="3"/><path d="M12 4v4M8 13h.01M16 13h.01M7 21h10M3 11v4M21 11v4"/></svg>',
@@ -116,6 +118,11 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
         "car.serviceAdd": "Add record",
         "car.serviceHelp": "All maintenance records stay inside the selected car so the assistant always knows what has already been done.",
         "car.photoUpload": "Attach car photo",
+        "car.photoSaved": "Car photo saved.",
+        "car.photoConfigMissing": "Supabase photo storage is not configured.",
+        "car.photoStorageMissing": "Create the public Supabase bucket \"vehicle-photos\" and allow uploads for signed-in users.",
+        "car.photoUploadError": "Could not upload the car photo. Please try again.",
+        "car.photoTooLarge": "The photo is too large. Maximum size is 10 MB.",
         "car.vehicleTitle": "My cars",
         "car.vehicleSubtitle": "Save several vehicles and switch between them without losing context.",
         "car.addVehicle": "Add vehicle",
@@ -323,6 +330,11 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
         "car.serviceAdd": "Добавить запись",
         "car.serviceHelp": "Все записи обслуживания и ТО отображаются внутри карточки выбранного автомобиля, чтобы контекст машины не терялся.",
         "car.photoUpload": "Прикрепить фото авто",
+        "car.photoSaved": "Фото автомобиля сохранено.",
+        "car.photoConfigMissing": "Хранилище фото Supabase не настроено.",
+        "car.photoStorageMissing": "Создайте публичный bucket Supabase \"vehicle-photos\" и разрешите загрузку для авторизованных пользователей.",
+        "car.photoUploadError": "Не удалось загрузить фото автомобиля. Попробуйте ещё раз.",
+        "car.photoTooLarge": "Фотография слишком большая. Максимум 10 МБ.",
         "car.formTitle": "Редактор автомобиля",
         "car.formSubtitle": "Заполните данные машины один раз, чтобы PULS всегда понимал, какой автомобиль использовать.",
         "car.formBrand": "Марка",
@@ -740,6 +752,11 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
       if (window.pulsCurrentUser?.email) params.set("email", window.pulsCurrentUser.email);
       const res = await fetch(`${API_BASE_URL}/api/vehicles/${encodeURIComponent(vehicle.id)}?${params.toString()}`, { method: "DELETE" });
       if (!res.ok) throw new Error(`Vehicle delete returned ${res.status}`);
+      if (vehicle?.photoUrl) {
+        removeVehiclePhotoFromStorage(vehicle.photoUrl).catch((error) => {
+          console.warn("Could not remove vehicle photo from storage:", error);
+        });
+      }
       return true;
     }
 
@@ -1172,6 +1189,104 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
       renderLists();
     }
 
+    function sanitizeVehiclePhotoName(fileName = "") {
+      const base = String(fileName || "photo")
+        .replace(/\.[a-z0-9]+$/i, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9._-]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+      return base || "photo";
+    }
+
+    function getVehiclePhotoExtension(file) {
+      const fileName = String(file?.name || "");
+      const explicitExt = fileName.includes(".") ? fileName.split(".").pop().toLowerCase() : "";
+      if (explicitExt) return explicitExt === "jpeg" ? "jpg" : explicitExt;
+
+      const mime = String(file?.type || "").toLowerCase();
+      if (mime.includes("png")) return "png";
+      if (mime.includes("webp")) return "webp";
+      if (mime.includes("gif")) return "gif";
+      if (mime.includes("heic")) return "heic";
+      if (mime.includes("heif")) return "heif";
+      return "jpg";
+    }
+
+    function getVehiclePhotoPublicPath(photoUrl = "") {
+      if (!photoUrl || !VEHICLE_PHOTO_BUCKET) return "";
+
+      try {
+        const url = new URL(photoUrl, window.location.origin);
+        const marker = `/storage/v1/object/public/${VEHICLE_PHOTO_BUCKET}/`;
+        const markerIndex = url.pathname.indexOf(marker);
+        if (markerIndex === -1) return "";
+        return decodeURIComponent(url.pathname.slice(markerIndex + marker.length));
+      } catch (error) {
+        return "";
+      }
+    }
+
+    async function removeVehiclePhotoFromStorage(photoUrl = "") {
+      if (!window.supabaseClient) return false;
+      const objectPath = getVehiclePhotoPublicPath(photoUrl);
+      if (!objectPath) return false;
+      const { error } = await window.supabaseClient.storage.from(VEHICLE_PHOTO_BUCKET).remove([objectPath]);
+      if (error) {
+        const message = String(error.message || "");
+        if (/not found/i.test(message)) return false;
+        throw error;
+      }
+      return true;
+    }
+
+    async function uploadVehiclePhotoToStorage(file, profile) {
+      if (!window.supabaseClient) {
+        throw new Error("SUPABASE_STORAGE_NOT_CONFIGURED");
+      }
+      if (!VEHICLE_PHOTO_BUCKET) {
+        throw new Error("SUPABASE_STORAGE_BUCKET_MISSING");
+      }
+
+      const userPart = String(window.pulsCurrentUser?.id || window.pulsAppUser?.id || "guest")
+        .replace(/[^a-zA-Z0-9_-]+/g, "-");
+      const vehiclePart = String(profile?.id || "vehicle")
+        .replace(/[^a-zA-Z0-9_-]+/g, "-");
+      const safeName = sanitizeVehiclePhotoName(file?.name || "photo");
+      const extension = getVehiclePhotoExtension(file);
+      const objectPath = `${userPart}/${vehiclePart}/${Date.now()}-${safeName}.${extension}`;
+
+      const { error: uploadError } = await window.supabaseClient.storage.from(VEHICLE_PHOTO_BUCKET).upload(objectPath, file, {
+        cacheControl: "3600",
+        upsert: false,
+        contentType: file?.type || "application/octet-stream"
+      });
+      if (uploadError) throw uploadError;
+
+      const { data: publicData } = window.supabaseClient.storage.from(VEHICLE_PHOTO_BUCKET).getPublicUrl(objectPath);
+      const publicUrl = String(publicData?.publicUrl || "").trim();
+      if (!publicUrl) throw new Error("SUPABASE_STORAGE_PUBLIC_URL_MISSING");
+      return { publicUrl };
+    }
+
+    function describeVehiclePhotoUploadError(error) {
+      const message = String(error?.message || error || "");
+      if (
+        message.includes("SUPABASE_STORAGE_NOT_CONFIGURED") ||
+        message.includes("SUPABASE_STORAGE_PUBLIC_URL_MISSING")
+      ) {
+        return t("car.photoConfigMissing");
+      }
+      if (
+        message.includes("SUPABASE_STORAGE_BUCKET_MISSING") ||
+        /bucket/i.test(message) ||
+        /not found/i.test(message) ||
+        /row-level security|permission|unauthorized|forbidden/i.test(message)
+      ) {
+        return t("car.photoStorageMissing");
+      }
+      return t("car.photoUploadError");
+    }
+
     function toggleHelp(name) {
       const help = document.getElementById(`${name}Help`);
       if (!help) return;
@@ -1184,14 +1299,57 @@ const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.desi
         setCarPhotoPreview("");
         return "";
       }
+      if (!String(file.type || "").toLowerCase().startsWith("image/")) {
+        toast(t("car.photoUploadError"));
+        return "";
+      }
+      if (Number(file.size || 0) > VEHICLE_PHOTO_MAX_BYTES) {
+        toast(t("car.photoTooLarge"));
+        return "";
+      }
+      if (!window.supabaseClient) {
+        toast(t("car.photoConfigMissing"));
+        return "";
+      }
 
-      const url = await fileToDataUrl(file);
-      if (!url) return "";
-      setCarPhotoPreview(url);
-      const active = loadVehicleProfile();
-      saveVehicleProfile({ ...active, photoUrl: url });
-      setCarSummaryText({ ...active, photoUrl: url });
-      return url;
+      const input = $("#carPhotoInput");
+      const previousProfile = loadVehicleProfile();
+      if (input) input.disabled = true;
+
+      const previewUrl = await fileToDataUrl(file);
+      if (previewUrl) setCarPhotoPreview(previewUrl);
+
+      try {
+        let activeProfile = previousProfile;
+        if (!isBackendVehicleId(activeProfile.id)) {
+          activeProfile = await saveVehicleProfileToBackend(activeProfile);
+          fillVehicleForm(activeProfile);
+        }
+
+        const uploadResult = await uploadVehiclePhotoToStorage(file, activeProfile);
+        const nextProfile = saveVehicleProfile({ ...activeProfile, photoUrl: uploadResult.publicUrl });
+        setCarSummaryText(nextProfile);
+        const syncedProfile = await saveVehicleProfileToBackend(nextProfile);
+        fillVehicleForm(syncedProfile);
+        renderLists();
+        if (previousProfile.photoUrl && previousProfile.photoUrl !== syncedProfile.photoUrl) {
+          removeVehiclePhotoFromStorage(previousProfile.photoUrl).catch((error) => {
+            console.warn("Could not remove previous vehicle photo:", error);
+          });
+        }
+        toast(t("car.photoSaved"));
+        return syncedProfile.photoUrl || uploadResult.publicUrl;
+      } catch (error) {
+        console.error("Car photo upload failed:", error);
+        fillVehicleForm(previousProfile);
+        toast(describeVehiclePhotoUploadError(error));
+        return "";
+      } finally {
+        if (input) {
+          input.value = "";
+          input.disabled = !isSignedIn();
+        }
+      }
     }
 
     function isSignedIn() {
