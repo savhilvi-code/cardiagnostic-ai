@@ -166,7 +166,7 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
         "spec.displacement": "Engine displacement:",
         "spec.note": "These fields are filled automatically from vehicle data and can be edited manually.",
         "spec.loadInternet": "Load from internet",
-        "spec.loadInternetHint": "Best results come from a verified VIN or chassis provider. Loaded values can still be edited manually.",
+        "spec.loadInternetHint": "Best results come from a full VIN or chassis number. Loaded values can still be edited manually.",
         "spec.loadNeedVin": "Enter a full VIN or chassis number to load technical specs from the internet.",
         "spec.loadStarted": "Loading technical specs from the internet...",
         "spec.loadDone": "Technical specs loaded from the internet.",
@@ -387,7 +387,7 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
         "spec.displacement": "Объем двигателя:",
         "spec.note": "Эти поля заполняются автоматически по данным автомобиля и могут редактироваться вручную.",
         "spec.loadInternet": "Загрузить из интернета",
-        "spec.loadInternetHint": "Лучше всего работает с подключённым проверенным VIN/chassis-провайдером. После загрузки значения всё равно можно изменить вручную.",
+        "spec.loadInternetHint": "Лучше всего работает с полным VIN или номером кузова. После загрузки значения всё равно можно изменить вручную.",
         "spec.loadNeedVin": "Введите полный VIN или номер кузова, чтобы загрузить характеристики из интернета.",
         "spec.loadStarted": "Загружаю технические характеристики из интернета...",
         "spec.loadDone": "Технические характеристики загружены из интернета.",
@@ -516,14 +516,14 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
     window.pulsT = t;
 
     Object.assign(i18n.en, {
-      "spec.loadInternetHint": "Best results come from a verified VIN or chassis provider. Loaded values can still be edited manually.",
+      "spec.loadInternetHint": "Best results come from a full VIN. PULS can verify specs and set a car photo automatically; you can still edit everything manually.",
       "spec.loadNeedContext": "Enter a full VIN or at least brand and model to load data from the internet.",
       "spec.loadDraftDone": "Internet data loaded into the draft. Save the car to keep it.",
       "spec.loadError": "Could not load vehicle data from the internet. Please try again."
     });
 
     Object.assign(i18n.ru, {
-      "spec.loadInternetHint": "\u041b\u0443\u0447\u0448\u0435 \u0432\u0441\u0435\u0433\u043e \u0440\u0430\u0431\u043e\u0442\u0430\u0435\u0442 \u0441 \u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0451\u043d\u043d\u044b\u043c \u043f\u0440\u043e\u0432\u0435\u0440\u0435\u043d\u043d\u044b\u043c VIN/chassis-\u043f\u0440\u043e\u0432\u0430\u0439\u0434\u0435\u0440\u043e\u043c. \u041f\u043e\u0441\u043b\u0435 \u0437\u0430\u0433\u0440\u0443\u0437\u043a\u0438 \u0437\u043d\u0430\u0447\u0435\u043d\u0438\u044f \u0432\u0441\u0451 \u0440\u0430\u0432\u043d\u043e \u043c\u043e\u0436\u043d\u043e \u0438\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u0432\u0440\u0443\u0447\u043d\u0443\u044e.",
+      "spec.loadInternetHint": "\u041b\u0443\u0447\u0448\u0435 \u0432\u0441\u0435\u0433\u043e \u0440\u0430\u0431\u043e\u0442\u0430\u0435\u0442 \u0441 \u043f\u043e\u043b\u043d\u044b\u043c VIN. PULS \u043f\u0440\u043e\u0432\u0435\u0440\u0438\u0442 \u0445\u0430\u0440\u0430\u043a\u0442\u0435\u0440\u0438\u0441\u0442\u0438\u043a\u0438 \u0438 \u0430\u0432\u0442\u043e\u043c\u0430\u0442\u0438\u0447\u0435\u0441\u043a\u0438 \u043f\u043e\u0441\u0442\u0430\u0432\u0438\u0442 \u0444\u043e\u0442\u043e \u043c\u0430\u0448\u0438\u043d\u044b; \u043f\u043e\u0442\u043e\u043c \u0432\u0441\u0451 \u0440\u0430\u0432\u043d\u043e \u043c\u043e\u0436\u043d\u043e \u0438\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u0432\u0440\u0443\u0447\u043d\u0443\u044e.",
       "spec.loadNeedContext": "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u043f\u043e\u043b\u043d\u044b\u0439 VIN \u0438\u043b\u0438 \u0445\u043e\u0442\u044f \u0431\u044b \u043c\u0430\u0440\u043a\u0443 \u0438 \u043c\u043e\u0434\u0435\u043b\u044c, \u0447\u0442\u043e\u0431\u044b \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u0434\u0430\u043d\u043d\u044b\u0435 \u0438\u0437 \u0438\u043d\u0442\u0435\u0440\u043d\u0435\u0442\u0430.",
       "spec.loadDraftDone": "\u0414\u0430\u043d\u043d\u044b\u0435 \u0438\u0437 \u0438\u043d\u0442\u0435\u0440\u043d\u0435\u0442\u0430 \u043f\u043e\u0434\u0441\u0442\u0430\u0432\u043b\u0435\u043d\u044b \u0432 \u0447\u0435\u0440\u043d\u043e\u0432\u0438\u043a. \u041d\u0430\u0436\u043c\u0438\u0442\u0435 \u00ab\u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c \u043c\u0430\u0448\u0438\u043d\u0443\u00bb, \u0447\u0442\u043e\u0431\u044b \u0441\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c \u0438\u0445.",
       "spec.loadError": "\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u0434\u0430\u043d\u043d\u044b\u0435 \u043c\u0430\u0448\u0438\u043d\u044b \u0438\u0437 \u0438\u043d\u0442\u0435\u0440\u043d\u0435\u0442\u0430. \u041f\u043e\u043f\u0440\u043e\u0431\u0443\u0439\u0442\u0435 \u0435\u0449\u0451 \u0440\u0430\u0437."
@@ -928,7 +928,8 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       return nextActive;
     }
 
-    const VIN_LOOKUP_CACHE_KEY = "puls_vin_lookup_v5";
+    const VIN_LOOKUP_URL = "https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/";
+    const VIN_LOOKUP_CACHE_KEY = "puls_vin_lookup_v4";
     let vehicleLookupTimer = null;
     let vehicleLookupRequestId = 0;
     let vehicleBackendSaveTimer = null;
@@ -1020,20 +1021,20 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       return normalizeVehicleProfile(normalized);
     }
 
-    async function decodeVehicleByIdentifier(identifier, previous = getVehicleDraftProfile()) {
-      const decodeSeed = {
+    async function enrichVehicleByIdentifier(identifier, previous = getVehicleDraftProfile()) {
+      const enrichmentSeed = {
         id: previous.id || "",
         vin: identifier,
         nickname: previous.nickname || "",
         mileage: previous.mileage || ""
       };
-      const response = await fetch(`${API_BASE_URL}/api/vehicles/decode`, {
+      const response = await fetch(`${API_BASE_URL}/api/vehicles/enrich`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(vehicleToApi(decodeSeed, window.pulsAppUser || null))
+        body: JSON.stringify(vehicleToApi(enrichmentSeed, window.pulsAppUser || null))
       });
       if (!response.ok) {
-        throw new Error(`Vehicle decode returned ${response.status}`);
+        throw new Error(`Vehicle enrich returned ${response.status}`);
       }
 
       const data = await response.json();
@@ -1077,16 +1078,56 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
 
       try {
         const previous = getVehicleDraftProfile();
-        const decoded = await decodeVehicleByIdentifier(normalizedVin, previous);
-        if (!decoded) {
+        if (!isFullVin(normalizedVin)) {
+          const enriched = await enrichVehicleByIdentifier(normalizedVin, previous);
+          if (!enriched) {
+            updateLookupStatus(t("car.lookupNotFound"), "warn");
+            return null;
+          }
+
+          setVinLookupCache(normalizedVin, enriched);
+          fillVehicleForm(enriched);
+          updateLookupStatus(t("car.lookupReady"), "ok");
+          return enriched;
+        }
+
+        const response = await fetch(`${VIN_LOOKUP_URL}${encodeURIComponent(normalizedVin)}?format=json`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (requestId !== vehicleLookupRequestId) return null;
+
+        const record = Array.isArray(data?.Results) ? data.Results[0] : null;
+        if (!record) {
           updateLookupStatus(t("car.lookupNotFound"), "warn");
           return null;
         }
 
-        setVinLookupCache(normalizedVin, decoded);
-        fillVehicleForm(decoded);
+        const errorCode = String(record.ErrorCode || "").trim();
+        const hasUsefulFields = Boolean(record.Make || record.Model || record.ModelYear || record.EngineModel);
+        if (errorCode && errorCode !== "0" && errorCode !== "1" && !hasUsefulFields) {
+          updateLookupStatus(t("car.lookupInvalid"), "warn");
+          return null;
+        }
+
+        const decoded = decodeVinRecord({ ...record, VIN: normalizedVin });
+        const keepPreviousModel = Boolean(previous.model && previous.brand && decoded.brand && previous.brand === decoded.brand);
+        const lookupData = {
+          ...decoded,
+          model: decoded.model || (keepPreviousModel ? previous.model : ""),
+          vin: normalizedVin
+        };
+        const merged = mergeLookupVehicleProfile(lookupData, previous);
+        merged.id = previous.id;
+
+        if (!hasDecodedVehicleIdentity(merged)) {
+          updateLookupStatus(t("car.lookupNotFound"), "warn");
+          return null;
+        }
+
+        setVinLookupCache(normalizedVin, merged);
+        fillVehicleForm(merged);
         updateLookupStatus(t("car.lookupReady"), "ok");
-        return decoded;
+        return merged;
       } catch (error) {
         console.error("VIN lookup failed:", error);
         updateLookupStatus(t("car.lookupError"), "error");
@@ -1394,7 +1435,7 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
         }
       }
 
-      if (vin && isSupportedVehicleIdentifier(vin)) {
+      if (vin && isFullVin(vin)) {
         updateLookupStatus(t("spec.loadDone"), "ok");
         return draftProfile;
       }
