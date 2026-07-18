@@ -1033,6 +1033,22 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       return draft;
     }
 
+    function mergeSpecEnrichmentIntoDraft(enrichedVehicle = {}, currentDraft = {}) {
+      const draft = normalizeVehicleProfile(currentDraft);
+      const enriched = normalizeVehicleProfile(enrichedVehicle);
+      return normalizeVehicleProfile({
+        ...draft,
+        displacement: enriched.displacement || draft.displacement,
+        power: enriched.power || draft.power,
+        torque: enriched.torque || draft.torque,
+        engineType: enriched.engineType || draft.engineType,
+        cylinders: enriched.cylinders || draft.cylinders,
+        emissions: enriched.emissions || draft.emissions,
+        tank: enriched.tank || draft.tank,
+        photoUrl: draft.photoUrl || enriched.photoUrl
+      });
+    }
+
     function renderAmbiguousLookupChoices(result = {}, rawIdentifier = "") {
       const box = ensureLookupChoiceBox();
       if (!box) return;
@@ -1464,7 +1480,7 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
         if (!enrichedVehicle) {
           throw new Error("Vehicle enrich returned empty payload");
         }
-        const mergedDraft = mergeVehicleProfiles(enrichedVehicle, draftProfile);
+        const mergedDraft = mergeSpecEnrichmentIntoDraft(enrichedVehicle, draftProfile);
         mergedDraft.id = draftProfile.id || enrichedVehicle.id || "";
         fillVehicleForm(mergedDraft);
         const status = $("#carFormStatus");

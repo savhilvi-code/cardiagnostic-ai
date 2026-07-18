@@ -17,6 +17,13 @@
 - Switched the vehicle editor back to explicit-save behavior: typing in the form and `Decode VIN` now update only the current draft in the UI, while backend `/api/vehicles` writes happen only after the user presses `Save car`.
 - Upgraded the `Load from internet` flow for the car draft: frontend now sends the current draft to backend `/api/vehicles/enrich`, so PULS can verify remaining fields, auto-fill missing specs, and immediately place a representative car photo into the draft before the user decides whether to save it.
 
+## 2026-07-18
+
+- Switched the live VIN/chassis lookup to backend `/api/vehicles/lookup` so the browser no longer guesses cars on its own.
+- Added pending lookup confirmation metadata to the vehicle save flow: detected cars are saved as confirmed only after the user presses `Save car`.
+- Added an ambiguous-result chooser for JDM chassis codes with multiple possible models, instead of auto-selecting one.
+- Prevented `Load from internet` from overwriting brand/model/year/engine with speculative enrichment data; it now only fills technical specs and a missing photo in the draft.
+
 ## 2026-07-06
 
 - Confirmed frontend still uses backend `/chat` and `/api/history`, reads `quota` from backend response, and does not write `diagnostic_requests` or use legacy `telegram_id` / `chat_id` fields.
