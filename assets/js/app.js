@@ -1003,17 +1003,17 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
           ""
         ).trim(),
         year: String(record.ModelYear || "").trim(),
-        engine: String(record.EngineModel || record.EngineConfiguration || record.EngineDescription || "").trim(),
-        fuel: String(record.FuelTypePrimary || record.FuelTypeSecondary || "").trim(),
-        drive: String(record.DriveType || "").trim(),
-        transmission: String(record.TransmissionStyle || "").trim(),
-        displacement: String(record.DisplacementL || "").trim(),
-        power: String(record.EngineHP || "").trim(),
-        torque: String(record.EngineTorque || "").trim(),
-        engineType: String(record.EngineConfiguration || record.EngineDescription || record.EngineModel || "").trim(),
-        cylinders: String(record.EngineCylinders || "").trim(),
-        emissions: String(record.EmissionsStandard || record.EmissionsInfo || "").trim(),
-        tank: String(record.FuelTankVolume || record.FuelTankLocation || "").trim(),
+        engine: "",
+        fuel: "",
+        drive: "",
+        transmission: "",
+        displacement: "",
+        power: "",
+        torque: "",
+        engineType: "",
+        cylinders: "",
+        emissions: "",
+        tank: "",
         mileage: "",
         vin: String(record.VIN || record.Vin || "").trim().toUpperCase()
       };
@@ -1433,6 +1433,11 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
         if (vinResult) {
           draftProfile = vinResult;
         }
+      }
+
+      if (vin && isFullVin(vin)) {
+        updateLookupStatus(t("spec.loadDone"), "ok");
+        return draftProfile;
       }
 
       try {
