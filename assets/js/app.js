@@ -149,25 +149,25 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
         "car.formTransmissionPlaceholder": "AT",
         "car.formMileage": "Mileage",
         "car.formMileagePlaceholder": "185000 km",
-        "car.formVin": "VIN / chassis",
-        "car.formVinPlaceholder": "JT..., JZX1001234567, PNT30003457",
+        "car.formVin": "VIN",
+        "car.formVinPlaceholder": "JT...",
         "car.formHint": "You can edit the data anytime. Later we can connect VIN or catalog auto-fill here.",
         "car.formSave": "Save car",
         "car.formSaved": "Car profile saved.",
         "car.formDemo": "Fill demo data",
-        "car.formLookup": "Decode VIN / chassis",
-        "car.formLookupHint": "Enter a full VIN or a chassis/frame number and PULS will pull the available vehicle data automatically.",
-        "car.lookupReady": "Ready to decode a VIN or chassis number.",
-        "car.lookupSearching": "Looking up vehicle data...",
-        "car.lookupNeedVin": "Enter a full VIN or a chassis/frame number like JZX1001234567 or PNT30003457.",
-        "car.lookupInvalid": "This VIN or chassis number could not be decoded. Please check the number and try again.",
-        "car.lookupNotFound": "No matching vehicle data was found for this VIN or chassis number.",
-        "car.lookupError": "Vehicle lookup failed. Please try again in a few seconds.",
+        "car.formLookup": "Decode VIN",
+        "car.formLookupHint": "Enter the full VIN and PULS will pull the available vehicle data automatically.",
+        "car.lookupReady": "Ready to decode VIN.",
+        "car.lookupSearching": "Decoding VIN...",
+        "car.lookupNeedVin": "Enter a full 17-character VIN to decode it.",
+        "car.lookupInvalid": "This VIN could not be decoded. Please check the number and try again.",
+        "car.lookupNotFound": "No matching vehicle data was found for this VIN.",
+        "car.lookupError": "VIN lookup failed. Please try again in a few seconds.",
         "spec.displacement": "Engine displacement:",
         "spec.note": "These fields are filled automatically from vehicle data and can be edited manually.",
         "spec.loadInternet": "Load from internet",
-        "spec.loadInternetHint": "Best results come from a full VIN or chassis number. Loaded values can still be edited manually.",
-        "spec.loadNeedVin": "Enter a full VIN or chassis number to load technical specs from the internet.",
+        "spec.loadInternetHint": "Best results come from a full VIN. Loaded values can still be edited manually.",
+        "spec.loadNeedVin": "Enter a full VIN to load technical specs from the internet.",
         "spec.loadStarted": "Loading technical specs from the internet...",
         "spec.loadDone": "Technical specs loaded from the internet.",
         "spec.unavailable": "No data",
@@ -366,29 +366,29 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
         "car.formTransmissionPlaceholder": "АКПП",
         "car.formMileage": "Пробег",
         "car.formMileagePlaceholder": "185000 км",
-        "car.formVin": "VIN / номер кузова",
-        "car.formVinPlaceholder": "JT..., JZX1001234567, PNT30003457",
+        "car.formVin": "VIN",
+        "car.formVinPlaceholder": "JT...",
         "car.formHint": "Данные можно редактировать в любой момент. Позже сюда можно подключить авто-подтягивание по VIN или каталогу.",
         "car.formSave": "Сохранить машину",
         "car.formSaved": "Профиль машины сохранён.",
         "car.formDemo": "Заполнить пример",
-        "car.formLookup": "Распознать VIN / кузов",
-        "car.formLookupHint": "Введите полный VIN или номер кузова, и PULS сам подтянет доступные данные по машине.",
+        "car.formLookup": "Распознать VIN",
+        "car.formLookupHint": "Введите VIN целиком, и PULS сам подтянет доступные данные по машине.",
         "car.vehicleTitle": "Мои машины",
         "car.vehicleSubtitle": "Сохраняйте несколько автомобилей и переключайтесь между ними без потери контекста.",
         "car.addVehicle": "Добавить автомобиль",
         "car.deleteVehicle": "Удалить автомобиль",
-        "car.lookupReady": "Готов к распознаванию VIN или номера кузова.",
-        "car.lookupSearching": "Ищу данные по машине...",
-        "car.lookupNeedVin": "Введите полный VIN или номер кузова, например JZX1001234567 или PNT30003457.",
-        "car.lookupInvalid": "Этот VIN или номер кузова не удалось распознать. Проверьте номер и попробуйте снова.",
-        "car.lookupNotFound": "По этому VIN или номеру кузова не найдено подходящих данных по машине.",
-        "car.lookupError": "Не удалось получить данные по машине. Попробуйте ещё раз через несколько секунд.",
+        "car.lookupReady": "Готов к распознаванию VIN.",
+        "car.lookupSearching": "Распознаю VIN...",
+        "car.lookupNeedVin": "Введите полный VIN из 17 символов, чтобы распознать его.",
+        "car.lookupInvalid": "Этот VIN не удалось распознать. Проверьте номер и попробуйте снова.",
+        "car.lookupNotFound": "По этому VIN не найдено подходящих данных по машине.",
+        "car.lookupError": "Не удалось получить данные по VIN. Попробуйте ещё раз через несколько секунд.",
         "spec.displacement": "Объем двигателя:",
         "spec.note": "Эти поля заполняются автоматически по данным автомобиля и могут редактироваться вручную.",
         "spec.loadInternet": "Загрузить из интернета",
-        "spec.loadInternetHint": "Лучше всего работает с полным VIN или номером кузова. После загрузки значения всё равно можно изменить вручную.",
-        "spec.loadNeedVin": "Введите полный VIN или номер кузова, чтобы загрузить характеристики из интернета.",
+        "spec.loadInternetHint": "Лучше всего работает с полным VIN. После загрузки значения всё равно можно изменить вручную.",
+        "spec.loadNeedVin": "Введите полный VIN, чтобы загрузить характеристики из интернета.",
         "spec.loadStarted": "Загружаю технические характеристики из интернета...",
         "spec.loadDone": "Технические характеристики загружены из интернета.",
         "spec.unavailable": "Нет данных",
@@ -917,32 +917,8 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       }
     }
 
-    function normalizeVehicleIdentifier(value) {
-      return String(value || "").trim().toUpperCase().replace(/\s+/g, "");
-    }
-
     function isFullVin(vin) {
-      return /^[A-HJ-NPR-Z0-9]{17}$/i.test(normalizeVehicleIdentifier(vin));
-    }
-
-    function isJdmChassisNumber(value) {
-      const normalized = normalizeVehicleIdentifier(value);
-      if (!normalized || isFullVin(normalized)) return false;
-      if (normalized.length < 8 || normalized.length > 18) return false;
-      if (!/^[A-Z0-9-]+$/.test(normalized)) return false;
-      if (normalized.includes("-")) {
-        return /-\d[A-Z0-9]{3,}$/i.test(normalized);
-      }
-      return /^(?:[A-Z]{2,5}\d{5,10}|[A-Z]{2,5}\d{2,7}[A-Z]?\d{4,8})$/i.test(normalized);
-    }
-
-    function isSupportedVehicleIdentifier(value) {
-      return isFullVin(value) || isJdmChassisNumber(value);
-    }
-
-    function hasDecodedVehicleIdentity(profile = {}) {
-      const normalized = normalizeVehicleProfile(profile);
-      return Boolean(normalized.brand || normalized.model || normalized.year || normalized.engine);
+      return /^[A-HJ-NPR-Z0-9]{17}$/i.test(String(vin || "").trim());
     }
 
     function decodeVinRecord(record = {}) {
@@ -978,31 +954,6 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       return normalizeVehicleProfile(normalized);
     }
 
-    async function enrichVehicleByIdentifier(identifier, previous = getVehicleDraftProfile()) {
-      const response = await fetch(`${API_BASE_URL}/api/vehicles/enrich`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(vehicleToApi({ ...previous, vin: identifier }, window.pulsAppUser || null))
-      });
-      if (!response.ok) {
-        throw new Error(`Vehicle enrich returned ${response.status}`);
-      }
-
-      const data = await response.json();
-      const enrichedVehicle = data?.vehicle ? vehicleFromApi(data.vehicle) : null;
-      if (!enrichedVehicle || !hasDecodedVehicleIdentity(enrichedVehicle)) {
-        return null;
-      }
-
-      const preserveManualEdits = normalizeVehicleIdentifier(previous.vin) === identifier;
-      const lookupData = { ...enrichedVehicle, vin: identifier };
-      const merged = preserveManualEdits
-        ? mergeVehicleProfiles(previous, lookupData)
-        : mergeVehicleProfiles(lookupData, previous);
-      merged.id = previous.id;
-      return merged;
-    }
-
     function updateLookupStatus(message, state = "info") {
       const node = $("#carLookupStatus");
       if (!node) return;
@@ -1011,8 +962,8 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
     }
 
     async function lookupVehicleByVin(vin, { force = false } = {}) {
-      const normalizedVin = normalizeVehicleIdentifier(vin);
-      if (!isSupportedVehicleIdentifier(normalizedVin)) {
+      const normalizedVin = String(vin || "").trim().toUpperCase();
+      if (!isFullVin(normalizedVin)) {
         updateLookupStatus(t("car.lookupNeedVin"), "warn");
         return null;
       }
@@ -1034,20 +985,6 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       updateLookupStatus(t("car.lookupSearching"), "info");
 
       try {
-        const previous = getVehicleDraftProfile();
-        if (!isFullVin(normalizedVin)) {
-          const enriched = await enrichVehicleByIdentifier(normalizedVin, previous);
-          if (!enriched) {
-            updateLookupStatus(t("car.lookupNotFound"), "warn");
-            return null;
-          }
-
-          setVinLookupCache(normalizedVin, enriched);
-          fillVehicleForm(enriched);
-          updateLookupStatus(t("car.lookupReady"), "ok");
-          return enriched;
-        }
-
         const response = await fetch(`${VIN_LOOKUP_URL}${encodeURIComponent(normalizedVin)}?format=json`);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
@@ -1055,13 +992,6 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
 
         const record = Array.isArray(data?.Results) ? data.Results[0] : null;
         if (!record) {
-          const enriched = await enrichVehicleByIdentifier(normalizedVin, previous);
-          if (enriched) {
-            setVinLookupCache(normalizedVin, enriched);
-            fillVehicleForm(enriched);
-            updateLookupStatus(t("car.lookupReady"), "ok");
-            return enriched;
-          }
           updateLookupStatus(t("car.lookupNotFound"), "warn");
           return null;
         }
@@ -1069,18 +999,12 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
         const errorCode = String(record.ErrorCode || "").trim();
         const hasUsefulFields = Boolean(record.Make || record.Model || record.ModelYear || record.EngineModel);
         if (errorCode && errorCode !== "0" && errorCode !== "1" && !hasUsefulFields) {
-          const enriched = await enrichVehicleByIdentifier(normalizedVin, previous);
-          if (enriched) {
-            setVinLookupCache(normalizedVin, enriched);
-            fillVehicleForm(enriched);
-            updateLookupStatus(t("car.lookupReady"), "ok");
-            return enriched;
-          }
           updateLookupStatus(t("car.lookupInvalid"), "warn");
           return null;
         }
 
         const decoded = decodeVinRecord({ ...record, VIN: normalizedVin });
+        const previous = getVehicleDraftProfile();
         const keepPreviousModel = Boolean(previous.model && previous.brand && decoded.brand && previous.brand === decoded.brand);
         const preserveManualEdits = String(previous.vin || "").trim().toUpperCase() === normalizedVin;
         const lookupData = {
@@ -1092,16 +1016,6 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
           ? mergeVehicleProfiles(previous, lookupData)
           : mergeVehicleProfiles(lookupData, previous);
         merged.id = previous.id;
-
-        if (!hasDecodedVehicleIdentity(merged)) {
-          const enriched = await enrichVehicleByIdentifier(normalizedVin, previous);
-          if (enriched) {
-            setVinLookupCache(normalizedVin, enriched);
-            fillVehicleForm(enriched);
-            updateLookupStatus(t("car.lookupReady"), "ok");
-            return enriched;
-          }
-        }
 
         setVinLookupCache(normalizedVin, merged);
         fillVehicleForm(merged);
@@ -1314,7 +1228,7 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
           updateLookupStatus(t("car.lookupReady"), "info");
           return;
         }
-        if (!isSupportedVehicleIdentifier(vin)) {
+        if (!isFullVin(vin)) {
           updateLookupStatus(t("car.lookupNeedVin"), "warn");
           return;
         }
@@ -1324,7 +1238,7 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       $("#carVinInput")?.addEventListener("blur", () => {
         clearTimeout(vehicleLookupTimer);
         const vin = $("#carVinInput")?.value || "";
-        if (isSupportedVehicleIdentifier(vin)) {
+        if (isFullVin(vin)) {
           lookupVehicleByVin(vin);
         }
       });
@@ -1398,7 +1312,7 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       if (!requireSignedInForEdit()) return null;
       let draftProfile = getVehicleFormValues();
       const vin = String(draftProfile.vin || "").trim().toUpperCase();
-      const hasLookupContext = Boolean(vin && isSupportedVehicleIdentifier(vin)) || Boolean(draftProfile.brand && draftProfile.model);
+      const hasLookupContext = Boolean(vin && isFullVin(vin)) || Boolean(draftProfile.brand && draftProfile.model);
       if (!hasLookupContext) {
         updateLookupStatus(t("spec.loadNeedContext"), "warn");
         toast(t("spec.loadNeedContext"));
@@ -1407,7 +1321,7 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
 
       updateLookupStatus(t("spec.loadStarted"), "info");
 
-      if (vin && isSupportedVehicleIdentifier(vin)) {
+      if (vin && isFullVin(vin)) {
         const vinResult = await lookupVehicleByVin(vin, { force: true });
         if (vinResult) {
           draftProfile = vinResult;
