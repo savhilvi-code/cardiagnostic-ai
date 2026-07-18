@@ -600,6 +600,22 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       });
     }
 
+    function mergeVehicleInternetSpecs(enriched = {}, previous = {}) {
+      const lookup = normalizeVehicleProfile(enriched);
+      const fallback = normalizeVehicleProfile(previous);
+      return normalizeVehicleProfile({
+        ...fallback,
+        photoUrl: lookup.photoUrl || fallback.photoUrl,
+        displacement: lookup.displacement || fallback.displacement,
+        power: lookup.power || fallback.power,
+        torque: lookup.torque || fallback.torque,
+        engineType: lookup.engineType || fallback.engineType,
+        cylinders: lookup.cylinders || fallback.cylinders,
+        emissions: lookup.emissions || fallback.emissions,
+        tank: lookup.tank || fallback.tank
+      });
+    }
+
     function hasVehicleContent(profile = {}) {
       const normalized = normalizeVehicleProfile(profile);
       return [
@@ -913,7 +929,7 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
     }
 
     const VIN_LOOKUP_URL = "https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/";
-    const VIN_LOOKUP_CACHE_KEY = "puls_vin_lookup_v3";
+    const VIN_LOOKUP_CACHE_KEY = "puls_vin_lookup_v4";
     let vehicleLookupTimer = null;
     let vehicleLookupRequestId = 0;
     let vehicleBackendSaveTimer = null;
@@ -1006,10 +1022,16 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
     }
 
     async function enrichVehicleByIdentifier(identifier, previous = getVehicleDraftProfile()) {
+      const enrichmentSeed = {
+        id: previous.id || "",
+        vin: identifier,
+        nickname: previous.nickname || "",
+        mileage: previous.mileage || ""
+      };
       const response = await fetch(`${API_BASE_URL}/api/vehicles/enrich`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(vehicleToApi({ ...previous, vin: identifier }, window.pulsAppUser || null))
+        body: JSON.stringify(vehicleToApi(enrichmentSeed, window.pulsAppUser || null))
       });
       if (!response.ok) {
         throw new Error(`Vehicle enrich returned ${response.status}`);
@@ -1076,13 +1098,6 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
 
         const record = Array.isArray(data?.Results) ? data.Results[0] : null;
         if (!record) {
-          const enriched = await enrichVehicleByIdentifier(normalizedVin, previous);
-          if (enriched) {
-            setVinLookupCache(normalizedVin, enriched);
-            fillVehicleForm(enriched);
-            updateLookupStatus(t("car.lookupReady"), "ok");
-            return enriched;
-          }
           updateLookupStatus(t("car.lookupNotFound"), "warn");
           return null;
         }
@@ -1090,13 +1105,6 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
         const errorCode = String(record.ErrorCode || "").trim();
         const hasUsefulFields = Boolean(record.Make || record.Model || record.ModelYear || record.EngineModel);
         if (errorCode && errorCode !== "0" && errorCode !== "1" && !hasUsefulFields) {
-          const enriched = await enrichVehicleByIdentifier(normalizedVin, previous);
-          if (enriched) {
-            setVinLookupCache(normalizedVin, enriched);
-            fillVehicleForm(enriched);
-            updateLookupStatus(t("car.lookupReady"), "ok");
-            return enriched;
-          }
           updateLookupStatus(t("car.lookupInvalid"), "warn");
           return null;
         }
@@ -1112,13 +1120,8 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
         merged.id = previous.id;
 
         if (!hasDecodedVehicleIdentity(merged)) {
-          const enriched = await enrichVehicleByIdentifier(normalizedVin, previous);
-          if (enriched) {
-            setVinLookupCache(normalizedVin, enriched);
-            fillVehicleForm(enriched);
-            updateLookupStatus(t("car.lookupReady"), "ok");
-            return enriched;
-          }
+          updateLookupStatus(t("car.lookupNotFound"), "warn");
+          return null;
         }
 
         setVinLookupCache(normalizedVin, merged);
@@ -1444,7 +1447,7 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
         if (!enrichedVehicle) {
           throw new Error("Vehicle enrich returned empty payload");
         }
-        const mergedDraft = mergeVehicleProfiles(enrichedVehicle, draftProfile);
+        const mergedDraft = mergeVehicleInternetSpecs(enrichedVehicle, draftProfile);
         mergedDraft.id = draftProfile.id || enrichedVehicle.id || "";
         fillVehicleForm(mergedDraft);
         const status = $("#carFormStatus");
