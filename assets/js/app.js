@@ -159,15 +159,11 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
         "car.formLookupHint": "Enter a full VIN or a Japanese chassis/frame number and PULS will pull the available vehicle data automatically.",
         "car.lookupReady": "Ready to decode VIN or chassis.",
         "car.lookupSearching": "Decoding VIN / chassis...",
-      "car.lookupNeedVin": "Enter a full 17-character VIN or a Japanese chassis number like JZX100-1234567.",
-      "car.lookupInvalid": "This VIN or chassis number could not be decoded. Please check the number and try again.",
-      "car.lookupNotFound": "No matching vehicle data was found for this VIN or chassis number.",
-      "car.lookupError": "Vehicle lookup failed. Please try again in a few seconds.",
-      "car.lookupConfirmSave": "Detected vehicle data loaded into the draft. Press Save car to confirm.",
-      "car.lookupAmbiguous": "Several possible vehicles were found. Choose a model below or fill the car manually.",
-      "car.lookupManualEngine": "Model selected. Choose the engine manually if needed, then save the car to confirm.",
-      "car.lookupApplyChoice": "Use this option",
-      "spec.displacement": "Engine displacement:",
+        "car.lookupNeedVin": "Enter a full 17-character VIN or a Japanese chassis number like JZX100-1234567.",
+        "car.lookupInvalid": "This VIN or chassis number could not be decoded. Please check the number and try again.",
+        "car.lookupNotFound": "No matching vehicle data was found for this VIN or chassis number.",
+        "car.lookupError": "Vehicle lookup failed. Please try again in a few seconds.",
+        "spec.displacement": "Engine displacement:",
         "spec.note": "These fields are filled automatically from vehicle data and can be edited manually.",
         "spec.loadInternet": "Load from internet",
         "spec.loadInternetHint": "Best results come from a full VIN. Loaded values can still be edited manually.",
@@ -388,10 +384,6 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
         "car.lookupInvalid": "Этот VIN или номер кузова не удалось распознать. Проверьте номер и попробуйте снова.",
         "car.lookupNotFound": "По этому VIN или номеру кузова не найдено подходящих данных по машине.",
         "car.lookupError": "Не удалось получить данные по VIN или номеру кузова. Попробуйте ещё раз через несколько секунд.",
-        "car.lookupConfirmSave": "Найденные данные подставлены в черновик. Нажмите «Сохранить машину», чтобы подтвердить.",
-        "car.lookupAmbiguous": "Найдено несколько возможных вариантов. Выберите модель ниже или заполните автомобиль вручную.",
-        "car.lookupManualEngine": "Модель выбрана. При необходимости укажите двигатель вручную и сохраните машину для подтверждения.",
-        "car.lookupApplyChoice": "Использовать этот вариант",
         "spec.displacement": "Объем двигателя:",
         "spec.note": "Эти поля заполняются автоматически по данным автомобиля и могут редактироваться вручную.",
         "spec.loadInternet": "Загрузить из интернета",
@@ -664,7 +656,6 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
 
     function vehicleToApi(profile = {}, appUser = window.pulsAppUser || null) {
       const normalized = normalizeVehicleProfile(profile);
-      const lookupMeta = getPendingVehicleLookupMeta();
       return {
         user_id: appUser?.id || null,
         auth_user_id: window.pulsCurrentUser?.id || "",
@@ -687,17 +678,7 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
         engine_type: normalized.engineType,
         cylinders: normalized.cylinders,
         emissions: normalized.emissions,
-        tank: normalized.tank,
-        raw_identifier: lookupMeta?.raw_identifier || "",
-        normalized_identifier: lookupMeta?.normalized_identifier || "",
-        identifier_type: lookupMeta?.identifier_type || "",
-        chassis_code: lookupMeta?.chassis_code || "",
-        market: lookupMeta?.market || "",
-        lookup_status: lookupMeta?.lookup_status || "",
-        lookup_source: lookupMeta?.lookup_source || "",
-        lookup_confidence: lookupMeta?.lookup_confidence ?? "",
-        year_range: lookupMeta?.year_range || "",
-        user_confirmed: Boolean(lookupMeta?.user_confirmed)
+        tank: normalized.tank
       };
     }
 
@@ -903,12 +884,12 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       return nextActive;
     }
 
-    const VIN_LOOKUP_CACHE_KEY = "puls_vin_lookup_v2";
+    const VIN_LOOKUP_URL = "https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/";
+    const VIN_LOOKUP_CACHE_KEY = "puls_vin_lookup_v1";
     let vehicleLookupTimer = null;
     let vehicleLookupRequestId = 0;
     let vehicleBackendSaveTimer = null;
     let vehicleDraftProfile = null;
-    let pendingVehicleLookupMeta = null;
 
     function setVehicleDraftProfile(profile = {}) {
       vehicleDraftProfile = normalizeVehicleProfile(profile);
@@ -917,15 +898,6 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
 
     function getVehicleDraftProfile() {
       return normalizeVehicleProfile(vehicleDraftProfile || loadVehicleProfile());
-    }
-
-    function setPendingVehicleLookupMeta(meta = null) {
-      pendingVehicleLookupMeta = meta && typeof meta === "object" ? { ...meta } : null;
-      return pendingVehicleLookupMeta;
-    }
-
-    function getPendingVehicleLookupMeta() {
-      return pendingVehicleLookupMeta ? { ...pendingVehicleLookupMeta } : null;
     }
 
     function getVinLookupCache(vin) {
@@ -966,16 +938,50 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       return isFullVin(value) || isJdmChassisNumber(value);
     }
 
-    async function lookupVehicleIdentifier(identifier) {
-      const response = await fetch(`${API_BASE_URL}/api/vehicles/lookup`, {
+    async function lookupJdmChassis(identifier) {
+      const response = await fetch(`${API_BASE_URL}/api/vehicles/enrich`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           vin: identifier
         })
       });
-      if (!response.ok) throw new Error(`Vehicle lookup returned ${response.status}`);
-      return response.json();
+      if (!response.ok) throw new Error(`Vehicle enrich returned ${response.status}`);
+      const data = await response.json();
+      return data?.vehicle ? vehicleFromApi(data.vehicle) : null;
+    }
+
+    function decodeVinRecord(record = {}) {
+      const normalized = {
+        brand: String(record.Make || record.Manufacturer || record.ManufacturerName || "").trim(),
+        model: String(
+          record.Model ||
+          record.BaseModelName ||
+          record.ModelName ||
+          record.Series ||
+          record.Series2 ||
+          record.Trim ||
+          record.Trim2 ||
+          record.VehicleDescriptor ||
+          ""
+        ).trim(),
+        year: String(record.ModelYear || "").trim(),
+        engine: String(record.EngineModel || record.EngineConfiguration || record.EngineDescription || "").trim(),
+        fuel: String(record.FuelTypePrimary || record.FuelTypeSecondary || "").trim(),
+        drive: String(record.DriveType || "").trim(),
+        transmission: String(record.TransmissionStyle || "").trim(),
+        displacement: String(record.DisplacementL || "").trim(),
+        power: String(record.EngineHP || "").trim(),
+        torque: String(record.EngineTorque || "").trim(),
+        engineType: String(record.EngineConfiguration || record.EngineDescription || record.EngineModel || "").trim(),
+        cylinders: String(record.EngineCylinders || "").trim(),
+        emissions: String(record.EmissionsStandard || record.EmissionsInfo || "").trim(),
+        tank: String(record.FuelTankVolume || record.FuelTankLocation || "").trim(),
+        mileage: "",
+        vin: String(record.VIN || record.Vin || "").trim().toUpperCase()
+      };
+
+      return normalizeVehicleProfile(normalized);
     }
 
     function updateLookupStatus(message, state = "info") {
@@ -985,155 +991,84 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       node.textContent = message || "";
     }
 
-    function ensureLookupChoiceBox() {
-      const statusNode = $("#carLookupStatus");
-      if (!statusNode) return null;
-      let box = $("#carLookupChoices");
-      if (!box) {
-        statusNode.insertAdjacentHTML("afterend", `
-          <div class="lookup-choices" id="carLookupChoices" hidden></div>
-        `);
-        box = $("#carLookupChoices");
-      }
-      return box;
-    }
-
-    function clearLookupChoices() {
-      const box = ensureLookupChoiceBox();
-      if (!box) return;
-      box.hidden = true;
-      box.innerHTML = "";
-    }
-
-    function buildLookupMeta(result = {}, rawIdentifier = "") {
-      return {
-        raw_identifier: rawIdentifier,
-        normalized_identifier: result.normalized_identifier || normalizeVehicleIdentifier(rawIdentifier),
-        identifier_type: result.identifier_type || "",
-        chassis_code: result.chassis_code || "",
-        market: result.market || "",
-        lookup_status: result.status || "",
-        lookup_source: result.source || "",
-        lookup_confidence: result.confidence ?? "",
-        year_range: result.year_range || "",
-        user_confirmed: false
-      };
-    }
-
-    function applyLookupDraft(vehicle = {}, result = {}, rawIdentifier = "") {
-      const previous = getVehicleDraftProfile();
-      const draft = normalizeVehicleProfile({
-        ...getDefaultVehicleProfile(),
-        ...vehicle,
-        vin: String(rawIdentifier || vehicle.vin || "").trim()
-      });
-      draft.id = previous.id;
-      fillVehicleForm(draft);
-      setPendingVehicleLookupMeta(buildLookupMeta(result, rawIdentifier));
-      return draft;
-    }
-
-    function renderAmbiguousLookupChoices(result = {}, rawIdentifier = "") {
-      const box = ensureLookupChoiceBox();
-      if (!box) return;
-      const brand = String(result.brand || "").trim();
-      const chassisCode = String(result.chassis_code || "").trim();
-      const models = Array.isArray(result.possible_models) ? result.possible_models.filter(Boolean) : [];
-      if (!models.length) {
-        clearLookupChoices();
-        return;
-      }
-      box.hidden = false;
-      box.innerHTML = `
-        <div class="lookup-choice-copy">${escapeHtml(t("car.lookupAmbiguous"))}</div>
-        <div class="lookup-choice-actions">
-          ${models.map((model, index) => `<button class="btn" type="button" data-lookup-model="${escapeHtml(String(model))}" data-lookup-index="${index}">${escapeHtml(String(model))}</button>`).join("")}
-        </div>
-      `;
-      box.querySelectorAll("[data-lookup-model]").forEach((button) => {
-        button.addEventListener("click", () => {
-          const selectedModel = String(button.getAttribute("data-lookup-model") || "").trim();
-          const possibleEngines = Array.isArray(result.possible_engines) ? result.possible_engines.filter(Boolean) : [];
-          const draft = applyLookupDraft({
-            brand,
-            model: selectedModel,
-            year: "",
-            engine: possibleEngines.length === 1 ? possibleEngines[0] : "",
-            fuel: "",
-            drive: "",
-            transmission: ""
-          }, {
-            ...result,
-            model: selectedModel,
-            engine: possibleEngines.length === 1 ? possibleEngines[0] : ""
-          }, rawIdentifier);
-          void draft;
-          updateLookupStatus(t("car.lookupManualEngine"), "warn");
-          clearLookupChoices();
-        });
-      });
-    }
-
     async function lookupVehicleByVin(vin, { force = false } = {}) {
-      const rawIdentifier = String(vin || "").trim();
-      const normalizedVin = normalizeVehicleIdentifier(rawIdentifier);
+      const normalizedVin = normalizeVehicleIdentifier(vin);
       if (!isSupportedVehicleIdentifier(normalizedVin)) {
-        clearLookupChoices();
-        setPendingVehicleLookupMeta(null);
         updateLookupStatus(t("car.lookupNeedVin"), "warn");
         return null;
       }
 
       const cached = getVinLookupCache(normalizedVin);
       if (cached && !force) {
-        const result = cached?.result || {};
-        const cachedVehicle = cached?.vehicle || null;
-        if (result.status === "ambiguous") {
-          renderAmbiguousLookupChoices(result, rawIdentifier);
-          updateLookupStatus(t("car.lookupAmbiguous"), "warn");
-          return null;
-        }
-        if (cachedVehicle) {
-          clearLookupChoices();
-          const draft = applyLookupDraft(cachedVehicle, result, rawIdentifier);
-          updateLookupStatus(t("car.lookupConfirmSave"), result.status === "confirmed" ? "ok" : "warn");
-          return draft;
-        }
+        const current = getVehicleDraftProfile();
+        const preserveManualEdits = String(current.vin || "").trim().toUpperCase() === normalizedVin;
+        const mergedCached = preserveManualEdits
+          ? mergeVehicleProfiles(current, { ...cached, vin: normalizedVin })
+          : mergeVehicleProfiles({ ...cached, vin: normalizedVin }, current);
+        mergedCached.id = current.id;
+        fillVehicleForm(mergedCached);
+        updateLookupStatus(t("car.lookupReady"), "ok");
+        return mergedCached;
       }
 
       const requestId = ++vehicleLookupRequestId;
-      clearLookupChoices();
       updateLookupStatus(t("car.lookupSearching"), "info");
 
       try {
-        const data = await lookupVehicleIdentifier(normalizedVin);
+        if (isJdmChassisNumber(normalizedVin)) {
+          const previous = getVehicleDraftProfile();
+          const decoded = await lookupJdmChassis(normalizedVin);
+          if (!decoded) {
+            updateLookupStatus(t("car.lookupNotFound"), "warn");
+            return null;
+          }
+
+          const merged = mergeVehicleProfiles({ ...decoded, vin: normalizedVin }, previous);
+          merged.id = previous.id;
+          setVinLookupCache(normalizedVin, merged);
+          fillVehicleForm(merged);
+          updateLookupStatus(t("car.lookupReady"), "ok");
+          return merged;
+        }
+
+        const response = await fetch(`${VIN_LOOKUP_URL}${encodeURIComponent(normalizedVin)}?format=json`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
         if (requestId !== vehicleLookupRequestId) return null;
-        const result = data?.result || {};
-        const vehicle = data?.vehicle ? vehicleFromApi(data.vehicle) : null;
-        if (!result || result.status === "not_found") {
-          setPendingVehicleLookupMeta(null);
+
+        const record = Array.isArray(data?.Results) ? data.Results[0] : null;
+        if (!record) {
           updateLookupStatus(t("car.lookupNotFound"), "warn");
           return null;
         }
-        if (result.status === "ambiguous") {
-          setVinLookupCache(normalizedVin, { result });
-          setPendingVehicleLookupMeta(buildLookupMeta(result, rawIdentifier));
-          renderAmbiguousLookupChoices(result, rawIdentifier);
-          updateLookupStatus(t("car.lookupAmbiguous"), "warn");
-          return null;
-        }
-        if (!vehicle) {
-          setPendingVehicleLookupMeta(null);
+
+        const errorCode = String(record.ErrorCode || "").trim();
+        const hasUsefulFields = Boolean(record.Make || record.Model || record.ModelYear || record.EngineModel);
+        if (errorCode && errorCode !== "0" && errorCode !== "1" && !hasUsefulFields) {
           updateLookupStatus(t("car.lookupInvalid"), "warn");
           return null;
         }
-        const merged = applyLookupDraft(vehicle, result, rawIdentifier);
-        setVinLookupCache(normalizedVin, { result, vehicle: merged });
-        updateLookupStatus(t("car.lookupConfirmSave"), result.status === "confirmed" ? "ok" : "warn");
+
+        const decoded = decodeVinRecord({ ...record, VIN: normalizedVin });
+        const previous = getVehicleDraftProfile();
+        const keepPreviousModel = Boolean(previous.model && previous.brand && decoded.brand && previous.brand === decoded.brand);
+        const preserveManualEdits = String(previous.vin || "").trim().toUpperCase() === normalizedVin;
+        const lookupData = {
+          ...decoded,
+          model: decoded.model || (keepPreviousModel ? previous.model : ""),
+          vin: normalizedVin
+        };
+        const merged = preserveManualEdits
+          ? mergeVehicleProfiles(previous, lookupData)
+          : mergeVehicleProfiles(lookupData, previous);
+        merged.id = previous.id;
+
+        setVinLookupCache(normalizedVin, merged);
+        fillVehicleForm(merged);
+        updateLookupStatus(t("car.lookupReady"), "ok");
         return merged;
       } catch (error) {
         console.error("VIN lookup failed:", error);
-        setPendingVehicleLookupMeta(null);
         updateLookupStatus(t("car.lookupError"), "error");
         return null;
       }
@@ -1303,14 +1238,6 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
 
       form.addEventListener("submit", (event) => {
         event.preventDefault();
-        const lookupMeta = getPendingVehicleLookupMeta();
-        const currentIdentifier = normalizeVehicleIdentifier($("#carVinInput")?.value || "");
-        if (lookupMeta && normalizeVehicleIdentifier(lookupMeta.raw_identifier || "") === currentIdentifier) {
-          setPendingVehicleLookupMeta({
-            ...lookupMeta,
-            user_confirmed: true
-          });
-        }
         saveProfile(getVehicleFormValues());
       });
 
@@ -1343,11 +1270,6 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       $("#carVinInput")?.addEventListener("input", () => {
         clearTimeout(vehicleLookupTimer);
         const vin = $("#carVinInput")?.value || "";
-        const currentMeta = getPendingVehicleLookupMeta();
-        if (currentMeta && normalizeVehicleIdentifier(currentMeta.raw_identifier || "") !== normalizeVehicleIdentifier(vin)) {
-          setPendingVehicleLookupMeta(null);
-          clearLookupChoices();
-        }
         if (!vin.trim()) {
           updateLookupStatus(t("car.lookupReady"), "info");
           return;
