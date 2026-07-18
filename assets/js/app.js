@@ -572,6 +572,34 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       return normalizeVehicleProfile(merged);
     }
 
+    function mergeLookupVehicleProfile(lookupData = {}, previous = {}) {
+      const defaults = getDefaultVehicleProfile();
+      const lookup = normalizeVehicleProfile(lookupData);
+      const fallback = normalizeVehicleProfile(previous);
+      return normalizeVehicleProfile({
+        ...defaults,
+        id: fallback.id || lookup.id || "",
+        nickname: fallback.nickname,
+        mileage: fallback.mileage,
+        vin: lookup.vin || fallback.vin,
+        brand: lookup.brand,
+        model: lookup.model,
+        year: lookup.year,
+        engine: lookup.engine,
+        fuel: lookup.fuel,
+        drive: lookup.drive,
+        transmission: lookup.transmission,
+        photoUrl: lookup.photoUrl,
+        displacement: lookup.displacement,
+        power: lookup.power,
+        torque: lookup.torque,
+        engineType: lookup.engineType,
+        cylinders: lookup.cylinders,
+        emissions: lookup.emissions,
+        tank: lookup.tank
+      });
+    }
+
     function hasVehicleContent(profile = {}) {
       const normalized = normalizeVehicleProfile(profile);
       return [
@@ -885,7 +913,7 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
     }
 
     const VIN_LOOKUP_URL = "https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/";
-    const VIN_LOOKUP_CACHE_KEY = "puls_vin_lookup_v2";
+    const VIN_LOOKUP_CACHE_KEY = "puls_vin_lookup_v3";
     let vehicleLookupTimer = null;
     let vehicleLookupRequestId = 0;
     let vehicleBackendSaveTimer = null;
@@ -956,7 +984,6 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
           record.Series2 ||
           record.Trim ||
           record.Trim2 ||
-          record.VehicleDescriptor ||
           ""
         ).trim(),
         year: String(record.ModelYear || "").trim(),
@@ -995,7 +1022,7 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       }
 
       const lookupData = { ...enrichedVehicle, vin: identifier };
-      const merged = mergeVehicleProfiles(lookupData, previous);
+      const merged = mergeLookupVehicleProfile(lookupData, previous);
       merged.id = previous.id;
       return merged;
     }
@@ -1017,7 +1044,7 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       const cached = getVinLookupCache(normalizedVin);
       if (cached && !force) {
         const current = getVehicleDraftProfile();
-        const mergedCached = mergeVehicleProfiles({ ...cached, vin: normalizedVin }, current);
+        const mergedCached = mergeLookupVehicleProfile({ ...cached, vin: normalizedVin }, current);
         mergedCached.id = current.id;
         fillVehicleForm(mergedCached);
         updateLookupStatus(t("car.lookupReady"), "ok");
@@ -1081,7 +1108,7 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
           model: decoded.model || (keepPreviousModel ? previous.model : ""),
           vin: normalizedVin
         };
-        const merged = mergeVehicleProfiles(lookupData, previous);
+        const merged = mergeLookupVehicleProfile(lookupData, previous);
         merged.id = previous.id;
 
         if (!hasDecodedVehicleIdentity(merged)) {
