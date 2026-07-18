@@ -958,8 +958,8 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       if (!normalized || isFullVin(normalized)) return false;
       if (normalized.length < 8 || normalized.length > 18) return false;
       if (!/^[A-Z0-9-]+$/.test(normalized)) return false;
-      if (normalized.includes("-")) return /^[A-Z0-9]{1,8}-\d{4,8}$/i.test(normalized);
-      return /^([A-Z]{1,7}\d{1,3}[A-Z]?)(\d{4,8})$/i.test(normalized);
+      if (normalized.includes("-")) return /^[A-Z0-9]{2,7}[A-Z]?-\d{4,8}$/i.test(normalized);
+      return /^[A-Z]{2,7}[A-Z]?\d{4,12}$/i.test(normalized);
     }
 
     function isSupportedVehicleIdentifier(value) {

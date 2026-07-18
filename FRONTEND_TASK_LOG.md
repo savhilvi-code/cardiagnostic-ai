@@ -23,7 +23,6 @@
 - Added pending lookup confirmation metadata to the vehicle save flow: detected cars are saved as confirmed only after the user presses `Save car`.
 - Added an ambiguous-result chooser for JDM chassis codes with multiple possible models, instead of auto-selecting one.
 - Prevented `Load from internet` from overwriting brand/model/year/engine with speculative enrichment data; it now only fills technical specs and a missing photo in the draft.
-- Expanded frontend JDM identifier validation so compact one-letter chassis codes like `E11321342` are accepted and sent to backend lookup instead of being rejected in the browser.
 
 ## 2026-07-06
 
