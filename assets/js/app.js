@@ -149,20 +149,20 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
         "car.formTransmissionPlaceholder": "AT",
         "car.formMileage": "Mileage",
         "car.formMileagePlaceholder": "185000 km",
-        "car.formVin": "VIN",
-        "car.formVinPlaceholder": "JT...",
+        "car.formVin": "VIN / chassis",
+        "car.formVinPlaceholder": "JT..., JZX100-1234567",
         "car.formHint": "You can edit the data anytime. Later we can connect VIN or catalog auto-fill here.",
         "car.formSave": "Save car",
         "car.formSaved": "Car profile saved.",
         "car.formDemo": "Fill demo data",
-        "car.formLookup": "Decode VIN",
-        "car.formLookupHint": "Enter the full VIN and PULS will pull the available vehicle data automatically.",
-        "car.lookupReady": "Ready to decode VIN.",
-        "car.lookupSearching": "Decoding VIN...",
-        "car.lookupNeedVin": "Enter a full 17-character VIN to decode it.",
-        "car.lookupInvalid": "This VIN could not be decoded. Please check the number and try again.",
-        "car.lookupNotFound": "No matching vehicle data was found for this VIN.",
-        "car.lookupError": "VIN lookup failed. Please try again in a few seconds.",
+        "car.formLookup": "Decode VIN / chassis",
+        "car.formLookupHint": "Enter a full VIN or a Japanese chassis/frame number and PULS will pull the available vehicle data automatically.",
+        "car.lookupReady": "Ready to decode VIN or chassis.",
+        "car.lookupSearching": "Decoding VIN / chassis...",
+        "car.lookupNeedVin": "Enter a full 17-character VIN or a Japanese chassis number like JZX100-1234567.",
+        "car.lookupInvalid": "This VIN or chassis number could not be decoded. Please check the number and try again.",
+        "car.lookupNotFound": "No matching vehicle data was found for this VIN or chassis number.",
+        "car.lookupError": "Vehicle lookup failed. Please try again in a few seconds.",
         "spec.displacement": "Engine displacement:",
         "spec.note": "These fields are filled automatically from vehicle data and can be edited manually.",
         "spec.loadInternet": "Load from internet",
@@ -366,24 +366,24 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
         "car.formTransmissionPlaceholder": "АКПП",
         "car.formMileage": "Пробег",
         "car.formMileagePlaceholder": "185000 км",
-        "car.formVin": "VIN",
-        "car.formVinPlaceholder": "JT...",
+        "car.formVin": "VIN / кузов",
+        "car.formVinPlaceholder": "JT..., JZX100-1234567",
         "car.formHint": "Данные можно редактировать в любой момент. Позже сюда можно подключить авто-подтягивание по VIN или каталогу.",
         "car.formSave": "Сохранить машину",
         "car.formSaved": "Профиль машины сохранён.",
         "car.formDemo": "Заполнить пример",
-        "car.formLookup": "Распознать VIN",
-        "car.formLookupHint": "Введите VIN целиком, и PULS сам подтянет доступные данные по машине.",
+        "car.formLookup": "Распознать VIN / кузов",
+        "car.formLookupHint": "Введите полный VIN или японский номер кузова, и PULS сам подтянет доступные данные по машине.",
         "car.vehicleTitle": "Мои машины",
         "car.vehicleSubtitle": "Сохраняйте несколько автомобилей и переключайтесь между ними без потери контекста.",
         "car.addVehicle": "Добавить автомобиль",
         "car.deleteVehicle": "Удалить автомобиль",
-        "car.lookupReady": "Готов к распознаванию VIN.",
-        "car.lookupSearching": "Распознаю VIN...",
-        "car.lookupNeedVin": "Введите полный VIN из 17 символов, чтобы распознать его.",
-        "car.lookupInvalid": "Этот VIN не удалось распознать. Проверьте номер и попробуйте снова.",
-        "car.lookupNotFound": "По этому VIN не найдено подходящих данных по машине.",
-        "car.lookupError": "Не удалось получить данные по VIN. Попробуйте ещё раз через несколько секунд.",
+        "car.lookupReady": "Готов к распознаванию VIN или номера кузова.",
+        "car.lookupSearching": "Распознаю VIN / кузов...",
+        "car.lookupNeedVin": "Введите полный VIN из 17 символов или японский номер кузова, например JZX100-1234567.",
+        "car.lookupInvalid": "Этот VIN или номер кузова не удалось распознать. Проверьте номер и попробуйте снова.",
+        "car.lookupNotFound": "По этому VIN или номеру кузова не найдено подходящих данных по машине.",
+        "car.lookupError": "Не удалось получить данные по VIN или номеру кузова. Попробуйте ещё раз через несколько секунд.",
         "spec.displacement": "Объем двигателя:",
         "spec.note": "Эти поля заполняются автоматически по данным автомобиля и могут редактироваться вручную.",
         "spec.loadInternet": "Загрузить из интернета",
@@ -917,8 +917,38 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       }
     }
 
+    function normalizeVehicleIdentifier(value) {
+      return String(value || "").trim().toUpperCase().replace(/\s+/g, "");
+    }
+
     function isFullVin(vin) {
-      return /^[A-HJ-NPR-Z0-9]{17}$/i.test(String(vin || "").trim());
+      return /^[A-HJ-NPR-Z0-9]{17}$/i.test(normalizeVehicleIdentifier(vin));
+    }
+
+    function isJdmChassisNumber(value) {
+      const normalized = normalizeVehicleIdentifier(value);
+      if (!normalized || isFullVin(normalized)) return false;
+      if (normalized.length < 8 || normalized.length > 18) return false;
+      if (!/^[A-Z0-9-]+$/.test(normalized)) return false;
+      if (normalized.includes("-")) return /^[A-Z0-9]{2,7}[A-Z]?-\d{4,8}$/i.test(normalized);
+      return /^[A-Z]{2,7}[A-Z]?\d{4,12}$/i.test(normalized);
+    }
+
+    function isSupportedVehicleIdentifier(value) {
+      return isFullVin(value) || isJdmChassisNumber(value);
+    }
+
+    async function lookupJdmChassis(identifier) {
+      const response = await fetch(`${API_BASE_URL}/api/vehicles/enrich`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          vin: identifier
+        })
+      });
+      if (!response.ok) throw new Error(`Vehicle enrich returned ${response.status}`);
+      const data = await response.json();
+      return data?.vehicle ? vehicleFromApi(data.vehicle) : null;
     }
 
     function decodeVinRecord(record = {}) {
@@ -962,8 +992,8 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
     }
 
     async function lookupVehicleByVin(vin, { force = false } = {}) {
-      const normalizedVin = String(vin || "").trim().toUpperCase();
-      if (!isFullVin(normalizedVin)) {
+      const normalizedVin = normalizeVehicleIdentifier(vin);
+      if (!isSupportedVehicleIdentifier(normalizedVin)) {
         updateLookupStatus(t("car.lookupNeedVin"), "warn");
         return null;
       }
@@ -985,6 +1015,22 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       updateLookupStatus(t("car.lookupSearching"), "info");
 
       try {
+        if (isJdmChassisNumber(normalizedVin)) {
+          const previous = getVehicleDraftProfile();
+          const decoded = await lookupJdmChassis(normalizedVin);
+          if (!decoded) {
+            updateLookupStatus(t("car.lookupNotFound"), "warn");
+            return null;
+          }
+
+          const merged = mergeVehicleProfiles({ ...decoded, vin: normalizedVin }, previous);
+          merged.id = previous.id;
+          setVinLookupCache(normalizedVin, merged);
+          fillVehicleForm(merged);
+          updateLookupStatus(t("car.lookupReady"), "ok");
+          return merged;
+        }
+
         const response = await fetch(`${VIN_LOOKUP_URL}${encodeURIComponent(normalizedVin)}?format=json`);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
@@ -1228,7 +1274,7 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
           updateLookupStatus(t("car.lookupReady"), "info");
           return;
         }
-        if (!isFullVin(vin)) {
+        if (!isSupportedVehicleIdentifier(vin)) {
           updateLookupStatus(t("car.lookupNeedVin"), "warn");
           return;
         }
@@ -1238,7 +1284,7 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       $("#carVinInput")?.addEventListener("blur", () => {
         clearTimeout(vehicleLookupTimer);
         const vin = $("#carVinInput")?.value || "";
-        if (isFullVin(vin)) {
+        if (isSupportedVehicleIdentifier(vin)) {
           lookupVehicleByVin(vin);
         }
       });
