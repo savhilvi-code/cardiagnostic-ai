@@ -150,7 +150,7 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
         "car.formMileage": "Mileage",
         "car.formMileagePlaceholder": "185000 km",
         "car.formVin": "VIN / chassis",
-        "car.formVinPlaceholder": "JT..., JZX1001234567, ABC1234567",
+        "car.formVinPlaceholder": "JT..., JZX1001234567, PNT30003457",
         "car.formHint": "You can edit the data anytime. Later we can connect VIN or catalog auto-fill here.",
         "car.formSave": "Save car",
         "car.formSaved": "Car profile saved.",
@@ -159,7 +159,7 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
         "car.formLookupHint": "Enter a full VIN or a chassis/frame number and PULS will pull the available vehicle data automatically.",
         "car.lookupReady": "Ready to decode a VIN or chassis number.",
         "car.lookupSearching": "Looking up vehicle data...",
-        "car.lookupNeedVin": "Enter a full VIN or a chassis/frame number like JZX1001234567 or ABC1234567.",
+        "car.lookupNeedVin": "Enter a full VIN or a chassis/frame number like JZX1001234567 or PNT30003457.",
         "car.lookupInvalid": "This VIN or chassis number could not be decoded. Please check the number and try again.",
         "car.lookupNotFound": "No matching vehicle data was found for this VIN or chassis number.",
         "car.lookupError": "Vehicle lookup failed. Please try again in a few seconds.",
@@ -367,7 +367,7 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
         "car.formMileage": "Пробег",
         "car.formMileagePlaceholder": "185000 км",
         "car.formVin": "VIN / номер кузова",
-        "car.formVinPlaceholder": "JT..., JZX1001234567, ABC1234567",
+        "car.formVinPlaceholder": "JT..., JZX1001234567, PNT30003457",
         "car.formHint": "Данные можно редактировать в любой момент. Позже сюда можно подключить авто-подтягивание по VIN или каталогу.",
         "car.formSave": "Сохранить машину",
         "car.formSaved": "Профиль машины сохранён.",
@@ -380,7 +380,7 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
         "car.deleteVehicle": "Удалить автомобиль",
         "car.lookupReady": "Готов к распознаванию VIN или номера кузова.",
         "car.lookupSearching": "Ищу данные по машине...",
-        "car.lookupNeedVin": "Введите полный VIN или номер кузова, например JZX1001234567 или ABC1234567.",
+        "car.lookupNeedVin": "Введите полный VIN или номер кузова, например JZX1001234567 или PNT30003457.",
         "car.lookupInvalid": "Этот VIN или номер кузова не удалось распознать. Проверьте номер и попробуйте снова.",
         "car.lookupNotFound": "По этому VIN или номеру кузова не найдено подходящих данных по машине.",
         "car.lookupError": "Не удалось получить данные по машине. Попробуйте ещё раз через несколько секунд.",
@@ -885,7 +885,7 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
     }
 
     const VIN_LOOKUP_URL = "https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/";
-    const VIN_LOOKUP_CACHE_KEY = "puls_vin_lookup_v2";
+    const VIN_LOOKUP_CACHE_KEY = "puls_vin_lookup_v1";
     let vehicleLookupTimer = null;
     let vehicleLookupRequestId = 0;
     let vehicleBackendSaveTimer = null;
@@ -994,8 +994,11 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
         return null;
       }
 
+      const preserveManualEdits = normalizeVehicleIdentifier(previous.vin) === identifier;
       const lookupData = { ...enrichedVehicle, vin: identifier };
-      const merged = mergeVehicleProfiles(lookupData, previous);
+      const merged = preserveManualEdits
+        ? mergeVehicleProfiles(previous, lookupData)
+        : mergeVehicleProfiles(lookupData, previous);
       merged.id = previous.id;
       return merged;
     }
@@ -1017,7 +1020,10 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       const cached = getVinLookupCache(normalizedVin);
       if (cached && !force) {
         const current = getVehicleDraftProfile();
-        const mergedCached = mergeVehicleProfiles({ ...cached, vin: normalizedVin }, current);
+        const preserveManualEdits = String(current.vin || "").trim().toUpperCase() === normalizedVin;
+        const mergedCached = preserveManualEdits
+          ? mergeVehicleProfiles(current, { ...cached, vin: normalizedVin })
+          : mergeVehicleProfiles({ ...cached, vin: normalizedVin }, current);
         mergedCached.id = current.id;
         fillVehicleForm(mergedCached);
         updateLookupStatus(t("car.lookupReady"), "ok");
@@ -1076,12 +1082,15 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
 
         const decoded = decodeVinRecord({ ...record, VIN: normalizedVin });
         const keepPreviousModel = Boolean(previous.model && previous.brand && decoded.brand && previous.brand === decoded.brand);
+        const preserveManualEdits = String(previous.vin || "").trim().toUpperCase() === normalizedVin;
         const lookupData = {
           ...decoded,
           model: decoded.model || (keepPreviousModel ? previous.model : ""),
           vin: normalizedVin
         };
-        const merged = mergeVehicleProfiles(lookupData, previous);
+        const merged = preserveManualEdits
+          ? mergeVehicleProfiles(previous, lookupData)
+          : mergeVehicleProfiles(lookupData, previous);
         merged.id = previous.id;
 
         if (!hasDecodedVehicleIdentity(merged)) {
