@@ -2928,6 +2928,17 @@ body.assistant-mode #assistant .chat-grid {
   gap: 16px !important;
 }
 
+/* 2026-07-19: final bottom clearance so the latest answer never hides under the fixed composer */
+body.assistant-mode .messages,
+body.assistant-mode .assistant-right {
+  padding-bottom: calc(190px + env(safe-area-inset-bottom)) !important;
+  scroll-padding-bottom: calc(190px + env(safe-area-inset-bottom)) !important;
+}
+
+body.assistant-mode .bubble:last-child {
+  margin-bottom: 36px !important;
+}
+
 .puls-splash-hitarea {
   position: absolute;
   inset: 0;

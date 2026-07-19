@@ -1984,15 +1984,18 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
         if (!lastBubble || !composer || !scrollBox) return;
         if (!isAssistantMode) return;
 
-        const bubbleBottom = lastBubble.getBoundingClientRect().bottom;
-        const scrollBoxBottom = scrollBox.getBoundingClientRect().bottom;
-        const composerHeight = composer.getBoundingClientRect().height;
-        const safeGap = 24;
-        const hiddenByComposer = bubbleBottom - (scrollBoxBottom - composerHeight - safeGap);
+        lastBubble.scrollIntoView({ block: "end", behavior: "smooth" });
 
-        if (hiddenByComposer > 0) {
-          scrollBox.scrollBy({ top: hiddenByComposer, behavior: "smooth" });
-        }
+        requestAnimationFrame(() => {
+          const bubbleBottom = lastBubble.getBoundingClientRect().bottom;
+          const composerTop = composer.getBoundingClientRect().top;
+          const safeGap = 32;
+          const hiddenByComposer = bubbleBottom - (composerTop - safeGap);
+
+          if (hiddenByComposer > 0) {
+            window.scrollBy({ top: hiddenByComposer, behavior: "smooth" });
+          }
+        });
       });
     }
 

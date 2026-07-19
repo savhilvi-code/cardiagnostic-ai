@@ -21,6 +21,7 @@
 
 - Expanded frontend JDM identifier validation so short compact chassis numbers with one-letter prefixes, such as `E11321342`, are accepted by the browser and sent to backend lookup.
 - Changed the JDM decode draft merge so a newly detected Japanese chassis result starts from a clean vehicle draft instead of inheriting stale brand/model/engine fields from the previously selected car.
+- 2026-07-19: Fixed assistant chat bottom clearance so the latest answer scrolls above the fixed composer instead of hiding under it. Also updated the assistant scroll behavior to align the last message against the composer top during page-level scrolling in assistant mode.
 
 ## 2026-07-06
 
