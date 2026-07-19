@@ -1877,7 +1877,11 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       $("#historyList").innerHTML = visibleHistory.length ? visibleHistory.map((item, index) => `
         <article class="row request-row" style="grid-template-columns:64px 1fr 150px" data-request-kind="history" data-request-index="${index}" role="button" tabindex="0">
           <div class="square ${item.type === voiceRequestLabel ? "violet" : ""}">${item.type === voiceRequestLabel ? "🎙" : "⌨"}</div>
-          <div><h3>${escapeHtml(item.question)}</h3><p>${escapeHtml(item.vehicle)}</p></div>
+          <div>
+            <h3>${escapeHtml(item.question)}</h3>
+            <p>${escapeHtml(item.vehicle)}</p>
+            <p class="history-answer-preview">${escapeHtml(item.answer || (english ? "Open the request to view the answer." : "Откройте запрос, чтобы посмотреть ответ."))}</p>
+          </div>
           <div><p>${escapeHtml(item.date)}</p><span class="tag">${escapeHtml(item.type)}</span></div>
         </article>
       `).join("") : emptyState(historyQuery ? t("common.noMatches") : t("history.empty"));

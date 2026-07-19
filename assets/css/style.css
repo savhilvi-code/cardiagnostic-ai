@@ -678,12 +678,22 @@ html { scroll-behavior: smooth; }
       transition: transform .18s, border-color .18s, box-shadow .18s, background .18s;
     }
 
-    .request-row:hover {
-      transform: translateY(-1px);
-      border-color: var(--blue);
-      box-shadow: inset 0 0 0 1px rgba(8, 125, 255, .2), 0 0 18px rgba(8, 125, 255, .12);
-      background: rgba(8, 35, 58, .86);
-    }
+.request-row:hover {
+  transform: translateY(-1px);
+  border-color: var(--blue);
+  box-shadow: inset 0 0 0 1px rgba(8, 125, 255, .2), 0 0 18px rgba(8, 125, 255, .12);
+  background: rgba(8, 35, 58, .86);
+}
+
+.history-answer-preview {
+  margin-top: 8px;
+  color: rgba(221, 233, 245, .78);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 
     .row.featured {
       border-color: var(--blue);
