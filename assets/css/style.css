@@ -2427,7 +2427,27 @@ body.assistant-mode .assistant-right {
   max-height: calc(100vh - 246px) !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
+  padding-right: 8px !important;
   padding-bottom: 24px !important;
+  scrollbar-width: thin;
+  scrollbar-color: #0b7ee8 rgba(7, 29, 48, .38);
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+}
+
+body.assistant-mode .assistant-right::-webkit-scrollbar {
+  width: 10px;
+}
+
+body.assistant-mode .assistant-right::-webkit-scrollbar-track {
+  background: rgba(7, 29, 48, .38) !important;
+  border-radius: 999px;
+}
+
+body.assistant-mode .assistant-right::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #11a2ff, #0b6fbb) !important;
+  border-radius: 999px;
+  border: 2px solid rgba(7, 29, 48, .38);
 }
 
 body.assistant-mode .assistant-right .card:first-child {

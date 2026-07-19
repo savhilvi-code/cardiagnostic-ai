@@ -26,6 +26,7 @@
 - 2026-07-19: Restored an explicit visible scrollbar for the request-details modal. The small popup now keeps a stable vertical scroll area with its own styled track/thumb, so long saved answers remain obviously scrollable.
 - 2026-07-19: Documented page-by-page frontend data ownership. The frontend architecture now explicitly separates production-backed pages (`My car`, `History`, `Journal`, quota/auth surfaces) from pages that still render demo/static data (`Videos`, `Manuals`, `DTC`, local service notes inside the vehicle card).
 - 2026-07-19: Softened UI subtitles for pages that are not fully backend-backed yet. `Videos`, `Manuals`, `DTC`, and the service-notes subtitle inside `My car` no longer claim a stronger production persistence guarantee than the current implementation actually provides.
+- 2026-07-19: Restored a clearly visible scrollbar for the fixed right-side assistant rail in desktop assistant mode. The sticky summary/source column now has its own stable gutter plus explicit track/thumb styling, so overflow on the small side panel remains visible instead of looking cut off.
 
 ## 2026-07-06
 
