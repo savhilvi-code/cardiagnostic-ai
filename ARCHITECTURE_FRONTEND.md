@@ -165,3 +165,24 @@ flowchart LR
 - Request history and journal views read backend `/api/history` only for a signed-in user.
 - Guest mode returns empty private lists instead of falling back to old browser LocalStorage history.
 - On `puls-auth-change` logout, frontend clears legacy private UI cache keys for history and vehicles before rerendering the app.
+
+## Page Data Ownership
+
+The frontend has several product surfaces that look similar in UI, but they are not all backed by the same persistence path yet.
+
+| Page | Reads from | Writes to | Current reality |
+| --- | --- | --- | --- |
+| My Car | backend `/api/vehicles` | backend `/api/vehicles` | Production-backed |
+| Service block inside My Car | local draft / LocalStorage service record cache | LocalStorage service record cache | UI/local only for now |
+| Request History | backend `/api/history` | backend `/chat` persistence path indirectly | Production-backed |
+| Request Journal | backend `/api/history` solved/enriched rows | backend feedback -> solved case flow indirectly | Production-backed |
+| Videos | static frontend rows today | nowhere in frontend | Demo UI until switched to backend `video_library` |
+| Manuals | static frontend rows today | nowhere in frontend | Demo UI until switched to backend/manual catalog |
+| DTC | static frontend rows today | nowhere in frontend | Demo UI until switched to backend `dtc_errors` |
+| Settings / quota badge | backend auth/profile + backend chat quota payload | backend auth/profile flows | Production-backed for auth/quota, payment capture not live yet |
+
+## UI Honesty Rules
+
+- If a page still reads static rows, its subtitle and empty-state copy must not claim that all user data is already saved there.
+- Demo/manual/video/DTC cards can stay visible during staging, but they should be described as examples, picks, or reference materials until the backend reader is connected.
+- Vehicle cards, request history, solved request journal, and quota are already real backend-backed surfaces and can be described as persistent user data.

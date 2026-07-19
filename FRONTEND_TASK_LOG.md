@@ -24,6 +24,8 @@
 - 2026-07-19: Fixed assistant chat bottom clearance so the latest answer scrolls above the fixed composer instead of hiding under it. Also updated the assistant scroll behavior to align the last message against the composer top during page-level scrolling in assistant mode.
 - 2026-07-19: Updated the request-history list cards to show a short answer preview directly in the row instead of only the question title. This makes saved replies visible at a glance and reduces the false impression that the backend failed to save the answer.
 - 2026-07-19: Restored an explicit visible scrollbar for the request-details modal. The small popup now keeps a stable vertical scroll area with its own styled track/thumb, so long saved answers remain obviously scrollable.
+- 2026-07-19: Documented page-by-page frontend data ownership. The frontend architecture now explicitly separates production-backed pages (`My car`, `History`, `Journal`, quota/auth surfaces) from pages that still render demo/static data (`Videos`, `Manuals`, `DTC`, local service notes inside the vehicle card).
+- 2026-07-19: Softened UI subtitles for pages that are not fully backend-backed yet. `Videos`, `Manuals`, `DTC`, and the service-notes subtitle inside `My car` no longer claim a stronger production persistence guarantee than the current implementation actually provides.
 
 ## 2026-07-06
 
