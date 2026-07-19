@@ -58,4 +58,5 @@
 - Исправлена отправка сообщений на сайте: при отсутствии Supabase Auth создается локальный `web-guest-* auth_user_id`, поэтому кнопка отправки и Enter реально вызывают backend `/chat`.
 - Обновлен frontend dev `server.js`: старый PostgreSQL/n8n mini-backend заменен proxy на backend FastAPI, без прямой записи `diagnostic_requests`.
 - Обновлен cache-busting `assets/js/app.js` в `index.html` для GitHub Pages.
+- 2026-07-19: Changed frontend default language boot behavior to English for first-time and incognito visitors. Updated `assets/js/app.js` so the app falls back to `en` when no saved language exists in localStorage, and changed `index.html` root `lang` attribute to `en`. Tested by reviewing the startup language path; expected behavior is that `https://pulscar.co/` opens in English until the user explicitly switches language.
 

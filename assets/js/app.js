@@ -501,9 +501,9 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
 
     function getLanguage() {
       try {
-        return localStorage.getItem(LANGUAGE_STORAGE_KEY) || "ru";
+        return localStorage.getItem(LANGUAGE_STORAGE_KEY) || "en";
       } catch (error) {
-        return "ru";
+        return "en";
       }
     }
 
