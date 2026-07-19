@@ -44,6 +44,7 @@
 - Deleting a vehicle in the UI calls backend delete for the personal card while shared solved cases remain stored by backend.
 - Fixed logout privacy state: guest mode no longer reads cached request history or previous user's vehicle cards after logout + refresh.
 - Scoped vehicle UI cache by authenticated user id and cleared legacy private cache keys on `puls-auth-change` logout.
+- 2026-07-19: Strengthened the assistant right rail after live chat regressions. Clarification-style answers now clear stale `Итог: что проверить` / `Видео / ссылки по теме` content instead of reusing the previous response, and the desktop rail forces an internal visible scrollbar so the small side panel can actually scroll on Windows while the fixed composer is on screen.
 
 ## 2026-07-03
 

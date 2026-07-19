@@ -2988,6 +2988,35 @@ body.assistant-mode .bubble:last-child {
   margin-bottom: 36px !important;
 }
 
+/* Final desktop assistant rail override: keep a visible internal scrollbar */
+@media (min-width: 1051px) {
+  body.assistant-mode .assistant-right {
+    overflow-y: scroll !important;
+    overflow-x: hidden !important;
+    scrollbar-gutter: stable both-edges !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: #11a2ff rgba(7, 29, 48, .44) !important;
+    padding-right: 8px !important;
+    padding-bottom: calc(190px + env(safe-area-inset-bottom)) !important;
+    scroll-padding-bottom: calc(190px + env(safe-area-inset-bottom)) !important;
+  }
+
+  body.assistant-mode .assistant-right::-webkit-scrollbar {
+    width: 12px !important;
+  }
+
+  body.assistant-mode .assistant-right::-webkit-scrollbar-track {
+    background: rgba(7, 29, 48, .44) !important;
+    border-radius: 999px !important;
+  }
+
+  body.assistant-mode .assistant-right::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #11a2ff, #0b6fbb) !important;
+    border-radius: 999px !important;
+    border: 2px solid rgba(7, 29, 48, .44) !important;
+  }
+}
+
 .puls-splash-hitarea {
   position: absolute;
   inset: 0;

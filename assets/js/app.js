@@ -2103,6 +2103,36 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       `).join("");
     }
 
+    function clearAssistantRail() {
+      const checks = $("#keyChecks");
+      const links = $("#topicLinks");
+      if (checks) checks.innerHTML = `<p>${t("assistant.checksEmpty")}</p>`;
+      if (links) links.innerHTML = `<p>${t("assistant.linksFoundEmpty")}</p>`;
+    }
+
+    function looksLikeAssistantClarification(answer) {
+      const text = String(answer || "").toLowerCase();
+      if (!text) return true;
+      return [
+        "уточните, пожалуйста",
+        "как я могу помочь",
+        "опишите проблему",
+        "напишите климат",
+        "какая именно коробка",
+        "нужен ли обычный atf",
+        "укажите машину",
+        "please clarify",
+        "describe the problem",
+        "which gearbox is installed",
+        "tell me the climate",
+      ].some((phrase) => text.includes(phrase));
+    }
+
+    function shouldPopulateAssistantRail(answer, links) {
+      if (Array.isArray(links) && links.length) return true;
+      return !looksLikeAssistantClarification(answer);
+    }
+
     const SERVICE_RECORDS_KEY = "puls_service_records_v1";
 
     function normalizeServiceRecord(record = {}, index = 0) {
@@ -2563,21 +2593,25 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
         const answer = data.answer || data.reply || data.message || data.output || rawAnswer || JSON.stringify(data, null, 2);
         const links = normalizeResponseLinks(data.links || []);
         loading.innerHTML = `<strong>PULS</strong><br>${linkifyText(answer)} <small>${new Date().toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" })}</small>`;
-        updateKeyChecks(answer);
-        updateTopicLinks(links.length ? links : answer);
-        updateQuota(data.quota);
-        await saveHistoryItem(prompt, answer, links);
-        await renderLists();
-        scrollMessagesToBottom();
-      } catch (error) {
-        console.error("PULS /chat request failed:", error);
-        const errorText = t("assistant.error");
-        loading.innerHTML = `<strong>PULS</strong><br>${errorText} <small>${new Date().toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" })}</small>`;
-        updateKeyChecks(errorText);
-        await saveHistoryItem(prompt, errorText, []);
-        scrollMessagesToBottom();
+          if (shouldPopulateAssistantRail(answer, links)) {
+            updateKeyChecks(answer);
+            updateTopicLinks(links.length ? links : answer);
+          } else {
+            clearAssistantRail();
+          }
+          updateQuota(data.quota);
+          await saveHistoryItem(prompt, answer, links);
+          await renderLists();
+          scrollMessagesToBottom();
+        } catch (error) {
+          console.error("PULS /chat request failed:", error);
+          const errorText = t("assistant.error");
+          loading.innerHTML = `<strong>PULS</strong><br>${errorText} <small>${new Date().toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" })}</small>`;
+          clearAssistantRail();
+          await saveHistoryItem(prompt, errorText, []);
+          scrollMessagesToBottom();
+        }
       }
-    }
 
     function connectSpline() {
       if (!SPLINE_SCENE_URL) return;
