@@ -1,81 +1,31 @@
-# CarDiagnostic AI
-PULS AI is an AI-powered vehicle diagnostic platform that combines automotive knowledge, real repair cases, DTC interpretation, service manuals, and conversational diagnostics.
+# PULS Frontend
 
-## Topics
+Production frontend for the PULS automotive diagnostics experience at [pulscar.co](https://pulscar.co).
 
-`ai`, `automotive`, `car-diagnostics`, `vehicle-diagnostics`, `fastapi`, `python`, `openai`, `claude`, `supabase`
+This repository contains the public web interface for AI-assisted vehicle diagnostics, user vehicle management, request history, multilingual interaction, support intake, and the responsive browser UI used by the live product.
 
+## Core Features
 
-Статический прототип сайта для GitHub Pages.
+- AI automotive diagnostics
+- vehicle management
+- request history
+- multilingual interface
+- support form
+- responsive web UI
 
-## Как открыть
+## Technology
 
-Откройте `index.html` в браузере.
+- HTML
+- CSS
+- JavaScript
+- Supabase Auth
+- GitHub Pages
 
-## Как опубликовать на GitHub Pages
+## Live Website
 
-1. Создайте новый репозиторий на GitHub.
-2. Загрузите в него `index.html` и `README.md`.
-3. Откройте `Settings -> Pages`.
-4. В `Build and deployment` выберите `Deploy from a branch`.
-5. Выберите ветку `main` и папку `/root`.
-6. Нажмите `Save`.
+- [https://pulscar.co](https://pulscar.co)
 
-Через 1-2 минуты GitHub даст ссылку вида:
+## Notes
 
-`https://username.github.io/repository-name/`
-
-## Подключение n8n
-
-В файле `index.html` найдите:
-
-```js
-const N8N_WEBHOOK_URL = "";
-```
-
-Вставьте URL webhook из n8n:
-
-```js
-const N8N_WEBHOOK_URL = "https://your-n8n-domain/webhook/car-diagnostic";
-```
-
-Сайт отправляет в webhook JSON:
-
-```json
-{
-  "message": "текст пользователя",
-  "vehicle": {
-    "model": "Nissan X-Trail T32",
-    "year": 2016,
-    "engine": "2.0 dCi",
-    "drive": "4WD",
-    "fuel": "Дизель"
-  }
-}
-```
-
-Ожидаемый ответ от n8n:
-
-```json
-{
-  "answer": "ответ AI ассистента"
-}
-```
-
-Также подойдут поля `message` или `output`.
-
-## Подключение Spline
-
-В файле `index.html` найдите:
-
-```js
-const SPLINE_SCENE_URL = "";
-```
-
-Вставьте ссылку на опубликованную Spline-сцену:
-
-```js
-const SPLINE_SCENE_URL = "https://my.spline.design/your-scene/";
-```
-
-После этого 3D-сцена появится в правой карточке AI ассистента.
+- This repository is the production frontend for the live PULS website.
+- Public documentation is intentionally high level and does not include private operational details or legacy prototype instructions.
