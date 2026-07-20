@@ -932,7 +932,6 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
     const VIN_LOOKUP_URL = "https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/";
     const VIN_LOOKUP_CACHE_KEY = "puls_vin_lookup_v1";
-    let vehicleLookupTimer = null;
     let vehicleLookupRequestId = 0;
     let vehicleBackendSaveTimer = null;
     let vehicleDraftProfile = null;
@@ -1317,7 +1316,6 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       });
 
       $("#carVinInput")?.addEventListener("input", () => {
-        clearTimeout(vehicleLookupTimer);
         const vin = $("#carVinInput")?.value || "";
         if (!vin.trim()) {
           updateLookupStatus(t("car.lookupReady"), "info");
@@ -1327,15 +1325,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           updateLookupStatus(t("car.lookupNeedVin"), "warn");
           return;
         }
-        vehicleLookupTimer = setTimeout(() => lookupVehicleByVin(vin), 650);
-      });
-
-      $("#carVinInput")?.addEventListener("blur", () => {
-        clearTimeout(vehicleLookupTimer);
-        const vin = $("#carVinInput")?.value || "";
-        if (isSupportedVehicleIdentifier(vin)) {
-          lookupVehicleByVin(vin);
-        }
+        updateLookupStatus(t("car.lookupReady"), "info");
       });
 
       $("#carFillDemoBtn")?.addEventListener("click", () => {
