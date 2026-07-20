@@ -4,6 +4,8 @@ const CHAT_API_URL = PULS_CONFIG.CHAT_API_URL || `${API_BASE_URL}/chat`;
 const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.design/starterscenecopy-RDKY0gQFbXbkko9LN657PtBA/";
 const VEHICLE_PHOTO_BUCKET = String(PULS_CONFIG.VEHICLE_PHOTO_BUCKET || "vehicle-photos").trim();
 const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10 * 1024 * 1024);
+const SUPPORT_MAX_IMAGES = 3;
+const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
     const iconMap = {
       bot: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="8" width="14" height="10" rx="3"/><path d="M12 4v4M8 13h.01M16 13h.01M7 21h10M3 11v4M21 11v4"/></svg>',
@@ -226,6 +228,28 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
         "settings.metric": "km, °C",
         "settings.imperial": "mi, °F",
         "settings.timezone": "Time zone",
+        "support.open": "Contact Support",
+        "support.title": "Contact Support",
+        "support.subtitle": "Send a message to the PULS support team.",
+        "support.subject": "Subject",
+        "support.message": "Message",
+        "support.email": "Email address",
+        "support.attach": "Attach images",
+        "support.attachHint": "Up to 3 images, JPG/JPEG/PNG/WEBP, max 5 MB each.",
+        "support.send": "Send",
+        "support.subjectPlaceholder": "Briefly describe the issue",
+        "support.messagePlaceholder": "Tell us what happened and what you need help with.",
+        "support.success": "Your support request has been sent successfully.\n\nWe will reply to you by email as soon as possible.",
+        "support.filesSelected": "{count} image(s) selected.",
+        "support.noFiles": "No images attached yet.",
+        "support.limitExceeded": "You can attach up to 3 images.",
+        "support.fileTooLarge": "Each image must be 5 MB or smaller.",
+        "support.invalidType": "Only JPG, JPEG, PNG, and WEBP images are allowed.",
+        "support.error": "Could not send the support request. Please try again.",
+        "support.subjectRequired": "Enter a subject.",
+        "support.messageRequired": "Enter a message.",
+        "support.emailRequired": "Enter your email address.",
+        "support.sending": "Sending...",
         "subscription.freeStatus": "Status: Free — 10 requests",
         "subscription.plan": "PULS Pro subscription: 100 requests for $15.",
         "subscription.pay": "Pay $15",
@@ -447,6 +471,28 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
         "settings.metric": "км, °C",
         "settings.imperial": "мили, °F",
         "settings.timezone": "Часовой пояс",
+        "support.open": "Написать в поддержку",
+        "support.title": "Написать в поддержку",
+        "support.subtitle": "Отправьте сообщение в службу поддержки PULS.",
+        "support.subject": "Тема",
+        "support.message": "Сообщение",
+        "support.email": "Email",
+        "support.attach": "Прикрепить изображения",
+        "support.attachHint": "До 3 изображений, JPG/JPEG/PNG/WEBP, максимум 5 МБ каждое.",
+        "support.send": "Отправить",
+        "support.subjectPlaceholder": "Коротко опишите проблему",
+        "support.messagePlaceholder": "Расскажите, что произошло и с чем нужна помощь.",
+        "support.success": "Ваш запрос в поддержку успешно отправлен.\n\nМы ответим вам по email как можно скорее.",
+        "support.filesSelected": "Выбрано изображений: {count}.",
+        "support.noFiles": "Изображения пока не прикреплены.",
+        "support.limitExceeded": "Можно прикрепить не больше 3 изображений.",
+        "support.fileTooLarge": "Каждое изображение должно быть не больше 5 МБ.",
+        "support.invalidType": "Разрешены только JPG, JPEG, PNG и WEBP.",
+        "support.error": "Не удалось отправить запрос в поддержку. Попробуйте ещё раз.",
+        "support.subjectRequired": "Введите тему.",
+        "support.messageRequired": "Введите сообщение.",
+        "support.emailRequired": "Введите email.",
+        "support.sending": "Отправка...",
         "subscription.freeStatus": "Статус: Free — 10 запросов",
         "subscription.plan": "Подписка PULS Pro: 100 запросов за $15.",
         "subscription.pay": "Оплатить $15",
@@ -1419,6 +1465,10 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       });
       const languageSelect = $("#languageSelect");
       if (languageSelect) languageSelect.value = lang;
+      const supportSubjectInput = $("#supportSubjectInput");
+      if (supportSubjectInput) supportSubjectInput.setAttribute("placeholder", t("support.subjectPlaceholder"));
+      const supportMessageInput = $("#supportMessageInput");
+      if (supportMessageInput) supportMessageInput.setAttribute("placeholder", t("support.messagePlaceholder"));
       window.updateProfileBlock?.();
       applyAuthLockedState();
     }
@@ -1729,6 +1779,141 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       visibleHistory: [],
       visibleJournal: []
     };
+
+    function getSupportModalNodes() {
+      return {
+        modal: $("#supportModal"),
+        form: $("#supportForm"),
+        subject: $("#supportSubjectInput"),
+        message: $("#supportMessageInput"),
+        email: $("#supportEmailInput"),
+        images: $("#supportImagesInput"),
+        fileList: $("#supportFileList"),
+        status: $("#supportFormStatus"),
+        send: $("#supportSendBtn")
+      };
+    }
+
+    function setSupportStatus(message = "", isError = false) {
+      const { status } = getSupportModalNodes();
+      if (!status) return;
+      status.textContent = message;
+      status.classList.toggle("error", Boolean(isError));
+    }
+
+    function getSupportEmailValue() {
+      return String(window.pulsCurrentUser?.email || window.pulsAppUser?.email || "").trim();
+    }
+
+    function renderSupportFiles(files = []) {
+      const { fileList } = getSupportModalNodes();
+      if (!fileList) return;
+      if (!files.length) {
+        fileList.innerHTML = `<div class="support-file-item">${escapeHtml(t("support.noFiles"))}</div>`;
+        return;
+      }
+      fileList.innerHTML = files.map((file) => (
+        `<div class="support-file-item">${escapeHtml(file.name)} (${Math.max(1, Math.round(file.size / 1024))} KB)</div>`
+      )).join("");
+    }
+
+    function closeSupportModal() {
+      const { modal } = getSupportModalNodes();
+      if (!modal) return;
+      modal.classList.remove("show");
+      modal.setAttribute("aria-hidden", "true");
+    }
+
+    function openSupportModal() {
+      const nodes = getSupportModalNodes();
+      if (!nodes.modal) return;
+      nodes.form?.reset();
+      if (nodes.email) nodes.email.value = getSupportEmailValue();
+      renderSupportFiles([]);
+      setSupportStatus("");
+      nodes.modal.classList.add("show");
+      nodes.modal.setAttribute("aria-hidden", "false");
+      setTimeout(() => nodes.subject?.focus(), 0);
+    }
+
+    function validateSupportFiles(files) {
+      if (files.length > SUPPORT_MAX_IMAGES) {
+        throw new Error(t("support.limitExceeded"));
+      }
+      for (const file of files) {
+        const type = String(file?.type || "").toLowerCase();
+        if (!["image/jpeg", "image/png", "image/webp"].includes(type)) {
+          throw new Error(t("support.invalidType"));
+        }
+        if (Number(file?.size || 0) > SUPPORT_MAX_IMAGE_BYTES) {
+          throw new Error(t("support.fileTooLarge"));
+        }
+      }
+    }
+
+    async function submitSupportRequest(event) {
+      event.preventDefault();
+      const nodes = getSupportModalNodes();
+      const subject = String(nodes.subject?.value || "").trim();
+      const message = String(nodes.message?.value || "").trim();
+      const email = String(nodes.email?.value || "").trim();
+      const files = Array.from(nodes.images?.files || []);
+
+      if (!subject) {
+        setSupportStatus(t("support.subjectRequired"), true);
+        nodes.subject?.focus();
+        return;
+      }
+      if (!message) {
+        setSupportStatus(t("support.messageRequired"), true);
+        nodes.message?.focus();
+        return;
+      }
+      if (!email) {
+        setSupportStatus(t("support.emailRequired"), true);
+        nodes.email?.focus();
+        return;
+      }
+
+      try {
+        validateSupportFiles(files);
+      } catch (error) {
+        setSupportStatus(String(error.message || t("support.error")), true);
+        return;
+      }
+
+      const formData = new FormData();
+      formData.set("email", email);
+      formData.set("subject", subject);
+      formData.set("message", message);
+      if (window.pulsCurrentUser?.id) {
+        formData.set("auth_user_id", window.pulsCurrentUser.id);
+      }
+      files.forEach((file) => formData.append("images", file));
+
+      if (nodes.send) nodes.send.disabled = true;
+      setSupportStatus(t("support.sending"));
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/support`, {
+          method: "POST",
+          body: formData
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(String(data?.detail || t("support.error")));
+        }
+        setSupportStatus(t("support.success"));
+        renderSupportFiles([]);
+        nodes.form?.reset();
+        if (nodes.email) nodes.email.value = getSupportEmailValue() || email;
+      } catch (error) {
+        console.error("Support request failed:", error);
+        setSupportStatus(String(error.message || t("support.error")), true);
+      } finally {
+        if (nodes.send) nodes.send.disabled = false;
+      }
+    }
 
     function getRequestModalNodes() {
       return {
@@ -2713,6 +2898,7 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
         void removeCarPhoto();
       });
       $("#serviceForm")?.addEventListener("submit", saveServiceRecord);
+      $("#supportForm")?.addEventListener("submit", submitSupportRequest);
       ["#serviceTitleInput", "#serviceDescriptionInput", "#serviceDateInput", "#serviceMileageInput"].forEach((selector) => {
         $(selector)?.addEventListener("input", () => updateServicePreview($("#servicePhotoInput")?.dataset.previewUrl || ""));
       });
@@ -2725,11 +2911,27 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       $("#languageSelect")?.addEventListener("change", (event) => {
         setLanguage(event.target.value);
       });
+      $("#supportImagesInput")?.addEventListener("change", (event) => {
+        const files = Array.from(event.target.files || []);
+        try {
+          validateSupportFiles(files);
+          renderSupportFiles(files);
+          setSupportStatus(files.length ? t("support.filesSelected", { count: String(files.length) }) : "");
+        } catch (error) {
+          event.target.value = "";
+          renderSupportFiles([]);
+          setSupportStatus(String(error.message || t("support.error")), true);
+        }
+      });
       window.addEventListener("puls-auth-change", async (event) => {
         if (!event.detail?.user) {
           clearPrivateUiCache();
           window.pulsAppUser = null;
           fillVehicleForm(loadVehicleProfile());
+        }
+        const supportEmailInput = $("#supportEmailInput");
+        if (supportEmailInput && $("#supportModal")?.classList.contains("show")) {
+          supportEmailInput.value = getSupportEmailValue();
         }
         applyAuthLockedState();
         await syncVehicleStoreFromBackend();
@@ -2824,6 +3026,12 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
           return;
         }
 
+        const supportButton = event.target.closest("#supportBtn");
+        if (supportButton) {
+          openSupportModal();
+          return;
+        }
+
         const serviceMenuButton = event.target.closest("[data-service-menu-btn]");
         if (serviceMenuButton) {
           toggleServiceRecordMenu(serviceMenuButton.dataset.serviceId);
@@ -2842,8 +3050,19 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
           return;
         }
 
+        const supportClose = event.target.closest("#supportCloseBtn, #supportCancelBtn");
+        if (supportClose) {
+          closeSupportModal();
+          return;
+        }
+
         if (event.target.id === "serviceModal") {
           closeServiceModal();
+          return;
+        }
+
+        if (event.target.id === "supportModal") {
+          closeSupportModal();
           return;
         }
 
@@ -2883,6 +3102,7 @@ const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10
       document.addEventListener("keydown", (event) => {
         if (event.key === "Escape") {
           closeRequestModal();
+          closeSupportModal();
         }
 
         const requestRow = event.target.closest("[data-request-kind][data-request-index]");

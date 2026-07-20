@@ -380,6 +380,9 @@
                     <option value="UTC-8">UTC-8</option>
                   </select>
                 </div>
+                <div class="profile-actions">
+                  <button class="btn blue" id="supportBtn" type="button" data-i18n="support.open">Contact Support</button>
+                </div>
               </div>
             </div>
           </section>
@@ -504,11 +507,48 @@
     </div>
   </div>
 
+  <div class="request-modal support-modal" id="supportModal" aria-hidden="true">
+    <div class="request-dialog support-dialog" role="dialog" aria-modal="true" aria-labelledby="supportModalTitle">
+      <button class="request-close" id="supportCloseBtn" type="button" aria-label="Закрыть" data-i18n-aria-label="common.close">×</button>
+      <div class="request-header">
+        <div>
+          <h2 id="supportModalTitle" data-i18n="support.title">Contact Support</h2>
+          <p id="supportModalMeta" data-i18n="support.subtitle">Send a message to the PULS support team.</p>
+        </div>
+      </div>
+      <form class="support-form" id="supportForm">
+        <label>
+          <span data-i18n="support.subject">Subject</span>
+          <input id="supportSubjectInput" name="subject" type="text" maxlength="160" required>
+        </label>
+        <label>
+          <span data-i18n="support.message">Message</span>
+          <textarea id="supportMessageInput" name="message" rows="6" required></textarea>
+        </label>
+        <label>
+          <span data-i18n="support.email">Email address</span>
+          <input id="supportEmailInput" name="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+        </label>
+        <label>
+          <span data-i18n="support.attach">Attach images</span>
+          <input id="supportImagesInput" name="images" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" multiple>
+          <small class="support-upload-hint" data-i18n="support.attachHint">Up to 3 images, JPG/JPEG/PNG/WEBP, max 5 MB each.</small>
+        </label>
+        <div class="support-file-list" id="supportFileList"></div>
+        <div class="auth-status" id="supportFormStatus" role="status" aria-live="polite"></div>
+        <div class="profile-actions">
+          <button class="btn blue" id="supportSendBtn" type="submit" data-i18n="support.send">Send</button>
+          <button class="btn" id="supportCancelBtn" type="button" data-i18n="common.close">Закрыть</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/supabaseClient.js?v=20260531-22"></script>
   <script src="assets/js/auth.js?v=20260606-01"></script>
   <script src="assets/js/config.js?v=20260706-01"></script>
-  <script src="assets/js/app.js?v=20260719-01"></script>
+  <script src="assets/js/app.js?v=20260720-02"></script>
 </body>
 </html>

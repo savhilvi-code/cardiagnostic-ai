@@ -186,3 +186,6 @@ The frontend has several product surfaces that look similar in UI, but they are 
 - If a page still reads static rows, its subtitle and empty-state copy must not claim that all user data is already saved there.
 - Demo/manual/video/DTC cards can stay visible during staging, but they should be described as examples, picks, or reference materials until the backend reader is connected.
 - Vehicle cards, request history, solved request journal, and quota are already real backend-backed surfaces and can be described as persistent user data.
+- `assets/js/app.js`: support modal controller for the Settings page; localizes the support form, prefills user email when available, validates up to 3 image attachments, and sends multipart `POST /api/support`.
+- `index.html`: renders the Settings support button and support modal markup.
+- `assets/css/style.css`: styles the support modal form, attachment list, and translated status messages.
