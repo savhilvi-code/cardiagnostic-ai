@@ -66,7 +66,7 @@
           <div class="brand-subtitle" data-i18n="brand.subtitle">Ваш AI-помощник для диагностики автомобиля</div>
         </div>
       </div>
-      <div class="system-pill" data-i18n="system.ready">PULS работает для вас 24/7</div>
+      <button class="system-pill" id="systemPill" type="button">Sign in / Register</button>
     </header>
 
     <section class="hero" aria-label="Автомобиль">
@@ -87,7 +87,7 @@
         <nav class="panel nav" aria-label="Разделы">
           <button class="active" data-view="assistant" data-icon="bot">PULS</button>
           <button data-view="car" data-icon="home" data-i18n="nav.car">Мой автомобиль</button>
-          <button data-view="journal" data-icon="journal" data-i18n="nav.journal">Журнал запросов</button>
+          <button data-view="journal" data-icon="journal" data-i18n="nav.journal">Подтверждённые кейсы</button>
           <button data-view="history" data-icon="history" data-i18n="nav.history">История запросов</button>
           <button data-view="dtc" data-icon="car" data-i18n="nav.dtc">Ошибки (DTC)</button>
           <button data-view="manuals" data-icon="file" data-i18n="nav.manuals">Мануалы</button>
@@ -291,15 +291,15 @@
           </section>
 
           <section class="view" id="journal">
-            <div class="head"><div><h1 data-i18n="journal.title">Журнал запросов</h1><p data-i18n="journal.subtitle">История обращений и полученных решений</p></div><button class="info-btn" type="button" data-info="journal" aria-label="Info">?</button></div>
-            <div class="page-help" id="journalHelp" data-i18n="journal.help">This page stores completed cases only: PULS asked a follow-up, the user confirmed the problem was solved, and the final solution was saved.</div>
+            <div class="head"><div><h1 data-i18n="journal.title">Подтверждённые кейсы</h1><p data-i18n="journal.subtitle">Подтверждённые решения и сохранённые итоги</p></div></div>
+            <div class="page-help" id="journalHelp" data-i18n="journal.help">Здесь сохраняются только подтверждённые кейсы: PULS помог определить проблему, пользователь подтвердил, что она решена, и итоговое решение было сохранено.</div>
             <div class="search"><input id="journalSearch" data-i18n-placeholder="search.requests" placeholder="Поиск по запросам"><button class="btn" data-action="filter" data-i18n="common.filter">Фильтр</button></div>
             <div class="list" id="journalList"></div>
           </section>
 
           <section class="view" id="history">
-            <div class="head"><div><h1 data-i18n="history.title">История запросов</h1><p data-i18n="history.subtitle">Ваши недавние запросы и обращения к PULSу</p></div><button class="info-btn" type="button" data-info="history" aria-label="Info">?</button></div>
-            <div class="page-help" id="historyHelp" data-i18n="history.help">This page keeps all of the user's PULS questions. New users start with an empty history.</div>
+            <div class="head"><div><h1 data-i18n="history.title">История запросов</h1><p data-i18n="history.subtitle">Ваши недавние запросы и обращения к PULSу</p></div></div>
+            <div class="page-help" id="historyHelp" data-i18n="history.help">Здесь хранится история ваших обращений к PULS и полученных ответов.</div>
             <div class="search"><input id="historySearch" data-i18n-placeholder="search.requests" placeholder="Поиск по запросам"><button class="btn" data-action="filter" data-i18n="common.filter">Фильтр</button></div>
             <div class="list" id="historyList"></div>
           </section>
@@ -311,15 +311,15 @@
           </section>
 
           <section class="view" id="manuals">
-            <div class="head"><div><h1 data-i18n="manuals.title">Мануалы и руководства</h1><p data-i18n="manuals.subtitle">Подробные руководства и рекомендации по обслуживанию</p></div><button class="info-btn" type="button" data-info="manuals" aria-label="Info">?</button></div>
-            <div class="page-help" id="manualsHelp" data-i18n="manuals.help">Manuals collected from search requests, repair cases, and relevant product documentation for the selected car will appear here.</div>
+            <div class="head"><div><h1 data-i18n="manuals.title">Мануалы и руководства</h1><p data-i18n="manuals.subtitle">Подробные руководства и рекомендации по обслуживанию</p></div></div>
+            <div class="page-help" id="manualsHelp" data-i18n="manuals.help">Здесь собраны руководства, инструкции и технические материалы, связанные с вашими автомобилями и запросами.</div>
             <div class="search"><input id="manualSearch" data-i18n-placeholder="search.manuals" placeholder="Поиск по мануалам"><button class="btn" data-action="filter" data-i18n="common.filter">Фильтр</button></div>
             <div class="manuals" id="manualList"></div>
           </section>
 
           <section class="view" id="video">
-            <div class="head"><div><h1 data-i18n="video.title">Видео</h1><p data-i18n="video.subtitle">История всех видеороликов, предоставленных в переписке</p></div><button class="info-btn" type="button" data-info="video" aria-label="Info">?</button></div>
-            <div class="page-help" id="videoHelp" data-i18n="video.help">All videos that appeared in PULS answers are saved here so the user can find them again later.</div>
+            <div class="head"><div><h1 data-i18n="video.title">Видео</h1><p data-i18n="video.subtitle">История всех видеороликов, предоставленных в переписке</p></div></div>
+            <div class="page-help" id="videoHelp" data-i18n="video.help">Здесь сохраняются видео и материалы, которые появлялись в ответах PULS, чтобы к ним можно было вернуться позже.</div>
             <div class="search"><input id="videoSearch" data-i18n-placeholder="search.video" placeholder="Поиск по видео"><button class="btn" data-action="filter" data-i18n="common.filter">Фильтр</button></div>
             <div class="list" id="videoList"></div>
           </section>
@@ -436,25 +436,25 @@
       <button class="request-close" id="requestCloseBtn" type="button" aria-label="Закрыть" data-i18n-aria-label="common.close">×</button>
       <div class="request-header">
         <div>
-          <h2 id="requestModalTitle">Детали запроса</h2>
-          <p id="requestModalMeta">История ответа PULS</p>
+          <h2 id="requestModalTitle" data-i18n="requestDetails.title">Детали запроса</h2>
+          <p id="requestModalMeta" data-i18n="requestDetails.meta">История ответа PULS</p>
         </div>
         <div class="request-badges">
-          <span class="tag" id="requestModalType">Text request</span>
-          <span class="tag" id="requestModalStatus">new</span>
+          <span class="tag" id="requestModalType" data-i18n="request.type.text">Текстовый запрос</span>
+          <span class="tag" id="requestModalStatus" data-i18n="status.new">Новый</span>
         </div>
       </div>
       <div class="request-grid">
         <div class="request-block">
-          <h3>Вопрос</h3>
+          <h3 data-i18n="requestDetails.question">Вопрос</h3>
           <p id="requestModalQuestion"></p>
         </div>
         <div class="request-block">
-          <h3>Ответ PULS</h3>
+          <h3 data-i18n="requestDetails.answer">Ответ PULS</h3>
           <div id="requestModalAnswer" class="request-answer"></div>
         </div>
         <div class="request-block request-links-block">
-          <h3>Ссылки</h3>
+          <h3 data-i18n="requestDetails.links">Ссылки</h3>
           <div id="requestModalLinks" class="request-links"></div>
         </div>
       </div>

@@ -55,6 +55,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     const $$ = (selector) => Array.from(document.querySelectorAll(selector));
     const LANGUAGE_STORAGE_KEY = "puls_language_v1";
     const VEHICLE_STORAGE_KEY = "puls_vehicle_profile_v1";
+    let currentQuota = null;
 
     const i18n = {
       en: {
@@ -62,6 +63,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "system.ready": "PULS works for you 24/7",
         "system.freeQuota": "PULS: {remaining} of {limit} requests",
         "system.premium": "PULS Premium: no limit",
+        "system.authCta": "Sign in / Register",
         "hero.car": "Select car",
         "hero.year": "Year",
         "hero.yearValue": "Select year",
@@ -72,7 +74,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "hero.fuel": "Fuel type",
         "hero.fuelValue": "Select fuel",
         "nav.car": "My car",
-        "nav.journal": "Request log",
+        "nav.journal": "Confirmed cases",
         "nav.history": "Request history",
         "nav.dtc": "Errors (DTC)",
         "nav.manuals": "Manuals",
@@ -195,27 +197,49 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "service.previewHint": "You can add a photo, or we will show a colored sticker if no photo is attached.",
         "service.save": "Save record",
         "service.saved": "Service record saved.",
-        "journal.title": "Request log",
-        "journal.subtitle": "History of questions and received solutions",
-        "journal.help": "This page stores completed cases only: PULS asked a follow-up, the user confirmed the problem was solved, and the final solution was saved.",
+        "journal.title": "Confirmed cases",
+        "journal.subtitle": "Confirmed solutions and saved outcomes",
+        "journal.help": "Only confirmed cases are stored here: PULS helped identify the problem, the user confirmed it was solved, and the final solution was saved.",
         "journal.empty": "No completed cases yet. A case appears here after the user confirms the issue was solved.",
         "journal.sampleQuestion": "Humming under the hood at 2000-3000 rpm",
         "journal.sampleSolution": "Solved: the alternator belt tensioner pulley was worn. The user replaced the pulley and belt, then confirmed the noise disappeared.",
         "history.title": "Request history",
         "history.subtitle": "Your recent PULS requests",
-        "history.help": "This page keeps all of the user's PULS questions. New users start with an empty history.",
+        "history.help": "This section contains the history of your PULS requests and responses.",
         "history.empty": "No request history yet. New PULS questions will appear here after the user signs in and sends them.",
+        "history.answerPreviewEmpty": "Open the request to view the answer.",
         "dtc.title": "Errors (DTC)",
         "dtc.subtitle": "Diagnostic trouble codes and reference examples",
         "dtc.clear": "Clear all",
         "dtc.found": "3 errors found.",
         "dtc.warning": "It is recommended to check and fix errors for correct vehicle operation.",
+        "dtc.systemLabel": "System:",
+        "dtc.engineFuelSystem": "Engine / fuel system",
         "manuals.title": "Manuals and guides",
         "manuals.subtitle": "Reference manuals and maintenance guides",
-        "manuals.help": "Manuals collected from search requests, repair cases, and relevant product documentation for the selected car will appear here.",
+        "manuals.help": "This section contains manuals, guides, and technical materials related to your vehicles and requests.",
         "video.title": "Video",
         "video.subtitle": "Video picks and materials related to requests",
-        "video.help": "All videos that appeared in PULS answers are saved here so the user can find them again later.",
+        "video.help": "Videos and materials that appeared in PULS responses are saved here so you can return to them later.",
+        "requestDetails.title": "Request details",
+        "requestDetails.meta": "PULS response history",
+        "requestDetails.question": "Question",
+        "requestDetails.answer": "PULS answer",
+        "requestDetails.links": "Links",
+        "requestDetails.noLinks": "No links found.",
+        "request.relatedLink": "Related link",
+        "request.relatedVideo": "Related video",
+        "request.material": "Material",
+        "request.type.text": "Text request",
+        "request.type.voice": "Voice request",
+        "request.type.parser": "Parser",
+        "request.type.deepSearch": "Deep Search",
+        "status.new": "New",
+        "status.completed": "Completed",
+        "status.solved": "Solved",
+        "status.resolved": "Resolved",
+        "status.closed": "Closed",
+        "status.done": "Done",
         "settings.title": "Settings",
         "settings.subtitle": "Manage your account, subscription, and app",
         "settings.profile": "Profile",
@@ -262,6 +286,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "common.filter": "Filter",
         "common.noMatches": "Nothing found for this search.",
         "common.close": "Close",
+        "common.statusLabel": "Status:",
         "search.requests": "Search requests",
         "search.manuals": "Search manuals",
         "search.video": "Search videos",
@@ -305,6 +330,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "system.ready": "PULS работает для вас 24/7",
         "system.freeQuota": "PULS: {remaining} из {limit} запросов",
         "system.premium": "PULS Premium: без лимита",
+        "system.authCta": "Войти / Зарегистрироваться",
         "hero.car": "Укажите машину",
         "hero.year": "Год выпуска",
         "hero.yearValue": "Укажите год",
@@ -315,7 +341,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "hero.fuel": "Тип топлива",
         "hero.fuelValue": "Укажите топливо",
         "nav.car": "Мой автомобиль",
-        "nav.journal": "Журнал запросов",
+        "nav.journal": "Подтверждённые кейсы",
         "nav.history": "История запросов",
         "nav.dtc": "Ошибки (DTC)",
         "nav.manuals": "Мануалы",
@@ -438,27 +464,49 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "service.previewHint": "Можно добавить фото, а если фото нет, появится цветной стикер.",
         "service.save": "Сохранить запись",
         "service.saved": "Запись ТО сохранена.",
-        "journal.title": "Журнал запросов",
-        "journal.subtitle": "История обращений и полученных решений",
-        "journal.help": "Здесь хранятся только завершенные кейсы: PULS напомнил о проблеме, пользователь подтвердил, что она решена, и финальное решение сохранено.",
+        "journal.title": "Подтверждённые кейсы",
+        "journal.subtitle": "Подтверждённые решения и сохранённые итоги",
+        "journal.help": "Здесь сохраняются только подтверждённые кейсы: PULS помог определить проблему, пользователь подтвердил, что она решена, и итоговое решение было сохранено.",
         "journal.empty": "Завершенных кейсов пока нет. Кейс появится здесь после подтверждения решения пользователем.",
         "journal.sampleQuestion": "Гул под капотом на 2000–3000 оборотах",
         "journal.sampleSolution": "Решено: износился ролик натяжителя ремня генератора. Пользователь заменил ролик и ремень, затем подтвердил, что гул исчез.",
         "history.title": "История запросов",
         "history.subtitle": "Ваши недавние запросы и обращения к PULSу",
-        "history.help": "Здесь хранится вся история вопросов пользователя к PULS. У нового пользователя история пустая.",
+        "history.help": "Здесь хранится история ваших обращений к PULS и полученных ответов.",
         "history.empty": "Истории запросов пока нет. Новые вопросы появятся здесь после входа и отправки запроса.",
+        "history.answerPreviewEmpty": "Откройте запрос, чтобы посмотреть ответ.",
         "dtc.title": "Ошибки (DTC)",
         "dtc.subtitle": "Диагностические коды и справочные примеры расшифровки",
         "dtc.clear": "Удалить все",
         "dtc.found": "Найдено 3 ошибки.",
         "dtc.warning": "Рекомендуется проверить и устранить ошибки для корректной работы автомобиля.",
+        "dtc.systemLabel": "Система:",
+        "dtc.engineFuelSystem": "Двигатель / топливная система",
         "manuals.title": "Мануалы и руководства",
         "manuals.subtitle": "Справочные мануалы и руководства по обслуживанию",
-        "manuals.help": "Здесь собираются общие мануалы по машине, материалы из поисковых запросов, ремонтные инструкции и актуальная продукция для выбранного авто.",
+        "manuals.help": "Здесь собраны руководства, инструкции и технические материалы, связанные с вашими автомобилями и запросами.",
         "video.title": "Видео",
         "video.subtitle": "Подборка видео и материалов по вашим запросам",
-        "video.help": "Здесь сохраняются все видео, которые появлялись в ответах PULS, чтобы пользователь мог быстро найти их снова.",
+        "video.help": "Здесь сохраняются видео и материалы, которые появлялись в ответах PULS, чтобы к ним можно было вернуться позже.",
+        "requestDetails.title": "Детали запроса",
+        "requestDetails.meta": "История ответа PULS",
+        "requestDetails.question": "Вопрос",
+        "requestDetails.answer": "Ответ PULS",
+        "requestDetails.links": "Ссылки",
+        "requestDetails.noLinks": "Ссылки не найдены.",
+        "request.relatedLink": "Ссылка по теме",
+        "request.relatedVideo": "Видео по теме",
+        "request.material": "Материал",
+        "request.type.text": "Текстовый запрос",
+        "request.type.voice": "Голосовой запрос",
+        "request.type.parser": "Parser",
+        "request.type.deepSearch": "Deep Search",
+        "status.new": "Новый",
+        "status.completed": "Выполнено",
+        "status.solved": "Решено",
+        "status.resolved": "Решено",
+        "status.closed": "Закрыто",
+        "status.done": "Выполнено",
         "settings.title": "Настройки",
         "settings.subtitle": "Управляйте аккаунтом, подпиской и приложением",
         "settings.profile": "Профиль",
@@ -505,6 +553,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "common.filter": "Фильтр",
         "common.noMatches": "По этому поиску ничего не найдено.",
         "common.close": "Закрыть",
+        "common.statusLabel": "Статус:",
         "search.requests": "Поиск по запросам",
         "search.manuals": "Поиск по мануалам",
         "search.video": "Поиск по видео",
@@ -557,6 +606,56 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       const lang = getLanguage();
       const template = i18n[lang]?.[key] || i18n.en[key] || key;
       return Object.entries(params).reduce((text, [name, value]) => text.replaceAll(`{${name}}`, value), template);
+    }
+
+    function normalizeStatusLabel(status) {
+      const raw = String(status || "").trim();
+      const normalized = raw.toLowerCase();
+      const statusKeys = {
+        new: "status.new",
+        solved: "status.solved",
+        resolved: "status.resolved",
+        closed: "status.closed",
+        done: "status.done",
+        completed: "status.completed",
+        "решено": "status.solved",
+        "закрыто": "status.closed",
+        "выполнено": "status.completed"
+      };
+      return statusKeys[normalized] ? t(statusKeys[normalized]) : raw;
+    }
+
+    function normalizeRequestTypeLabel(type) {
+      const raw = String(type || "").trim();
+      const normalized = raw.toLowerCase();
+      if (!raw || normalized === "text request" || normalized === "текстовый запрос") return t("request.type.text");
+      if (normalized === "voice request" || normalized === "голосовой запрос") return t("request.type.voice");
+      if (normalized === "parser") return t("request.type.parser");
+      if (normalized === "deep search") return t("request.type.deepSearch");
+      return raw;
+    }
+
+    function renderSystemPill() {
+      const pill = $("#systemPill") || $(".system-pill");
+      if (!pill) return;
+      const signedIn = isSignedIn();
+      let label = t("system.authCta");
+
+      if (signedIn) {
+        if (currentQuota?.unlimited) {
+          label = t("system.premium");
+        } else if (currentQuota) {
+          label = t("system.freeQuota", { remaining: currentQuota.remaining, limit: currentQuota.limit });
+        } else {
+          label = t("system.ready");
+        }
+      }
+
+      pill.textContent = label;
+      pill.setAttribute("aria-label", label);
+      pill.setAttribute("title", label);
+      pill.dataset.authState = signedIn ? "authenticated" : "guest";
+      pill.setAttribute("aria-disabled", String(signedIn));
     }
 
     window.pulsT = t;
@@ -1461,16 +1560,25 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       if (supportMessageInput) supportMessageInput.setAttribute("placeholder", t("support.messagePlaceholder"));
       window.updateProfileBlock?.();
       applyAuthLockedState();
+      renderSystemPill();
+      if (requestModalState.currentItem && $("#requestModal")?.classList.contains("show")) {
+        openRequestModal(requestModalState.currentItem);
+      }
     }
 
     function setLanguage(lang) {
+      const nextLang = i18n[lang] ? lang : "en";
       try {
-        localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
+        localStorage.setItem(LANGUAGE_STORAGE_KEY, nextLang);
       } catch (error) {
         console.warn("Could not save language preference:", error);
       }
       applyLanguage();
       renderLists();
+    }
+
+    function handleLanguageSelectChange(event) {
+      setLanguage(event.currentTarget.value);
     }
 
     function sanitizeVehiclePhotoName(fileName = "") {
@@ -1569,12 +1677,6 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         return t("car.photoStorageMissing");
       }
       return t("car.photoUploadError");
-    }
-
-    function toggleHelp(name) {
-      const help = document.getElementById(`${name}Help`);
-      if (!help) return;
-      help.classList.toggle("show");
     }
 
     async function updateCarPhoto(file) {
@@ -1767,7 +1869,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
     const requestModalState = {
       visibleHistory: [],
-      visibleJournal: []
+      visibleJournal: [],
+      currentItem: null
     };
 
     function getSupportModalNodes() {
@@ -1923,16 +2026,17 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       if (!modal) return;
       modal.classList.remove("show");
       modal.setAttribute("aria-hidden", "true");
+      requestModalState.currentItem = null;
     }
 
     function renderRequestLinks(links) {
       if (!links.length) {
-        return `<p class="request-empty">${escapeHtml(getLanguage() === "en" ? "No links found." : "Ссылки не найдены.")}</p>`;
+        return `<p class="request-empty">${escapeHtml(t("requestDetails.noLinks"))}</p>`;
       }
 
       return links.map((item) => `
         <a class="request-link" href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">
-          <strong>${escapeHtml(item.title || (getLanguage() === "en" ? "Related link" : "Ссылка по теме"))}</strong>
+          <strong>${escapeHtml(item.title || t("request.relatedLink"))}</strong>
           <span>${escapeHtml(item.description || item.url)}</span>
           <small>${escapeHtml(item.url)}</small>
         </a>
@@ -1944,14 +2048,14 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       const nodes = getRequestModalNodes();
       if (!nodes.modal) return;
 
-      const english = getLanguage() === "en";
       const normalizedLinks = normalizeResponseLinks(item.links || []);
       const links = normalizedLinks.length ? normalizedLinks : extractLinks(item.answer || "");
 
-      if (nodes.title) nodes.title.textContent = english ? "Request details" : "Детали запроса";
+      requestModalState.currentItem = item;
+      if (nodes.title) nodes.title.textContent = t("requestDetails.title");
       if (nodes.meta) nodes.meta.textContent = [item.date, item.vehicle].filter(Boolean).join(" • ");
-      if (nodes.type) nodes.type.textContent = item.type || (english ? "Text request" : "Текстовый запрос");
-      if (nodes.status) nodes.status.textContent = item.status || "new";
+      if (nodes.type) nodes.type.textContent = normalizeRequestTypeLabel(item.type);
+      if (nodes.status) nodes.status.textContent = normalizeStatusLabel(item.status || "new");
       if (nodes.question) nodes.question.innerHTML = linkifyText(item.question || "");
       if (nodes.answer) nodes.answer.innerHTML = linkifyText(item.answer || "");
       if (nodes.links) nodes.links.innerHTML = renderRequestLinks(links);
@@ -1998,10 +2102,10 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       ] : dtc;
       const manualRows = english ? ["Service manual", "Car chemicals manual", "Wiper manual", "Consumables guide", "Brake system", "Owner's manual", "Electrical system", "Cooling system", "Suspension and steering"] : manuals;
       const videoRows = english ? ["Air filter replacement Select car", "Engine oil and filter replacement Select engine", "Front brake pad replacement", "Wiper blade replacement", "Timing chain replacement on Nissan X-Trail Select engine", "OBD2 error diagnostics", "Cabin filter replacement", "How to remove and replace a battery"] : videos;
-      const textRequestLabel = english ? "Text request" : "Текстовый запрос";
-      const voiceRequestLabel = english ? "Voice request" : "Голосовой запрос";
-      const completedLabel = english ? "Completed" : "Выполнено";
-      const systemLabel = english ? "System:" : "Система:";
+      const textRequestLabel = t("request.type.text");
+      const voiceRequestLabel = t("request.type.voice");
+      const completedLabel = t("status.completed");
+      const systemLabel = t("dtc.systemLabel");
       const possibleCausesLabel = english ? "Possible causes:" : "Возможные причины:";
       const actionsLabel = english ? "Recommended actions:" : "Рекомендуемые действия:";
 
@@ -2012,10 +2116,10 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         links: item.links || [],
         date: item.date,
         vehicle: item.vehicle || [selectCar, selectYear, selectEngine, selectDrive].filter(Boolean).join(" • "),
-        type: item.type || textRequestLabel,
-        status: item.status || "new"
+        type: normalizeRequestTypeLabel(item.type || textRequestLabel),
+        status: normalizeStatusLabel(item.status || "new")
       }));
-      const solvedStatuses = ["solved", "resolved", "closed", "done", "completed", "решено", "закрыто"];
+      const solvedStatuses = ["solved", "resolved", "closed", "done", "completed", "решено", "закрыто", "выполнено"];
       const solvedHistory = historyRows.filter((item) => solvedStatuses.includes(String(item.status).toLowerCase()));
       const closedCases = solvedHistory.length ? solvedHistory.map((item) => ({
         question: item.question,
@@ -2055,7 +2159,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           <div>
             <h3>${escapeHtml(item.question)}</h3>
             <p>${escapeHtml(item.vehicle)}</p>
-            <p class="history-answer-preview">${escapeHtml(item.answer || (english ? "Open the request to view the answer." : "Откройте запрос, чтобы посмотреть ответ."))}</p>
+            <p class="history-answer-preview">${escapeHtml(item.answer || t("history.answerPreviewEmpty"))}</p>
           </div>
           <div><p>${escapeHtml(item.date)}</p><span class="tag">${escapeHtml(item.type)}</span></div>
         </article>
@@ -2083,7 +2187,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
             <div><h3>${item[1]}</h3><p>${item[2]}</p></div>
           </div>
           <div class="cols">
-            <div><strong>${english ? "Status:" : "Статус:"}</strong><br><span class="${item[4]}">${item[3]}</span><br><br><strong>${systemLabel}</strong><br>${english ? "Engine / fuel system" : "Двигатель / топливная система"}</div>
+            <div><strong>${t("common.statusLabel")}</strong><br><span class="${item[4]}">${item[3]}</span><br><br><strong>${systemLabel}</strong><br>${t("dtc.engineFuelSystem")}</div>
             <div><strong>${possibleCausesLabel}</strong><br>${english ? "• Air leak<br>• Sensor malfunction<br>• Low fuel pressure<br>• Dirty component" : "• Подсос воздуха<br>• Неисправность датчика<br>• Низкое давление топлива<br>• Загрязнение узла"}</div>
             <div><strong>${actionsLabel}</strong><br>${english ? "• Check connectors<br>• Run diagnostics<br>• Clean or replace component<br>• Read errors again" : "• Проверить разъемы<br>• Провести диагностику<br>• Очистить или заменить узел<br>• Повторно считать ошибки"}</div>
           </div>
@@ -2230,8 +2334,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
         links.push({
           url,
-          title: titleMatch ? titleMatch[1] : (isVideo ? (getLanguage() === "en" ? "Related video" : "Видео по теме") : (getLanguage() === "en" ? "Related link" : "Ссылка по теме")),
-          source: forumMatch ? forumMatch[1] : (hostMatch ? hostMatch[1] : (getLanguage() === "en" ? "Material" : "Материал")),
+          title: titleMatch ? titleMatch[1] : (isVideo ? t("request.relatedVideo") : t("request.relatedLink")),
+          source: forumMatch ? forumMatch[1] : (hostMatch ? hostMatch[1] : t("request.material")),
           isVideo
         });
       }
@@ -2248,7 +2352,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         if (!url || links.some((existing) => existing.url === url)) continue;
         const isVideo = /youtube\.com|youtu\.be|rutube\.ru|vimeo\.com/i.test(url) || item.type === "video";
         links.push({
-          title: String(item.title || item.forum || item.name || item.source || (isVideo ? (getLanguage() === "en" ? "Related video" : "Видео по теме") : (getLanguage() === "en" ? "Related link" : "Ссылка по теме"))),
+          title: String(item.title || item.forum || item.name || item.source || (isVideo ? t("request.relatedVideo") : t("request.relatedLink"))),
           url,
           source: String(item.source || item.forum || item.description || ""),
           description: String(item.description || item.key_info || ""),
@@ -2487,7 +2591,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         photoUrl,
         sticker,
         color,
-        status: getLanguage() === "en" ? "Completed" : "Выполнено"
+        status: t("status.completed")
       };
 
       const records = loadServiceRecords();
@@ -2612,10 +2716,10 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           date: row.date || "",
           vehicle: row.vehicle || `${t("hero.car")} • ${t("hero.engineValue")} • ${t("hero.driveValue")}`,
           type: row.deep_search_used
-            ? (getLanguage() === "en" ? "Deep Search" : "Deep Search")
+            ? t("request.type.deepSearch")
             : row.parser_used
-              ? (getLanguage() === "en" ? "Parser" : "Parser")
-              : (getLanguage() === "en" ? "Text request" : "Текстовый запрос"),
+              ? t("request.type.parser")
+              : t("request.type.text"),
           status: row.status || "new"
         }));
       } catch (error) {
@@ -2634,7 +2738,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         answer,
         links,
         vehicle: `${t("hero.car")} • ${t("hero.engineValue")} • ${t("hero.driveValue")}`,
-        type: getLanguage() === "en" ? "Text request" : "Текстовый запрос"
+        type: t("request.type.text")
       };
 
       const now = new Date();
@@ -2651,14 +2755,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
     function updateQuota(quota) {
       if (!quota) return;
-      const pill = $(".system-pill");
-      if (!pill) return;
-
-      if (quota.unlimited) {
-        pill.textContent = t("system.premium");
-      } else {
-        pill.textContent = t("system.freeQuota", { remaining: quota.remaining, limit: quota.limit });
-      }
+      currentQuota = quota;
+      renderSystemPill();
     }
 
     function updateKeyChecks(answer) {
@@ -2898,9 +2996,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         event.target.dataset.previewUrl = photoUrl;
         updateServicePreview(photoUrl);
       });
-      $("#languageSelect")?.addEventListener("change", (event) => {
-        setLanguage(event.target.value);
-      });
+      $("#languageSelect")?.addEventListener("input", handleLanguageSelectChange);
+      $("#languageSelect")?.addEventListener("change", handleLanguageSelectChange);
       $("#supportImagesInput")?.addEventListener("change", (event) => {
         const files = Array.from(event.target.files || []);
         try {
@@ -2924,6 +3021,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           supportEmailInput.value = getSupportEmailValue();
         }
         applyAuthLockedState();
+        renderSystemPill();
         await syncVehicleStoreFromBackend();
         await renderLists();
       });
@@ -2937,6 +3035,11 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       window.addEventListener("resize", syncAssistantMessageHeight);
       syncAssistantMessageHeight();
       document.addEventListener("click", async (event) => {
+        if (event.target.closest("#systemPill")) {
+          if (!isSignedIn()) window.openAuthModal?.();
+          return;
+        }
+
         if (event.target.closest("#requestCloseBtn") || event.target.closest("#requestModal") && event.target.id === "requestModal") {
           closeRequestModal();
           return;
@@ -3062,12 +3165,6 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
         if (!event.target.closest(".car-photo-actions")) {
           closeCarPhotoMenu();
-        }
-
-        const infoButton = event.target.closest(".info-btn[data-info]");
-        if (infoButton) {
-          toggleHelp(infoButton.dataset.info);
-          return;
         }
 
         const action = event.target.closest("[data-action]")?.dataset.action;

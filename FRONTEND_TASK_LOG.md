@@ -1,5 +1,12 @@
 # Frontend Task Log
 
+## 2026-09-13
+
+- Renamed the frontend "Request log" surface to `Confirmed cases` / `Подтверждённые кейсы` in navigation and page headings without changing its backend data source.
+- Made the top-right PULS status auth-aware: guests now see the localized sign-in/register CTA that opens the existing auth modal, while signed-in users keep the existing quota/premium display.
+- Moved request-details modal labels, link fallbacks, request type labels, status badges, and affected section descriptions into the existing `assets/js/app.js` i18n dictionary.
+- Removed the circular help `?` buttons from Confirmed cases, Request history, Manuals, and Video; their `.page-help` descriptions are now always visible.
+
 ## 2026-07-16
 
 - Restored the original PULS access gate for guests: unauthenticated users can no longer send chat requests, and the login/register modal opens instead of calling backend `/chat`.

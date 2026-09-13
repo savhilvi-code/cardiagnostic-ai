@@ -165,6 +165,12 @@ html { scroll-behavior: smooth; }
       background: rgba(4, 19, 32, .68);
       font-weight: 600;
       white-space: nowrap;
+      cursor: pointer;
+      font: inherit;
+    }
+
+    .system-pill[data-auth-state="authenticated"] {
+      cursor: default;
     }
 
     .hero {
@@ -1496,19 +1502,7 @@ html { scroll-behavior: smooth; }
       text-align: right;
     }
 
-    .info-btn {
-      width: 34px;
-      height: 34px;
-      border: 1px solid var(--line);
-      border-radius: 50%;
-      background: rgba(7, 29, 48, .9);
-      color: var(--cyan);
-      font-weight: 900;
-      flex: 0 0 auto;
-    }
-
     .page-help {
-      display: none;
       margin: -6px 0 14px;
       border: 1px solid rgba(8, 125, 255, .36);
       border-radius: 10px;
@@ -1516,10 +1510,6 @@ html { scroll-behavior: smooth; }
       color: var(--soft);
       padding: 12px 14px;
       line-height: 1.5;
-    }
-
-    .page-help.show {
-      display: block;
     }
 
     .empty-state {
