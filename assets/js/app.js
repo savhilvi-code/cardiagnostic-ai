@@ -90,14 +90,9 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "assistant.demoAnswer": "This looks like a problem with auxiliary engine components. Possible causes: alternator bearing wear, belt tensioner pulley, water pump, or drive belt.",
         "assistant.demoActions": "What you can do:",
         "assistant.demoChecks": "• Check the belt and pulleys<br>• Listen with a stethoscope or long screwdriver<br>• Check pulley and bearing play",
-        "assistant.checksTitle": "Summary: what to check",
-        "assistant.checksEmpty": "After PULS answers, key checks will appear here.",
-        "assistant.linksTitle": "Videos / related links",
-        "assistant.linksEmpty": "Links to videos, manuals, and n8n materials will appear here later.",
-        "assistant.linksFoundEmpty": "Related links will appear here when PULS finds materials.",
-        "assistant.watchVideo": "Watch video",
         "assistant.loading": "PULS is analyzing your request...",
         "assistant.authRequired": "Please sign in or register to ask PULS questions.",
+        "assistant.emptyAuthenticated": "No messages yet. Ask PULS a question and your chat will start here.",
         "assistant.error": "Service is temporarily unavailable. Please try again in a few seconds.",
         "car.title": "My car",
         "car.subtitle": "Information about your car and available materials",
@@ -357,14 +352,9 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "assistant.demoAnswer": "Похоже на проблему со вспомогательными узлами двигателя. Вероятные причины: износ подшипника генератора, ролик натяжителя ремня, помпа или приводной ремень.",
         "assistant.demoActions": "Что можно сделать:",
         "assistant.demoChecks": "• Проверьте состояние ремня и роликов<br>• Послушайте шум стетоскопом или длинной отверткой<br>• Проверьте люфт роликов и подшипников",
-        "assistant.checksTitle": "Итог: что проверить",
-        "assistant.checksEmpty": "После ответа PULS здесь появится краткий список ключевых проверок.",
-        "assistant.linksTitle": "Видео / ссылки по теме",
-        "assistant.linksEmpty": "Здесь позже будут появляться ссылки на видео, мануалы и материалы из n8n.",
-        "assistant.linksFoundEmpty": "Ссылки по теме появятся здесь, когда PULS найдет материалы.",
-        "assistant.watchVideo": "Смотреть видео",
         "assistant.loading": "PULS анализирует запрос...",
         "assistant.authRequired": "Войдите или зарегистрируйтесь, чтобы задавать вопросы PULS.",
+        "assistant.emptyAuthenticated": "Пока нет сообщений. Задайте вопрос PULS, и диалог начнется здесь.",
         "assistant.error": "Сервис временно недоступен. Попробуйте ещё раз через несколько секунд.",
         "car.title": "Мой автомобиль",
         "car.subtitle": "Информация о вашем автомобиле и доступные материалы",
@@ -1564,6 +1554,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       if (requestModalState.currentItem && $("#requestModal")?.classList.contains("show")) {
         openRequestModal(requestModalState.currentItem);
       }
+      void renderAssistantMessages();
     }
 
     function setLanguage(lang) {
@@ -2221,6 +2212,45 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       `).join("") : emptyState(t("common.noMatches"));
     }
 
+    async function renderAssistantMessages() {
+      const messagesBox = $("#messages");
+      if (!messagesBox) return;
+
+      if (!isSignedIn()) {
+        messagesBox.innerHTML = `
+          <div class="bubble user"><span data-i18n="assistant.demoQuestion">${escapeHtml(t("assistant.demoQuestion"))}</span> <small>10:42</small></div>
+          <div class="bubble">
+            <strong>PULS</strong><br>
+            <span data-i18n="assistant.demoAnswer">${escapeHtml(t("assistant.demoAnswer"))}</span>
+            <br><br><strong data-i18n="assistant.demoActions">${escapeHtml(t("assistant.demoActions"))}</strong><br>
+            <span data-i18n="assistant.demoChecks">${t("assistant.demoChecks")}</span>
+            <small>10:43</small>
+          </div>
+        `;
+        scrollMessagesToBottom();
+        return;
+      }
+
+      const history = await loadUserHistory();
+      if (!history.length) {
+        messagesBox.innerHTML = `<div class="chat-empty-state">${escapeHtml(t("assistant.emptyAuthenticated"))}</div>`;
+        return;
+      }
+
+      messagesBox.innerHTML = history
+        .slice(0, 20)
+        .reverse()
+        .map((item) => {
+          const time = escapeHtml(item.date || "");
+          return `
+            <div class="bubble user">${linkifyText(item.question)} ${time ? `<small>${time}</small>` : ""}</div>
+            <div class="bubble"><strong>PULS</strong><br>${linkifyText(item.answer || t("history.answerPreviewEmpty"))} ${time ? `<small>${time}</small>` : ""}</div>
+          `;
+        })
+        .join("");
+      scrollMessagesToBottom();
+    }
+
     function showView(viewId) {
       $$(".nav button, .view").forEach((node) => node.classList.remove("active"));
       $(`.nav button[data-view="${viewId}"]`).classList.add("active");
@@ -2284,14 +2314,11 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
     function syncAssistantMessageHeight() {
       const messagesBox = $("#messages");
-      const assistantRight = $(".assistant-right");
 
       if (messagesBox) {
         messagesBox.style.height = "";
         messagesBox.style.maxHeight = "";
       }
-
-      if (assistantRight) assistantRight.style.maxHeight = "";
     }
 
     function escapeHtml(text) {
@@ -2866,12 +2893,6 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         const answer = data.answer || data.reply || data.message || data.output || rawAnswer || JSON.stringify(data, null, 2);
         const links = normalizeResponseLinks(data.links || []);
         loading.innerHTML = `<strong>PULS</strong><br>${linkifyText(answer)} <small>${new Date().toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" })}</small>`;
-          if (shouldPopulateAssistantRail(answer, links)) {
-            updateKeyChecks(answer);
-            updateTopicLinks(links.length ? links : answer);
-          } else {
-            clearAssistantRail();
-          }
           updateQuota(data.quota);
           await saveHistoryItem(prompt, answer, links);
           await renderLists();
@@ -2880,7 +2901,6 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           console.error("PULS /chat request failed:", error);
           const errorText = t("assistant.error");
           loading.innerHTML = `<strong>PULS</strong><br>${errorText} <small>${new Date().toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" })}</small>`;
-          clearAssistantRail();
           await saveHistoryItem(prompt, errorText, []);
           scrollMessagesToBottom();
         }
@@ -2953,6 +2973,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       initVehicleEditor();
       await syncVehicleStoreFromBackend();
       await renderLists();
+      await renderAssistantMessages();
       connectSpline();
 
       $("#sendBtn").addEventListener("click", sendPrompt);
@@ -3024,6 +3045,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         renderSystemPill();
         await syncVehicleStoreFromBackend();
         await renderLists();
+        await renderAssistantMessages();
       });
       SPLASH_ACTIVATE_EVENTS.forEach((eventName) => {
         document.addEventListener(eventName, handleSplashActivation, { passive: eventName !== "keydown" });

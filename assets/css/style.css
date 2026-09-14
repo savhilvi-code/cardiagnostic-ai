@@ -923,7 +923,7 @@ html { scroll-behavior: smooth; }
 
     .chat-grid {
       display: grid;
-      grid-template-columns: minmax(0, 1.2fr) minmax(280px, .85fr);
+      grid-template-columns: minmax(0, 1fr);
       gap: 16px;
     }
 
@@ -3028,7 +3028,7 @@ body.assistant-mode .content > .main-panel {
 }
 
 body.assistant-mode #assistant .chat-grid {
-  grid-template-columns: minmax(0, 1fr) 340px !important;
+  grid-template-columns: minmax(0, 1fr) !important;
   gap: 16px !important;
 }
 
@@ -3041,6 +3041,19 @@ body.assistant-mode .assistant-right {
 
 body.assistant-mode .bubble:last-child {
   margin-bottom: 36px !important;
+}
+
+.chat-empty-state {
+  min-height: 260px;
+  display: grid;
+  place-items: center;
+  border: 1px dashed rgba(19, 217, 255, .36);
+  border-radius: 12px;
+  background: rgba(7, 26, 42, .42);
+  color: var(--muted);
+  text-align: center;
+  padding: 24px;
+  line-height: 1.5;
 }
 
 /* Final desktop assistant rail override: keep a visible internal scrollbar */
