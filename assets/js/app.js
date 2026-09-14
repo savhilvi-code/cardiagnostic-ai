@@ -2759,6 +2759,30 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       renderSystemPill();
     }
 
+    async function refreshQuotaFromBackend(appUser = window.pulsAppUser || null, currentUser = window.pulsCurrentUser || null) {
+      if (!currentUser) {
+        currentQuota = null;
+        renderSystemPill();
+        return null;
+      }
+
+      const params = new URLSearchParams();
+      if (appUser?.id) params.set("user_id", appUser.id);
+      if (currentUser.id) params.set("auth_user_id", currentUser.id);
+      if (currentUser.email) params.set("email", currentUser.email);
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/quota?${params.toString()}`);
+        if (!response.ok) throw new Error(`Quota API returned ${response.status}`);
+        const data = await response.json();
+        updateQuota(data.quota);
+        return data.quota || null;
+      } catch (error) {
+        console.warn("Could not refresh PULS quota:", error);
+        return null;
+      }
+    }
+
     function updateKeyChecks(answer) {
       const box = $("#keyChecks");
       if (!box) return;
@@ -3021,7 +3045,12 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           supportEmailInput.value = getSupportEmailValue();
         }
         applyAuthLockedState();
-        renderSystemPill();
+        if (event.detail?.user) {
+          await refreshQuotaFromBackend(event.detail.appUser, event.detail.user);
+        } else {
+          currentQuota = null;
+          renderSystemPill();
+        }
         await syncVehicleStoreFromBackend();
         await renderLists();
       });
