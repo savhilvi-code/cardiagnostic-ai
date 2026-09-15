@@ -664,8 +664,6 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       "spec.loadError": "\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u0434\u0430\u043d\u043d\u044b\u0435 \u043c\u0430\u0448\u0438\u043d\u044b \u0438\u0437 \u0438\u043d\u0442\u0435\u0440\u043d\u0435\u0442\u0430. \u041f\u043e\u043f\u0440\u043e\u0431\u0443\u0439\u0442\u0435 \u0435\u0449\u0451 \u0440\u0430\u0437."
     });
 
-    const VEHICLE_STORE_KEY = "puls_vehicle_store_v1";
-    const VEHICLE_LEGACY_KEY = "puls_vehicle_profile_v1";
 
     function getDefaultVehicleProfile() {
       return {
@@ -736,6 +734,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     }
 
     let guestVehicleStore = null;
+    let serverVehicleStore = null;
+    let vehicleSyncError = "";
 
     function getBlankVehicleStore() {
       if (!guestVehicleStore) {
@@ -745,24 +745,19 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       return guestVehicleStore;
     }
 
-    function getVehicleStoreKey() {
-      const userId = window.pulsCurrentUser?.id || window.pulsAppUser?.auth_user_id || window.pulsAppUser?.id || "";
-      return userId ? `${VEHICLE_STORE_KEY}:${userId}` : "";
-    }
-
     function clearPrivateUiCache() {
       try {
         localStorage.removeItem(HISTORY_STORAGE_KEY);
-        localStorage.removeItem(VEHICLE_STORE_KEY);
-        localStorage.removeItem(VEHICLE_LEGACY_KEY);
         guestVehicleStore = null;
+        serverVehicleStore = null;
+        vehicleSyncError = "";
       } catch (error) {
         console.warn("Could not clear private UI cache:", error);
       }
     }
 
     function isBackendVehicleId(value) {
-      return /^\d+$/.test(String(value || "").trim());
+      return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || "").trim());
     }
 
     function vehicleFromApi(row = {}) {
@@ -871,29 +866,20 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     }
 
     function loadVehicleStore() {
-      const storeKey = getVehicleStoreKey();
-      if (!storeKey) return getBlankVehicleStore();
-
-      try {
-        const raw = localStorage.getItem(storeKey);
-        if (raw) return normalizeVehicleStore(JSON.parse(raw));
-
-        localStorage.removeItem(VEHICLE_LEGACY_KEY);
-
-        return normalizeVehicleStore();
-      } catch (error) {
-        return normalizeVehicleStore();
+      if (isSignedIn()) {
+        if (serverVehicleStore) return normalizeVehicleStore(serverVehicleStore);
+        const blank = normalizeVehicleProfile({ id: createVehicleId() });
+        return { activeId: blank.id, vehicles: [blank] };
       }
+      return getBlankVehicleStore();
     }
 
     function saveVehicleStore(store) {
-      const storeKey = getVehicleStoreKey();
-      if (!storeKey) return;
-      try {
-        localStorage.setItem(storeKey, JSON.stringify(normalizeVehicleStore(store)));
-      } catch (error) {
-        console.warn("Could not save vehicle store:", error);
+      if (isSignedIn()) {
+        serverVehicleStore = normalizeVehicleStore(store);
+        return;
       }
+      guestVehicleStore = normalizeVehicleStore(store);
     }
 
     function loadVehicleProfile() {
@@ -929,7 +915,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
     async function fetchBackendVehicles() {
       const headers = await backendAuthHeaders();
-      if (!headers.Authorization) return [];
+      if (!headers.Authorization) throw new Error("Vehicle API requires authentication.");
 
       const res = await fetch(`${API_BASE_URL}/api/vehicles`, { headers });
       if (!res.ok) throw new Error(`Vehicle API returned ${res.status}`);
@@ -941,18 +927,22 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       if (!isSignedIn()) return loadVehicleStore();
       try {
         const backendVehicles = await fetchBackendVehicles();
-        if (!backendVehicles.length) return loadVehicleStore();
-
-        const currentStore = loadVehicleStore();
-        const activeId = backendVehicles.some((vehicle) => vehicle.id === currentStore.activeId)
-          ? currentStore.activeId
-          : backendVehicles[0].id;
-        const nextStore = { activeId, vehicles: backendVehicles };
+        vehicleSyncError = "";
+        const currentActiveId = serverVehicleStore?.activeId || "";
+        const blank = normalizeVehicleProfile({ id: createVehicleId() });
+        const vehicles = backendVehicles.length ? backendVehicles : [blank];
+        const activeId = vehicles.some((vehicle) => vehicle.id === currentActiveId)
+          ? currentActiveId
+          : vehicles[0].id;
+        const nextStore = { activeId, vehicles };
         saveVehicleStore(nextStore);
         fillVehicleForm(loadVehicleProfile());
         return nextStore;
       } catch (error) {
         console.warn("Could not sync vehicles from backend:", error);
+        vehicleSyncError = String(error?.message || error || "");
+        serverVehicleStore = null;
+        fillVehicleForm(loadVehicleProfile());
         return loadVehicleStore();
       }
     }
@@ -960,7 +950,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     async function saveVehicleProfileToBackend(profile) {
       if (!isSignedIn()) return profile;
       const headers = await backendJsonHeaders();
-      if (!headers.Authorization) return profile;
+      if (!headers.Authorization) throw new Error("Vehicle save requires authentication.");
 
       const normalized = normalizeVehicleProfile(profile);
       const method = isBackendVehicleId(normalized.id) ? "PUT" : "POST";
@@ -979,7 +969,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     async function deleteVehicleFromBackend(vehicle) {
       if (!isSignedIn() || !isBackendVehicleId(vehicle?.id)) return true;
       const headers = await backendAuthHeaders();
-      if (!headers.Authorization) return true;
+      if (!headers.Authorization) throw new Error("Vehicle delete requires authentication.");
       const res = await fetch(`${API_BASE_URL}/api/vehicles/${encodeURIComponent(vehicle.id)}`, { method: "DELETE", headers });
       if (!res.ok) throw new Error(`Vehicle delete returned ${res.status}`);
       if (vehicle?.photoUrl) {
@@ -2640,8 +2630,11 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       if (!box) return;
       const store = loadVehicleStore();
       const vehicles = store.vehicles;
+      const syncNotice = vehicleSyncError && isSignedIn()
+        ? `<p class="form-hint error">${escapeHtml("Vehicle sync failed. Saved vehicles are loaded from PULS only.")}</p>`
+        : "";
 
-      box.innerHTML = vehicles.map((vehicle) => {
+      box.innerHTML = syncNotice + vehicles.map((vehicle) => {
         const isActive = vehicle.id === store.activeId;
         const label = getVehicleLabel(vehicle);
         const subtitle = [vehicle.year, vehicle.engine].filter(Boolean).join(" • ");
@@ -2724,8 +2717,6 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     }
 
     const HISTORY_STORAGE_KEY = "puls_request_history_v2";
-    const GUEST_AUTH_STORAGE_KEY = "puls_guest_auth_user_id";
-
     function loadLocalHistory() {
       return [];
     }
@@ -2812,16 +2803,6 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       if (!window.supabaseClient) return null;
       const { data, error } = await window.supabaseClient.auth.getUser();
       return error ? null : data.user;
-    }
-
-    function getGuestAuthId() {
-      let guestId = localStorage.getItem(GUEST_AUTH_STORAGE_KEY);
-      if (!guestId) {
-        const randomId = window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-        guestId = `web-guest-${randomId}`;
-        localStorage.setItem(GUEST_AUTH_STORAGE_KEY, guestId);
-      }
-      return guestId;
     }
 
     async function getChatUserContext() {
@@ -3123,6 +3104,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
             await deleteVehicleFromBackend(activeVehicle);
           } catch (error) {
             console.warn("Could not delete vehicle from backend:", error);
+            return;
           }
           const nextVehicle = removeActiveVehicleProfile();
           fillVehicleForm(nextVehicle);

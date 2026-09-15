@@ -99,67 +99,35 @@ async function syncAuthUserProfile(user) {
 
   const normalizedEmail = user.email?.trim().toLowerCase() || null;
   const payload = {
-    auth_user_id: user.id,
+    id: user.id,
     email: normalizedEmail,
     last_login: new Date().toISOString()
   };
   const authName = user.user_metadata?.full_name;
   if (authName) payload.name = authName;
 
-  const selectColumns = "id,email,name,language,country,city,auth_user_id,last_login,source,created_at,last_seen_at";
+  const selectColumns = "id,email,name,language,country,city,last_login,source,created_at,last_seen_at";
 
   const { data: byAuth, error: byAuthError } = await window.supabaseClient
     .from("users")
     .select(selectColumns)
-    .eq("auth_user_id", user.id)
+    .eq("id", user.id)
     .maybeSingle();
 
   if (byAuthError) {
-    console.warn("Не удалось найти профиль по auth_user_id:", byAuthError.message);
-  }
-
-  if (normalizedEmail) {
-    const { data: byEmail, error: byEmailError } = await window.supabaseClient
-      .from("users")
-      .select(selectColumns)
-      .ilike("email", normalizedEmail)
-      .maybeSingle();
-
-    if (byEmailError) {
-      console.warn("Не удалось найти профиль по email:", byEmailError.message);
-    }
-
-    if (byEmail) {
-      if (byAuth && byAuth.id !== byEmail.id) {
-        await window.supabaseClient
-          .from("users")
-          .update({ auth_user_id: null })
-          .eq("id", byAuth.id);
-      }
-
-      const { data, error } = await window.supabaseClient
-        .from("users")
-        .update(payload)
-        .eq("id", byEmail.id)
-        .select(selectColumns)
-        .single();
-
-      if (!error) return data;
-      console.warn("Не удалось привязать auth_user_id к существующему email:", error.message);
-      return byEmail;
-    }
+    console.warn("Could not find profile by id:", byAuthError.message);
   }
 
   if (byAuth) {
     const { data, error } = await window.supabaseClient
       .from("users")
       .update(payload)
-      .eq("id", byAuth.id)
+      .eq("id", user.id)
       .select(selectColumns)
       .single();
 
     if (!error) return data;
-    console.warn("Не удалось обновить профиль по auth_user_id:", error.message);
+    console.warn("Could not update profile by id:", error.message);
     return byAuth;
   }
 
@@ -279,11 +247,6 @@ async function deleteProfileUser() {
       deletion_requested_at: new Date().toISOString()
     }
   });
-
-  await window.supabaseClient
-    .from("users")
-    .delete()
-    .eq("auth_user_id", user.id);
 
   setAuthStatus(authText("auth.deleteRequested", "Profile deletion request saved. Check your email if confirmation is required."));
   window.alert(authText("auth.deleteRequested", "Profile deletion request saved. Check your email if confirmation is required."));
