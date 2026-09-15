@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>PULS Admin</title>
+  <meta name="robots" content="noindex, nofollow">
+
+  <link rel="icon" type="image/png" href="assets/img/puls-logo.png">
+  <link rel="stylesheet" href="assets/css/admin.css">
+</head>
+
+<body>
+  <div class="admin-shell">
+
+    <header class="admin-header">
+      <div class="admin-brand">
+        <img
+          class="admin-logo"
+          src="assets/img/puls-logo.png"
+          alt="PULS"
+        >
+
+        <div>
+          <div class="admin-brand-title">PULS</div>
+          <div class="admin-brand-subtitle">Administration</div>
+        </div>
+      </div>
+
+      <div class="admin-header-actions">
+        <span id="adminIdentity" class="admin-identity">
+          Checking access...
+        </span>
+
+        <a class="admin-back-button" href="/">
+          Back to PULS
+        </a>
+      </div>
+    </header>
+
+    <main class="admin-main">
+
+      <!-- ACCESS / LOADING STATE -->
+      <section id="adminAccessState" class="admin-state-card">
+        <h1>PULS Admin</h1>
+
+        <p id="adminAccessMessage">
+          Checking authentication and administrator access...
+        </p>
+      </section>
+
+      <!-- ADMIN CONTENT -->
+      <section id="adminContent" hidden>
+
+        <div class="admin-page-heading">
+          <div>
+            <h1>User Management</h1>
+            <p>
+              Manage PULS users, subscriptions and search quotas.
+            </p>
+          </div>
+
+          <button
+            id="adminRefreshBtn"
+            class="admin-button"
+            type="button"
+          >
+            Refresh
+          </button>
+        </div>
+
+        <!-- SUMMARY -->
+        <div class="admin-summary">
+
+          <article class="admin-stat-card">
+            <span>Users</span>
+            <strong id="adminUsersCount">—</strong>
+          </article>
+
+          <article class="admin-stat-card">
+            <span>Free</span>
+            <strong id="adminFreeCount">—</strong>
+          </article>
+
+          <article class="admin-stat-card">
+            <span>Paid</span>
+            <strong id="adminPaidCount">—</strong>
+          </article>
+
+          <article class="admin-stat-card">
+            <span>Vehicles</span>
+            <strong id="adminVehiclesCount">—</strong>
+          </article>
+
+        </div>
+
+        <!-- SEARCH -->
+        <div class="admin-toolbar">
+          <input
+            id="adminSearchInput"
+            class="admin-search"
+            type="search"
+            placeholder="Search by email or name..."
+            autocomplete="off"
+          >
+        </div>
+
+        <!-- USERS TABLE -->
+        <div class="admin-table-card">
+          <div class="admin-table-scroll">
+
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Plan</th>
+                  <th>Quota</th>
+                  <th>Vehicles</th>
+                  <th>Created</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+
+              <tbody id="adminUsersBody">
+                <tr>
+                  <td colspan="6" class="admin-empty">
+                    Loading users...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+          </div>
+        </div>
+
+        <div
+          id="adminStatus"
+          class="admin-status"
+          role="status"
+          aria-live="polite"
+        ></div>
+
+      </section>
+
+    </main>
+
+  </div>
+
+  <!-- CHANGE PLAN MODAL -->
+  <div
+    id="planModal"
+    class="admin-modal"
+    aria-hidden="true"
+  >
+    <div
+      class="admin-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="planModalTitle"
+    >
+      <button
+        id="planModalClose"
+        class="admin-dialog-close"
+        type="button"
+        aria-label="Close"
+      >
+        ×
+      </button>
+
+      <h2 id="planModalTitle">
+        Change plan
+      </h2>
+
+      <p id="planModalUser">
+        —
+      </p>
+
+      <label class="admin-field">
+        <span>Plan</span>
+
+        <select id="planSelect">
+          <option value="free">Free — 5 searches</option>
+          <option value="paid">Paid — 100 searches</option>
+        </select>
+      </label>
+
+      <div class="admin-dialog-actions">
+        <button
+          id="planModalCancel"
+          class="admin-button"
+          type="button"
+        >
+          Cancel
+        </button>
+
+        <button
+          id="planModalSave"
+          class="admin-button admin-button-primary"
+          type="button"
+        >
+          Save plan
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DELETE USER MODAL -->
+  <div
+    id="deleteModal"
+    class="admin-modal"
+    aria-hidden="true"
+  >
+    <div
+      class="admin-dialog admin-dialog-danger"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="deleteModalTitle"
+    >
+      <button
+        id="deleteModalClose"
+        class="admin-dialog-close"
+        type="button"
+        aria-label="Close"
+      >
+        ×
+      </button>
+
+      <h2 id="deleteModalTitle">
+        Permanently delete user
+      </h2>
+
+      <p>
+        This action permanently deletes the user's PULS account
+        and personal PULS data.
+      </p>
+
+      <p class="admin-delete-user">
+        User:
+        <strong id="deleteModalUser">—</strong>
+      </p>
+
+      <label class="admin-field">
+        <span>
+          Type the user's email to confirm:
+        </span>
+
+        <input
+          id="deleteConfirmInput"
+          type="text"
+          autocomplete="off"
+        >
+      </label>
+
+      <div class="admin-dialog-actions">
+        <button
+          id="deleteModalCancel"
+          class="admin-button"
+          type="button"
+        >
+          Cancel
+        </button>
+
+        <button
+          id="deleteModalConfirm"
+          class="admin-button admin-button-danger"
+          type="button"
+          disabled
+        >
+          Delete permanently
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/supabaseClient.js"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/admin.js"></script>
+</body>
+</html>
