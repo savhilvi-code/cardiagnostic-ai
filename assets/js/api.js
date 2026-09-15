@@ -1,7 +1,26 @@
 const API_BASE_URL = (window.PULS_CONFIG?.API_BASE_URL || "").replace(/\/$/, "");
 
+async function getBackendAccessToken() {
+  if (!window.supabaseClient) return "";
+  const { data, error } = await window.supabaseClient.auth.getSession();
+  return error ? "" : (data.session?.access_token || "");
+}
+
+async function backendJsonHeaders() {
+  const token = await getBackendAccessToken();
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {})
+  };
+}
+
+async function backendAuthHeaders() {
+  const token = await getBackendAccessToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 export async function loadHistoryFromApi(userId) {
-  const res = await fetch(`${API_BASE_URL}/api/history?user_id=${encodeURIComponent(userId)}`);
+  const res = await fetch(`${API_BASE_URL}/api/history`, { headers: await backendAuthHeaders() });
   if (!res.ok) throw new Error("history api error");
   const data = await res.json();
   return Array.isArray(data.items) ? data.items : [];
@@ -19,15 +38,13 @@ export async function saveHistoryToApi({ userId, question, answer, type, vehicle
   };
 }
 
-export async function sendChatMessage({ prompt, authUserId, email = "", username = "web_user", firstName = "Web", language = "ru", carInfo = "" }) {
+export async function sendChatMessage({ prompt, username = "web_user", firstName = "Web", language = "ru", carInfo = "" }) {
   const res = await fetch(`${API_BASE_URL}/chat`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: await backendJsonHeaders(),
     body: JSON.stringify({
       message: prompt,
       source: "web",
-      auth_user_id: authUserId,
-      email,
       username,
       first_name: firstName,
       language,

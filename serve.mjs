@@ -37,8 +37,30 @@ createServer(async (req, res) => {
     return;
   }
 
+  if (url.pathname.startsWith("/api/vehicles")) {
+    const chunks = [];
+    if (!["GET", "HEAD"].includes(req.method || "GET")) {
+      for await (const chunk of req) chunks.push(chunk);
+    }
+    const proxied = await proxyBackend(`${url.pathname}${url.search}`, {
+      method: req.method,
+      headers: {
+        ...(req.headers.authorization ? { Authorization: req.headers.authorization } : {}),
+        ...(!["GET", "HEAD"].includes(req.method || "GET")
+          ? { "Content-Type": req.headers["content-type"] || "application/json" }
+          : {}),
+      },
+      ...(["GET", "HEAD"].includes(req.method || "GET") ? {} : { body: Buffer.concat(chunks) }),
+    });
+    res.writeHead(proxied.status, { "content-type": proxied.contentType });
+    res.end(proxied.body);
+    return;
+  }
+
   if (req.method === "GET" && url.pathname === "/api/history") {
-    const proxied = await proxyBackend(`/api/history${url.search}`);
+    const proxied = await proxyBackend("/api/history", {
+      headers: req.headers.authorization ? { Authorization: req.headers.authorization } : {},
+    });
     res.writeHead(proxied.status, { "content-type": proxied.contentType });
     res.end(proxied.body);
     return;
@@ -49,7 +71,10 @@ createServer(async (req, res) => {
     for await (const chunk of req) chunks.push(chunk);
     const proxied = await proxyBackend("/chat", {
       method: "POST",
-      headers: { "Content-Type": req.headers["content-type"] || "application/json" },
+      headers: {
+        "Content-Type": req.headers["content-type"] || "application/json",
+        ...(req.headers.authorization ? { Authorization: req.headers.authorization } : {}),
+      },
       body: Buffer.concat(chunks),
     });
     res.writeHead(proxied.status, { "content-type": proxied.contentType });

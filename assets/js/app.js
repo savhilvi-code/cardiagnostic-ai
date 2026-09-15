@@ -789,12 +789,28 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       });
     }
 
-    function vehicleToApi(profile = {}, appUser = window.pulsAppUser || null) {
+    async function getBackendAccessToken() {
+      if (!window.supabaseClient) return "";
+      const { data, error } = await window.supabaseClient.auth.getSession();
+      return error ? "" : (data.session?.access_token || "");
+    }
+
+    async function backendJsonHeaders() {
+      const token = await getBackendAccessToken();
+      return {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      };
+    }
+
+    async function backendAuthHeaders() {
+      const token = await getBackendAccessToken();
+      return token ? { Authorization: `Bearer ${token}` } : {};
+    }
+
+    function vehicleToApi(profile = {}) {
       const normalized = normalizeVehicleProfile(profile);
       return {
-        user_id: appUser?.id || null,
-        auth_user_id: window.pulsCurrentUser?.id || "",
-        email: window.pulsCurrentUser?.email || appUser?.email || "",
         brand: normalized.brand,
         model: normalized.model,
         year: normalized.year,
@@ -912,16 +928,10 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     }
 
     async function fetchBackendVehicles() {
-      const appUser = window.pulsAppUser || null;
-      const currentUser = window.pulsCurrentUser || null;
-      if (!appUser?.id && !currentUser?.id && !currentUser?.email) return [];
+      const headers = await backendAuthHeaders();
+      if (!headers.Authorization) return [];
 
-      const params = new URLSearchParams();
-      if (appUser?.id) params.set("user_id", appUser.id);
-      if (currentUser?.id) params.set("auth_user_id", currentUser.id);
-      if (currentUser?.email) params.set("email", currentUser.email);
-
-      const res = await fetch(`${API_BASE_URL}/api/vehicles?${params.toString()}`);
+      const res = await fetch(`${API_BASE_URL}/api/vehicles`, { headers });
       if (!res.ok) throw new Error(`Vehicle API returned ${res.status}`);
       const data = await res.json();
       return Array.isArray(data.vehicles) ? data.vehicles.map(vehicleFromApi) : [];
@@ -949,16 +959,16 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
     async function saveVehicleProfileToBackend(profile) {
       if (!isSignedIn()) return profile;
-      const appUser = window.pulsAppUser || null;
-      if (!appUser?.id && !window.pulsCurrentUser?.id) return profile;
+      const headers = await backendJsonHeaders();
+      if (!headers.Authorization) return profile;
 
       const normalized = normalizeVehicleProfile(profile);
       const method = isBackendVehicleId(normalized.id) ? "PUT" : "POST";
       const url = method === "PUT" ? `${API_BASE_URL}/api/vehicles/${encodeURIComponent(normalized.id)}` : `${API_BASE_URL}/api/vehicles`;
       const res = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(vehicleToApi(normalized, appUser))
+        headers,
+        body: JSON.stringify(vehicleToApi(normalized))
       });
       if (!res.ok) throw new Error(`Vehicle save returned ${res.status}`);
       const data = await res.json();
@@ -968,11 +978,9 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
     async function deleteVehicleFromBackend(vehicle) {
       if (!isSignedIn() || !isBackendVehicleId(vehicle?.id)) return true;
-      const params = new URLSearchParams();
-      if (window.pulsAppUser?.id) params.set("user_id", window.pulsAppUser.id);
-      if (window.pulsCurrentUser?.id) params.set("auth_user_id", window.pulsCurrentUser.id);
-      if (window.pulsCurrentUser?.email) params.set("email", window.pulsCurrentUser.email);
-      const res = await fetch(`${API_BASE_URL}/api/vehicles/${encodeURIComponent(vehicle.id)}?${params.toString()}`, { method: "DELETE" });
+      const headers = await backendAuthHeaders();
+      if (!headers.Authorization) return true;
+      const res = await fetch(`${API_BASE_URL}/api/vehicles/${encodeURIComponent(vehicle.id)}`, { method: "DELETE", headers });
       if (!res.ok) throw new Error(`Vehicle delete returned ${res.status}`);
       if (vehicle?.photoUrl) {
         removeVehiclePhotoFromStorage(vehicle.photoUrl).catch((error) => {
@@ -1970,9 +1978,6 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       formData.set("email", email);
       formData.set("subject", subject);
       formData.set("message", message);
-      if (window.pulsCurrentUser?.id) {
-        formData.set("auth_user_id", window.pulsCurrentUser.id);
-      }
       files.forEach((file) => formData.append("images", file));
 
       if (nodes.send) nodes.send.disabled = true;
@@ -1981,6 +1986,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       try {
         const response = await fetch(`${API_BASE_URL}/api/support`, {
           method: "POST",
+          headers: await backendAuthHeaders(),
           body: formData
         });
         const data = await response.json().catch(() => ({}));
@@ -2730,7 +2736,9 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
       try {
         const apiBase = String(PULS_CONFIG.API_BASE_URL || "https://puls-backend-t3sn.onrender.com").replace(/\/$/, "");
-        const response = await fetch(`${apiBase}/api/history?user_id=${encodeURIComponent(appUser.id)}&limit=100`);
+        const headers = await backendAuthHeaders();
+        if (!headers.Authorization) return [];
+        const response = await fetch(`${apiBase}/api/history`, { headers });
         if (!response.ok) throw new Error(`History API returned ${response.status}`);
         const payload = await response.json();
         const data = Array.isArray(payload.items) ? payload.items : [];
@@ -2835,10 +2843,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         isGuest: false,
         appUser,
         payload: {
-          auth_user_id: user.id,
           username: user.email || "web_user",
           first_name: user.user_metadata?.full_name || "Web",
-          email: user.email || "",
           car_info: activeVehicleContext || ""
         }
       };
@@ -2864,14 +2870,12 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       try {
         const res = await fetch(CHAT_API_URL, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: await backendJsonHeaders(),
           body: JSON.stringify({
             message: prompt,
             source: "web",
-            auth_user_id: chatUser.payload.auth_user_id,
             username: chatUser.payload.username,
             first_name: chatUser.payload.first_name,
-            email: chatUser.payload.email,
             language: getLanguage(),
             car_info: chatUser.payload.car_info
           })

@@ -27,16 +27,34 @@ app.get("/api/health", asyncRoute(async (req, res) => {
   res.status(response.status).type(contentType).send(text);
 }));
 
-app.get("/api/history", asyncRoute(async (req, res) => {
+app.use("/api/vehicles", asyncRoute(async (req, res) => {
   const query = new URLSearchParams(req.query).toString();
-  const { response, text, contentType } = await proxyBackend(`/api/history${query ? `?${query}` : ""}`);
+  const headers = {
+    ...(req.headers.authorization ? { Authorization: req.headers.authorization } : {}),
+    ...(["POST", "PUT", "PATCH"].includes(req.method) ? { "Content-Type": "application/json" } : {}),
+  };
+  const { response, text, contentType } = await proxyBackend(`${req.originalUrl.split("?")[0]}${query ? `?${query}` : ""}`, {
+    method: req.method,
+    headers,
+    ...(["GET", "HEAD"].includes(req.method) ? {} : { body: JSON.stringify(req.body || {}) }),
+  });
+  res.status(response.status).type(contentType).send(text);
+}));
+
+app.get("/api/history", asyncRoute(async (req, res) => {
+  const { response, text, contentType } = await proxyBackend("/api/history", {
+    headers: req.headers.authorization ? { Authorization: req.headers.authorization } : {},
+  });
   res.status(response.status).type(contentType).send(text);
 }));
 
 app.post("/api/chat", asyncRoute(async (req, res) => {
   const { response, text, contentType } = await proxyBackend("/chat", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(req.headers.authorization ? { Authorization: req.headers.authorization } : {}),
+    },
     body: JSON.stringify(req.body || {}),
   });
   res.status(response.status).type(contentType).send(text);
