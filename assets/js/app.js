@@ -2913,9 +2913,16 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       const minTextHeight = 24;
       const maxTextHeight = 126;
 
+      // Measure in the expanded geometry every time. In compact mode the CSS
+      // intentionally forces the textarea to 48px with !important; measuring
+      // there made the state alternate between compact and expanded while the
+      // first visual line was being typed.
+      shell?.classList.add("is-expanded");
       input.style.height = `${minTextHeight}px`;
+      input.style.overflowY = "hidden";
+
       const contentHeight = Math.max(input.scrollHeight, minTextHeight);
-      const expanded = contentHeight > 27 || input.value.includes("\n");
+      const expanded = contentHeight > 30 || input.value.includes("\n");
 
       shell?.classList.toggle("is-expanded", expanded);
 
