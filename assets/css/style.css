@@ -3153,3 +3153,51 @@ body.assistant-mode.chat-active .bubble small { display:block; float:none; margi
   body.assistant-mode.chat-active .messages { padding-bottom:100px !important; }
 }
 @media(max-width:480px) { .brand-logo { width:34px; height:34px; }.brand-title { font-size:12px; }.system-pill { font-size:11px; max-width:145px; white-space:normal; }.car-form-grid { grid-template-columns:1fr; }.car-form-wide { grid-column:auto; }.vehicle-identity p { font-size:13px; } }
+
+/* ===== PULS auto-growing multiline composer ===== */
+.composer-line,
+body.assistant-mode .composer-line {
+  align-items: end !important;
+}
+
+.composer textarea,
+body.assistant-mode .composer textarea {
+  width: 100%;
+  height: 42px !important;
+  min-height: 42px !important;
+  max-height: 144px !important;
+  border: 1px solid var(--blue);
+  border-radius: 21px !important;
+  background: #04111d;
+  color: white;
+  outline: none;
+  padding: 10px 14px !important;
+  font-size: 14px !important;
+  line-height: 21px;
+  resize: none;
+  overflow-y: hidden;
+  overflow-x: hidden;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  scrollbar-width: thin;
+}
+
+.composer textarea:focus,
+body.assistant-mode .composer textarea:focus {
+  border-color: var(--blue);
+}
+
+.composer textarea::placeholder {
+  color: var(--muted);
+}
+
+@media (max-width: 1050px) {
+  .composer-line,
+  body.assistant-mode .composer-line {
+    display: grid !important;
+    grid-template-columns: 40px minmax(0, 1fr) 40px 44px !important;
+    flex-direction: unset !important;
+    align-items: end !important;
+  }
+}
