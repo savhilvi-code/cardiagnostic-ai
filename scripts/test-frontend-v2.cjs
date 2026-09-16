@@ -47,7 +47,7 @@ let browser;
     if(p.endsWith('/restore')){v.lifecycle_status='ACTIVE';return json({vehicle:v});}
     if(v&&request.method()==='DELETE'){v.lifecycle_status='TRASHED';v.restore_until=new Date(Date.now()+30*86400000).toISOString();return json({deleted:true});}
     if(v&&request.method()==='PUT'){Object.assign(v,request.postDataJSON());return json({vehicle:v});}
-    if(v)return json({vehicle:v,specs:{vehicle_id:id,displacement:'2.0 L',power:'206 kW'}});
+    if(v)return json({vehicle:v,specs:{vehicle_id:id,items:[{parameter_key:'displacement',actual_value:'2.0 L'},{parameter_key:'power',actual_value:'206 kW'}]}});
     return route.fulfill({status:404,body:'No fixture'});
   });
   const page=await context.newPage(),errors=[];

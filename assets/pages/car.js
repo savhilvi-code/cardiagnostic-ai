@@ -25,6 +25,10 @@ window.PulsCar = (() => {
     if(typeof v==='object') return Object.entries(v).map(([k,x])=>`${k.replaceAll('_',' ')}: ${valueText(x)}`).join('\n');
     return String(v);
   }
+  function specValues(raw={}) {
+    if(Array.isArray(raw.items))return Object.fromEntries(raw.items.filter(row=>row.parameter_key).map(row=>[row.parameter_key,row.actual_value ?? row.recommended_value ?? '']));
+    return {...raw,...(raw.specs||{})};
+  }
   async function api(path,options={}) {
     const headers=await backendAuthHeaders();
     if(!headers.Authorization) throw Error('Authentication required');
@@ -70,7 +74,7 @@ window.PulsCar = (() => {
     });
     if(state.detail){
       const detail=state.detail;
-      saveVehicleProfile(vehicleFromApi({...detail.vehicle,...(detail.specs?.specs||detail.specs||{}),id:detail.vehicle.id}));
+      saveVehicleProfile(vehicleFromApi({...detail.vehicle,...specValues(detail.specs||{}),id:detail.vehicle.id}));
     }
     state.loading=false;render();
   }
@@ -91,7 +95,7 @@ window.PulsCar = (() => {
     el('vehicleHistory').innerHTML=warning+logMarkup(rows.filter(e=>filter==='all'||e.category===filter));
     document.querySelectorAll('[data-car-filter]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.carFilter===filter)));
     if(state.errors.detail){el('vehicleData').innerHTML=errorBlock();return;}
-    const raw=state.detail?.specs||{},s={...raw,...(raw.specs||{})};
+    const s=specValues(state.detail?.specs||{});
     const groups=[['mainSpecs',[['Make',v.brand],['Model',v.model],[text('generation'),v.generation],['Year',v.year],['VIN / chassis',v.vin],[text('mileage'),v.mileage?`${v.mileage} km`:'']]],['engineFluids',[['Engine',v.engine],['Transmission',v.transmission],['Drivetrain',v.drive],['Displacement',s.displacement],['Power',s.power],['Torque',s.torque],['Engine type',s.engine_type],['Cylinders',s.cylinders]]],['consumables',[]],['wheels',[]],['fuelCapacities',[['Fuel',v.fuel],['Tank',s.tank]]],['electrical',[]],['dimensions',[]],['service',[]],['environment',[['Emissions',s.emissions]]]];
     el('vehicleData').innerHTML=groups.map(([key,entries],i)=>`<details class="vehicle-data-group" ${i===0?'open':''}><summary>${esc(text(key))}</summary>${entries.some(([,x])=>x!=null&&x!=='')?`<dl class="vehicle-data-list">${entries.filter(([,x])=>x!=null&&x!=='').map(([k,x])=>`<dt>${esc(k)}</dt><dd>${esc(valueText(x))}</dd>`).join('')}</dl>`:notice('unavailable')}${key==='consumables'?`<div class="vehicle-values"><div><h4>${esc(text('recommended'))}</h4>${notice('unavailable')}</div><div><h4>${esc(text('actual'))}</h4>${notice('unavailable')}</div></div>`:''}</details>`).join('');
   }
@@ -110,7 +114,7 @@ window.PulsCar = (() => {
   function beginEdit(add=false){
     if(!requireSignedInForEdit())return;
     if(!add&&(state.loading||state.errors.detail||!state.detail)){toast(text('loadError'));return;}
-    const profile=add?normalizeVehicleProfile({id:createVehicleId()}):vehicleFromApi({...state.detail.vehicle,...(state.detail.specs?.specs||state.detail.specs||{}),id:state.detail.vehicle.id});
+    const profile=add?normalizeVehicleProfile({id:createVehicleId()}):vehicleFromApi({...state.detail.vehicle,...specValues(state.detail.specs||{}),id:state.detail.vehicle.id});
     editing=true;++vehicleLookupRequestId;fillVehicleForm(profile);
     el('carFormStatus').textContent='';el('carFormStatus').classList.remove('error');el('carLookupStatus').textContent='';
     render();el('carEditorTitle').textContent=text(add?'add':'edit');el('carBrandInput').focus();

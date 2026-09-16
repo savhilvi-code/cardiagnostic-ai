@@ -78,3 +78,9 @@
 - Added backend-message current-chat restoration with a centralized 12-hour inactivity window and a small per-user ID marker. Added existing vehicle_id/problem_id/conversation_id to chat requests; expiration does not delete data.
 - Fixed active chat viewport and mobile navigation. Preserved backend quota display, API configuration, auth and Admin.
 - Added isolated browser regression checks and documented exact Stage 4 gaps and verification limits in MY_CAR_V2_INTEGRATION.md. Backend/Supabase were not modified; all write-path tests use fixtures.
+
+## 2026-09-17 — Phase A specification compatibility checkpoint
+
+- Read V2 vehicle_specs.items parameter rows in My Car display and edit forms, preserving actual values on save. Legacy flat responses remain supported.
+- Updated regression fixtures to the actual backend response shape; frontend V2 suite passed. Production test vehicle PULS-STABILIZATION-SPECS-20260917 saved and re-read 2.0 L / 206 kW through authenticated API and public.vehicle_specs. UI deployment verification follows this checkpoint.
+- Backend main 403550a already fixed vehicle writes; real create/update, ownership, UUID, no duplicates, Admin count, F5 and logout/login verified. Failed UI save preserves its draft. No schema changes.
