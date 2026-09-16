@@ -2156,14 +2156,135 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       return window.PulsChat.restore();
     }
 
+    function getSplashScreen() {
+      return $("#pulsSplashScreen") || $("#pulsSplineScreen") || $(".puls-splash-screen") || $(".puls-spline-screen");
+    }
+
+    function installRuntimeVisualFixes() {
+      if (document.getElementById("pulsRuntimeVisualFixes")) return;
+
+      const style = document.createElement("style");
+      style.id = "pulsRuntimeVisualFixes";
+      style.textContent = `
+        body.puls-splash-active .composer,
+        body.puls-idle-active .composer,
+        body.page-mode .composer {
+          display: none !important;
+        }
+
+        .puls-splash-screen,
+        .puls-spline-screen {
+          margin: 0 !important;
+          padding: 0 !important;
+          overflow: hidden !important;
+          background: #000 !important;
+        }
+
+        .puls-splash-video {
+          position: absolute !important;
+          inset: 0 !important;
+          width: 100% !important;
+          height: 100% !important;
+          max-width: none !important;
+          max-height: none !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          object-fit: cover !important;
+          object-position: 50% 50% !important;
+          transform: none !important;
+          display: block !important;
+          pointer-events: none !important;
+          background: #000 !important;
+        }
+
+        .puls-splash-hitarea {
+          position: absolute !important;
+          inset: 0 !important;
+          width: 100% !important;
+          height: 100% !important;
+          z-index: 3 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          border: 0 !important;
+          background: transparent !important;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    function syncSplashLayout() {
+      const screen = getSplashScreen();
+      if (!screen) return;
+
+      const computedZoom = Number.parseFloat(getComputedStyle(document.body).zoom);
+      const bodyZoom = Number.isFinite(computedZoom) && computedZoom > 0 ? computedZoom : 1;
+
+      screen.style.position = "fixed";
+      screen.style.top = "0";
+      screen.style.left = "0";
+      screen.style.right = "auto";
+      screen.style.bottom = "auto";
+      screen.style.width = "100vw";
+      screen.style.height = "100dvh";
+      screen.style.minWidth = "100vw";
+      screen.style.minHeight = "100dvh";
+      screen.style.zIndex = "2147483000";
+      screen.style.margin = "0";
+      screen.style.padding = "0";
+      screen.style.overflow = "hidden";
+      screen.style.transformOrigin = "0 0";
+      screen.style.zoom = String(1 / bodyZoom);
+
+      const video = $("#pulsSplashVideo") || screen.querySelector(".puls-splash-video");
+      if (video) {
+        video.style.position = "absolute";
+        video.style.inset = "0";
+        video.style.width = "100%";
+        video.style.height = "100%";
+        video.style.objectFit = "cover";
+        video.style.objectPosition = "50% 50%";
+        video.style.margin = "0";
+        video.style.padding = "0";
+        video.style.transform = "none";
+      }
+    }
+
+    function syncComposerVisibility(viewId = null) {
+      const composer = $(".composer");
+      if (!composer) return;
+
+      const assistantActive = viewId
+        ? viewId === "assistant"
+        : document.body.classList.contains("assistant-mode");
+      const shouldShow = assistantActive && !splashVisible && !idleVisible;
+
+      composer.hidden = !shouldShow;
+      composer.style.display = shouldShow ? "" : "none";
+    }
+
     function showView(viewId) {
       if (!["assistant", "car", "dtc", "manuals", "video", "settings"].includes(viewId)) return;
       window.PulsCar.closeNavigation();
       $$(".nav button, .view").forEach((node) => node.classList.remove("active"));
       $(`.nav button[data-view="${viewId}"]`).classList.add("active");
       $(`#${viewId}`).classList.add("active");
-      document.body.classList.toggle("assistant-mode", viewId === "assistant");
-      document.body.classList.toggle("page-mode", viewId !== "assistant");
+
+      const assistantActive = viewId === "assistant";
+      document.body.classList.toggle("assistant-mode", assistantActive);
+      document.body.classList.toggle("page-mode", !assistantActive);
+
+      if (!assistantActive) {
+        clearTimeout(idleTimerId);
+        if (idleVisible) {
+          idleVisible = false;
+          setPulsScreenState();
+        }
+        stopSplashVideo();
+      } else if (!splashVisible) {
+        resetIdleTimer();
+      }
+
+      syncComposerVisibility(viewId);
       if (viewId === "car") window.PulsCar.render();
       syncAssistantMessageHeight();
       if (window.innerWidth < 1050) window.scrollTo({ top: 0, behavior: "smooth" });
@@ -2826,6 +2947,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     function setPulsScreenState() {
       document.body.classList.toggle("puls-splash-active", splashVisible);
       document.body.classList.toggle("puls-idle-active", idleVisible);
+      syncSplashLayout();
+      syncComposerVisibility();
     }
 
     function hideSplashScreen() {
@@ -2838,19 +2961,23 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
     function showIdleScreen() {
       if (idleVisible || splashVisible) return;
+      if (!document.body.classList.contains("assistant-mode")) return;
       idleVisible = true;
       setPulsScreenState();
+      startSplashVideo();
     }
 
     function hideIdleScreen() {
       if (!idleVisible) return;
       idleVisible = false;
       setPulsScreenState();
+      stopSplashVideo();
     }
 
     function resetIdleTimer() {
       clearTimeout(idleTimerId);
       if (splashVisible) return;
+      if (!document.body.classList.contains("assistant-mode")) return;
       idleTimerId = window.setTimeout(showIdleScreen, IDLE_TIMEOUT_MS);
     }
 
@@ -2870,6 +2997,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
     document.addEventListener("DOMContentLoaded", async () => {
       document.body.classList.add("assistant-mode");
+      installRuntimeVisualFixes();
+      syncSplashLayout();
       setPulsScreenState();
       startSplashVideo();
       injectIcons();
@@ -2962,8 +3091,13 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         window.addEventListener(eventName, handlePulsActivity, { passive: eventName !== "keydown" });
       });
       applyAuthLockedState();
-      window.addEventListener("resize", syncAssistantMessageHeight);
+      window.addEventListener("resize", () => {
+        syncAssistantMessageHeight();
+        syncSplashLayout();
+      });
       syncAssistantMessageHeight();
+      syncSplashLayout();
+      syncComposerVisibility("assistant");
       document.addEventListener("click", async (event) => {
         if (event.target.closest("#systemPill")) {
           if (!isSignedIn()) window.openAuthModal?.();
