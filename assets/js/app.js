@@ -1,7 +1,6 @@
 const PULS_CONFIG = window.PULS_CONFIG || {};
 const API_BASE_URL = String(PULS_CONFIG.API_BASE_URL || "https://puls-backend-t3sn.onrender.com").replace(/\/$/, "");
 const CHAT_API_URL = PULS_CONFIG.CHAT_API_URL || `${API_BASE_URL}/chat`;
-const SPLINE_SCENE_URL = PULS_CONFIG.SPLINE_SCENE_URL || "https://my.spline.design/starterscenecopy-RDKY0gQFbXbkko9LN657PtBA/";
 const VEHICLE_PHOTO_BUCKET = String(PULS_CONFIG.VEHICLE_PHOTO_BUCKET || "vehicle-photos").trim();
 const VEHICLE_PHOTO_MAX_BYTES = Number(PULS_CONFIG.VEHICLE_PHOTO_MAX_BYTES || 10 * 1024 * 1024);
 const SUPPORT_MAX_IMAGES = 3;
@@ -2789,10 +2788,32 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         }
       }
 
-    function connectSpline() {
-      if (!SPLINE_SCENE_URL) return;
-      if (!$("#splineBox")) return;
-      $("#splineBox").innerHTML = `<iframe title="Spline scene" src="${SPLINE_SCENE_URL}" allow="autoplay; fullscreen; xr-spatial-tracking"></iframe>`;
+    function startSplashVideo() {
+      const video = $("#pulsSplashVideo") || $(".puls-splash-video");
+      if (!video) return;
+
+      video.muted = true;
+      video.defaultMuted = true;
+      video.loop = true;
+      video.playsInline = true;
+
+      try {
+        video.currentTime = 0;
+      } catch (error) {
+        // Video may not be seekable yet.
+      }
+
+      const playPromise = video.play();
+      if (playPromise && typeof playPromise.catch === "function") {
+        playPromise.catch(() => {});
+      }
+    }
+
+    function stopSplashVideo() {
+      const video = $("#pulsSplashVideo") || $(".puls-splash-video");
+      if (!video) return;
+
+      video.pause();
     }
 
     const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
@@ -2811,6 +2832,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       if (!splashVisible) return;
       splashVisible = false;
       setPulsScreenState();
+      stopSplashVideo();
       resetIdleTimer();
     }
 
@@ -2849,6 +2871,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     document.addEventListener("DOMContentLoaded", async () => {
       document.body.classList.add("assistant-mode");
       setPulsScreenState();
+      startSplashVideo();
       injectIcons();
       ensureCarPhotoActions();
       window.PulsCar.init();
@@ -2858,7 +2881,6 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       await refreshQuotaFromBackend();
       await renderLists();
       await renderAssistantMessages();
-      connectSpline();
 
       $("#sendBtn").addEventListener("click", sendPrompt);
       $("#promptInput").addEventListener("keydown", (event) => {
