@@ -2785,6 +2785,29 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       renderSystemPill();
     }
 
+    let quotaRefreshVersion = 0;
+
+    async function refreshQuotaFromBackend(currentUser = window.pulsCurrentUser || null) {
+      const version = ++quotaRefreshVersion;
+      currentQuota = null;
+      renderSystemPill();
+      if (!currentUser) return null;
+
+      try {
+        const headers = await backendAuthHeaders();
+        if (!headers.Authorization) return null;
+        const response = await fetch(`${API_BASE_URL}/api/quota`, { headers });
+        if (!response.ok) throw new Error(`Quota API returned ${response.status}`);
+        const data = await response.json();
+        if (version !== quotaRefreshVersion || window.pulsCurrentUser?.id !== currentUser.id) return null;
+        updateQuota(data.quota);
+        return data.quota || null;
+      } catch (error) {
+        console.warn("Could not refresh PULS quota:", error);
+        return null;
+      }
+    }
+
     function updateKeyChecks(answer) {
       const box = $("#keyChecks");
       if (!box) return;
@@ -3027,7 +3050,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           supportEmailInput.value = getSupportEmailValue();
         }
         applyAuthLockedState();
-        renderSystemPill();
+        await refreshQuotaFromBackend(event.detail?.user || null);
         await syncVehicleStoreFromBackend();
         await renderLists();
         await renderAssistantMessages();

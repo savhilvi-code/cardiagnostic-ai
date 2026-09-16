@@ -41,8 +41,8 @@ app.use("/api/vehicles", asyncRoute(async (req, res) => {
   res.status(response.status).type(contentType).send(text);
 }));
 
-app.get("/api/history", asyncRoute(async (req, res) => {
-  const { response, text, contentType } = await proxyBackend("/api/history", {
+app.get(["/api/history", "/api/quota"], asyncRoute(async (req, res) => {
+  const { response, text, contentType } = await proxyBackend(req.path, {
     headers: req.headers.authorization ? { Authorization: req.headers.authorization } : {},
   });
   res.status(response.status).type(contentType).send(text);

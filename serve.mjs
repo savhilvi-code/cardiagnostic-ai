@@ -57,8 +57,8 @@ createServer(async (req, res) => {
     return;
   }
 
-  if (req.method === "GET" && url.pathname === "/api/history") {
-    const proxied = await proxyBackend("/api/history", {
+  if (req.method === "GET" && ["/api/history", "/api/quota"].includes(url.pathname)) {
+    const proxied = await proxyBackend(url.pathname, {
       headers: req.headers.authorization ? { Authorization: req.headers.authorization } : {},
     });
     res.writeHead(proxied.status, { "content-type": proxied.contentType });
