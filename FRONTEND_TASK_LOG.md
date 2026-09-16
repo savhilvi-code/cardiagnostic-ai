@@ -84,3 +84,8 @@
 - Read V2 vehicle_specs.items parameter rows in My Car display and edit forms, preserving actual values on save. Legacy flat responses remain supported.
 - Updated regression fixtures to the actual backend response shape; frontend V2 suite passed. Production test vehicle PULS-STABILIZATION-SPECS-20260917 saved and re-read 2.0 L / 206 kW through authenticated API and public.vehicle_specs. UI deployment verification follows this checkpoint.
 - Backend main 403550a already fixed vehicle writes; real create/update, ownership, UUID, no duplicates, Admin count, F5 and logout/login verified. Failed UI save preserves its draft. No schema changes.
+
+## 2026-09-17 — Phase B chat restoration
+
+- Normalize canonical uppercase roles/content and use authoritative /chat conversation identity. Restore backend latest history on navigation and refresh regardless of cached marker. Transcript stays backend-only; 12-hour visibility rule retained.
+- Frontend regression passed with actual canonical response shape. Phase A production UI confirmed 206 → 207 kW persisted after save/F5.

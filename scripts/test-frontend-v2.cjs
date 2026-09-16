@@ -32,8 +32,8 @@ let browser;
     if(p==='/api/chat'){
       lastChat=request.postDataJSON();const now=new Date().toISOString();
       if(!lastChat.conversation_id)rows=[];
-      rows.push({id:'u',role:'user',message_text:lastChat.message,conversation_id:CONV,vehicle_id:lastChat.vehicle_id||null,problem_id:lastChat.problem_id||null,created_at:now},{id:'a',role:'assistant',message_text:'Check the intake safely.',conversation_id:CONV,vehicle_id:lastChat.vehicle_id||null,problem_id:lastChat.problem_id||null,created_at:now});
-      return json({answer:'Check the intake safely.',quota:{remaining:2,limit:5}});
+      rows.push({id:'u',role:'USER',content:lastChat.message,conversation_id:CONV,vehicle_id:lastChat.vehicle_id||null,problem_id:lastChat.problem_id||null,created_at:now},{id:'a',role:'ASSISTANT',content:'Check the intake safely.',conversation_id:CONV,vehicle_id:lastChat.vehicle_id||null,problem_id:lastChat.problem_id||null,created_at:now});
+      return json({conversation_id:CONV,vehicle_id:lastChat.vehicle_id||null,problem_id:lastChat.problem_id||null,answer:'Check the intake safely.',quota:{remaining:2,limit:5}});
     }
     if(p===`/api/problems/${P}`)return json({problem,vehicle:vehicles.find(v=>v.id===A)});
     if(p==='/api/vehicles'&&request.method()==='GET')return json({vehicles:url.searchParams.has('include_trashed')?vehicles:vehicles.filter(v=>v.lifecycle_status==='ACTIVE')});

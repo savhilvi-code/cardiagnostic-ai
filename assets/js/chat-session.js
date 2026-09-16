@@ -31,7 +31,7 @@ window.PulsChat = (() => {
   }
   // Visible session = the contiguous tail after the last 12-hour inactivity gap.
   function sessionRows(rows,now=Date.now()){
-    const sorted=rows.filter(r=>['user','assistant'].includes(r.role)&&typeof r.message_text==='string'&&validTime(r.created_at)>0&&validTime(r.created_at)<=now+60000).sort((a,b)=>validTime(a.created_at)-validTime(b.created_at));
+    const sorted=rows.map(r=>({...r,role:String(r.role||'').toLowerCase(),message_text:r.content ?? r.message_text,vehicle_id:r.vehicle_id||r.metadata?.vehicle_id,problem_id:r.problem_id||r.metadata?.problem_id})).filter(r=>['user','assistant'].includes(r.role)&&typeof r.message_text==='string'&&validTime(r.created_at)>0&&validTime(r.created_at)<=now+60000).sort((a,b)=>validTime(a.created_at)-validTime(b.created_at));
     if(!sorted.length || now-validTime(sorted.at(-1).created_at)>=TTL)return [];
     const id=sorted.at(-1).conversation_id;
     const scoped=sorted.filter(r=>r.conversation_id===id);let start=0;
@@ -44,7 +44,7 @@ window.PulsChat = (() => {
     restoring=(async()=>{
       try{
         if(marker?.problemId&&!marker.conversationId&&!marker.lastActivity){empty();banner();return;}
-        const path=marker?.conversationId?`/api/conversations/${encodeURIComponent(marker.conversationId)}/messages`:'/api/history';
+        const path='/api/history';
         const rows=await messages(path);
         if(request!==version||owner!==user||api.sending)return;
         const scoped=marker?.problemId&&!marker.conversationId?rows.filter(r=>r.problem_id===marker.problemId&&r.vehicle_id===marker.vehicleId&&validTime(r.created_at)>=marker.lastActivity-120000):rows;
@@ -69,21 +69,17 @@ window.PulsChat = (() => {
     const vehicle=marker?.vehicleId||loadVehicleProfile().id;
     return {...(marker?.conversationId?{conversation_id:marker.conversationId}:{}),...(isBackendVehicleId(vehicle)?{vehicle_id:vehicle}:{}),...(marker?.problemId?{problem_id:marker.problemId}:{})};
   }
-  async function afterSend(prompt,user){
-    lastActivity=Date.now();
-    marker={...marker,lastActivity};store();
+  async function afterSend(response,user){
+    if(user!==window.pulsCurrentUser?.id||owner!==user)return;
+    if(!response.conversation_id)return;
+    marker={conversationId:response.conversation_id,vehicleId:response.vehicle_id||null,problemId:response.problem_id||null,lastActivity:0};
     try{
-      // /chat currently omits conversation_id. Resolve it through the existing read API,
-      // accepting only a recent user message matching this send and selected context.
-      const rows=await messages(marker?.conversationId?`/api/conversations/${encodeURIComponent(marker.conversationId)}/messages`:'/api/history');
+      const rows=await messages(`/api/conversations/${encodeURIComponent(marker.conversationId)}/messages`);
       if(user!==window.pulsCurrentUser?.id||owner!==user)return;
-      const expected=requestContext();
-      const sent=rows.filter(r=>r.role==='user'&&r.message_text===prompt&&Math.abs(Date.now()-validTime(r.created_at))<120000&&(!expected.vehicle_id||r.vehicle_id===expected.vehicle_id)&&(!expected.problem_id||r.problem_id===expected.problem_id)).at(-1);
-      if(!sent?.conversation_id)return;
-      const times=rows.filter(r=>r.conversation_id===sent.conversation_id).map(r=>validTime(r.created_at));
-      lastActivity=Math.max(...times);
-      marker={conversationId:sent.conversation_id,vehicleId:sent.vehicle_id||null,problemId:sent.problem_id||null,lastActivity};store();
-    }catch{ /* Current response stays visible; backend recovery is retried on refresh. */ }
+      const visible=sessionRows(rows);
+      lastActivity=visible.length?validTime(visible.at(-1).created_at):0;
+      marker.lastActivity=lastActivity;store();
+    }catch{ /* Keep the response visible; recover authoritative activity on refresh. */ }
   }
   function continueProblem(vehicle,problem){
     authChanged();++version;restoring=null;

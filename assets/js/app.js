@@ -2349,6 +2349,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
       syncComposerVisibility(viewId);
       if (viewId === "car") window.PulsCar.render();
+      if (assistantActive) void window.PulsChat.restore();
       syncAssistantMessageHeight();
       if (window.innerWidth < 1050) window.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -3004,7 +3005,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         const links = normalizeResponseLinks(data.links || []);
         loading.innerHTML = `<strong>PULS</strong><br>${linkifyText(answer)} <small>${new Date().toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" })}</small>`;
           updateQuota(data.quota);
-          await window.PulsChat.afterSend(prompt, chatOwner);
+          await window.PulsChat.afterSend(data, chatOwner);
           window.PulsCar.invalidate();
           scrollMessagesToBottom();
         } catch (error) {
