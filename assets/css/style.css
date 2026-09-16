@@ -2546,8 +2546,7 @@ body.assistant-mode .composer {
 }
 
 /* ===== PULS splash and idle screen ===== */
-body.puls-splash-active,
-body.puls-idle-active {
+body.puls-splash-active {
   overflow: hidden !important;
 }
 
@@ -2555,12 +2554,15 @@ body.puls-idle-active {
   transition: opacity .7s ease, transform .7s ease, filter .7s ease;
 }
 
-body.puls-splash-active #app,
-body.puls-idle-active #app {
+body.puls-splash-active #app {
   opacity: 0;
   transform: scale(.985);
   filter: blur(1px);
   pointer-events: none;
+}
+
+.puls-splash-screen[hidden] {
+  display: none !important;
 }
 
 .puls-splash-screen {
@@ -2577,8 +2579,7 @@ body.puls-idle-active #app {
   background: #000;
 }
 
-body.puls-splash-active .puls-splash-screen,
-body.puls-idle-active .puls-splash-screen {
+body.puls-splash-active .puls-splash-screen {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
