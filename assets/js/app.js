@@ -2910,30 +2910,40 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       if (!input) return;
 
       const shell = input.closest(".composer-shell");
-      const minTextHeight = 24;
       const maxTextHeight = 126;
+      const compactHeight = 48;
 
-      // Measure in the expanded geometry every time. In compact mode the CSS
-      // intentionally forces the textarea to 48px with !important; measuring
-      // there made the state alternate between compact and expanded while the
-      // first visual line was being typed.
-      shell?.classList.add("is-expanded");
-      input.style.height = `${minTextHeight}px`;
+      // Measure the textarea in the CURRENT compact width first.
+      // This makes the composer expand exactly when the first visual line
+      // no longer fits, instead of waiting for extra characters.
+      shell?.classList.remove("is-expanded");
+      input.style.setProperty("height", "auto", "important");
+      input.style.setProperty("min-height", "0", "important");
+      input.style.setProperty("max-height", "none", "important");
       input.style.overflowY = "hidden";
 
-      const contentHeight = Math.max(input.scrollHeight, minTextHeight);
-      const expanded = contentHeight > 30 || input.value.includes("\n");
+      const compactScrollHeight = input.scrollHeight;
+      const hasManualBreak = input.value.includes("\n");
+      const expanded = hasManualBreak || compactScrollHeight > compactHeight;
 
       shell?.classList.toggle("is-expanded", expanded);
 
-      if (expanded) {
-        const nextHeight = Math.min(contentHeight, maxTextHeight);
-        input.style.height = `${nextHeight}px`;
-        input.style.overflowY = contentHeight > maxTextHeight ? "auto" : "hidden";
-      } else {
-        input.style.height = "48px";
+      // Clear temporary measurement overrides so the normal CSS geometry applies.
+      input.style.removeProperty("min-height");
+      input.style.removeProperty("max-height");
+
+      if (!expanded) {
+        input.style.removeProperty("height");
         input.style.overflowY = "hidden";
+        return;
       }
+
+      // Re-measure after switching to the expanded width/padding.
+      input.style.setProperty("height", "auto", "important");
+      const contentHeight = input.scrollHeight;
+      const nextHeight = Math.min(contentHeight, maxTextHeight);
+      input.style.setProperty("height", `${nextHeight}px`, "important");
+      input.style.overflowY = contentHeight > maxTextHeight ? "auto" : "hidden";
     }
 
     async function sendPrompt() {
