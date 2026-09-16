@@ -101,6 +101,14 @@ let browser;
   assert.equal(lastChat.conversation_id,CONV);
   await page.reload();await page.locator('#pulsSplashHitArea').click();
   await page.waitForFunction(()=>document.querySelectorAll('#messages .bubble').length===4);
+  // A new device has no session marker: history alone must restore the same tail.
+  await page.evaluate(()=>localStorage.removeItem('puls_current_chat_v2:owner-a'));
+  await page.reload();await page.locator('#pulsSplashHitArea').click();
+  await page.waitForFunction(()=>document.querySelectorAll('#messages .bubble').length===4);
+  await clickNav('settings');await clickNav('assistant');
+  await page.waitForFunction(()=>document.querySelectorAll('#messages .bubble').length===4);
+  await clickNav('car');await clickNav('assistant');
+  await page.waitForFunction(()=>document.querySelectorAll('#messages .bubble').length===4);
   const geometry=await page.locator('#messages').evaluate(n=>({top:n.getBoundingClientRect().top,overflow:getComputedStyle(n).overflowY,height:n.clientHeight}));
   assert(geometry.top<260);assert.equal(geometry.overflow,'auto');assert(geometry.height>200);
   if(process.env.SCREENSHOT_DIR){fs.mkdirSync(process.env.SCREENSHOT_DIR,{recursive:true});await page.waitForTimeout(750);await page.screenshot({path:path.join(process.env.SCREENSHOT_DIR,'chat-desktop.png')});}
