@@ -1,5 +1,9 @@
 # Frontend Architecture
 
+## 2026-09-16 — My Car V2 / current chat (current behavior)
+
+The Stage 3 implementation and current API ownership are documented in [MY_CAR_V2_INTEGRATION.md](MY_CAR_V2_INTEGRATION.md). This section supersedes the legacy My Car, service-history and request-history descriptions below. `assets/pages/car.js` controls the real My Car Overview/Data/History page using authenticated vehicles/problems/timeline APIs. Request History and Confirmed Cases are no longer user pages. Vehicle history contains structured events and problem records, never raw chat. `assets/js/chat-session.js` restores backend messages for the current 12-hour visible session; local storage holds only scoped IDs/timestamps. Manual event writes, primary vehicle and richer recommended/actual specifications remain explicit integration boundaries.
+
 ## Краткое описание
 
 CarDiagnostic AI frontend - статический frontend-проект для сайта PULS. Он состоит из HTML-страниц, CSS-стилей и JavaScript-модулей, которые управляют интерфейсом, навигацией, авторизацией, Supabase-клиентом и запросами к backend FastAPI.

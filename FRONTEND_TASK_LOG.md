@@ -71,3 +71,10 @@
 - 2026-07-20: Corrected the VIN decode trigger in the `My car` editor. Updated `assets/js/app.js` so typing or leaving the `VIN / chassis` field no longer starts automatic lookup. Vehicle decoding now runs only after the user explicitly presses `Decode VIN / chassis`, while the input still shows readiness/validation status text. Updated `FRONTEND_TASK_LOG.md`. Tested by reviewing the event handlers around `#carVinInput` and `#carLookupBtn` plus checking the frontend diff.
 - 2026-07-20: Confirmed the live frontend VIN behavior after deployment. On the production site, entering a VIN/chassis value no longer starts decoding automatically during typing; decoding starts only after pressing `Decode VIN / chassis`. The user manually verified the corrected behavior in the live `My car` editor.
 - 2026-07-20: Polished the public frontend repository presentation by replacing the old prototype-oriented README with a production-facing overview for `pulscar.co`, without changing runtime code.
+## 2026-09-16 — My Car V2 and current chat session
+
+- Replaced the real My Car view with vehicle selection, compact identity, an explicit Add/Edit form, Overview/Data/History, structured problem details and a technical log. Connected existing V2 reads, soft delete and restore; retained photo storage architecture and photos in Trash.
+- Removed Request History and Confirmed Cases from primary navigation and HTML views. Raw messages are never used as vehicle history.
+- Added backend-message current-chat restoration with a centralized 12-hour inactivity window and a small per-user ID marker. Added existing vehicle_id/problem_id/conversation_id to chat requests; expiration does not delete data.
+- Fixed active chat viewport and mobile navigation. Preserved backend quota display, API configuration, auth and Admin.
+- Added isolated browser regression checks and documented exact Stage 4 gaps and verification limits in MY_CAR_V2_INTEGRATION.md. Backend/Supabase were not modified; all write-path tests use fixtures.

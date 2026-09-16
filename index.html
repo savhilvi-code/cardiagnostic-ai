@@ -38,7 +38,7 @@
     "logo": "https://pulscar.co/assets/img/puls-logo.png"
   }
   </script>
-  <link rel="stylesheet" href="assets/css/style.css?v=20260609-12">
+  <link rel="stylesheet" href="assets/css/style.css?v=20260916-v2">
 </head>
 <body class="puls-splash-active">
   <div class="puls-spline-screen" id="pulsSplineScreen" aria-hidden="true">
@@ -58,7 +58,7 @@
     ></button>
   </div>
   <div class="app" id="app">
-    <header class="topbar">
+    <header class="topbar"><button id="mobileNavToggle" class="btn mobile-nav-toggle" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="mainNavigation">☰</button>
       <div class="brand">
         <img class="brand-logo" src="assets/img/puls-logo.png" alt="PULS">
         <div>
@@ -83,12 +83,10 @@
     </section>
 
     <div class="workspace">
-      <aside class="side">
+      <button id="mobileNavBackdrop" class="nav-backdrop" type="button" aria-label="Close navigation" hidden></button><aside class="side" id="mainNavigation">
         <nav class="panel nav" aria-label="Разделы">
           <button class="active" data-view="assistant" data-icon="bot">PULS</button>
           <button data-view="car" data-icon="home" data-i18n="nav.car">Мой автомобиль</button>
-          <button data-view="journal" data-icon="journal" data-i18n="nav.journal">Подтверждённые кейсы</button>
-          <button data-view="history" data-icon="history" data-i18n="nav.history">История запросов</button>
           <button data-view="dtc" data-icon="car" data-i18n="nav.dtc">Ошибки (DTC)</button>
           <button data-view="manuals" data-icon="file" data-i18n="nav.manuals">Мануалы</button>
           <button data-view="video" data-icon="play" data-i18n="nav.video">Видео</button>
@@ -129,60 +127,38 @@
           </section>
 
           <section class="view" id="car">
-            <div class="head">
-              <div>
-                <h1 data-i18n="car.title">Мой автомобиль</h1>
-                <p data-i18n="car.subtitle">Информация о вашем автомобиле и доступные материалы</p>
+            <div class="head"><div><h1 data-v2="myCar">My Car</h1><p data-v2="memory">Your vehicle’s technical logbook</p></div><button class="btn" id="carTrash" type="button" data-v2="trash">Deleted vehicles</button></div>
+            <div id="carV2Status" role="status"></div>
+            <div id="vehicleSwitcher" class="vehicle-switcher" aria-label="My cars"></div>
+            <div id="carEmpty" class="car-empty" hidden><h2 data-v2="noCars">You don't have any vehicles yet.</h2><p data-v2="emptyHelp">Add your vehicle so PULS can use its technical specifications, maintenance history and diagnostic context.</p><button class="btn blue" data-car-action="add" data-v2="add">+ Add vehicle</button></div>
+            <div id="carVehicle" hidden>
+              <div class="vehicle-identity">
+                <label class="car-photo-upload auth-required"><input id="carPhotoInput" type="file" accept="image/*"><span class="car-photo-label" data-i18n="car.photoUpload">Attach car photo</span></label>
+                <div class="vehicle-identity-text"><h2 id="vehicleTitle"></h2><p id="vehicleIdentity"></p><p id="vehicleVin"></p><strong id="vehicleMileage"></strong></div>
+                <details class="vehicle-actions"><summary aria-label="Vehicle actions" data-v2="actions">⚙ Actions</summary><div>
+                  <button type="button" data-car-action="edit" data-v2="edit">Edit vehicle</button>
+                  <button type="button" data-car-action="vin" data-v2="refreshVin">Refresh VIN data</button>
+                  <button type="button" data-car-action="specs" data-v2="correctSpecs">Refresh / correct specifications</button>
+                  <button type="button" data-car-action="photo" data-v2="photo">Change photo</button>
+                  <button type="button" disabled data-v2="primaryUnavailable">Make primary — unavailable</button>
+                  <button type="button" data-car-action="trash" class="danger-btn" data-v2="moveTrash">Move to Trash</button>
+                </div></details>
               </div>
+              <div class="vehicle-tabs" role="tablist" aria-label="Vehicle sections"><button id="tab-overview" type="button" role="tab" data-car-tab="overview" aria-controls="car-overview" data-v2="overview">Overview</button><button id="tab-data" type="button" role="tab" data-car-tab="data" aria-controls="car-data" data-v2="data">Data</button><button id="tab-history" type="button" role="tab" data-car-tab="history" aria-controls="car-history" data-v2="history">History</button></div>
+              <section id="car-overview" role="tabpanel" aria-labelledby="tab-overview"><div class="vehicle-overview"><section><h3 data-v2="problems">Active Problems</h3><div id="vehicleProblems"></div></section><section class="vehicle-logbook"><div class="head"><h3 data-v2="logbook">Vehicle Log</h3><button class="btn" type="button" data-car-action="entry" data-v2="addEntry">+ Add entry</button></div><div id="vehicleRecentLog"></div></section></div></section>
+              <section id="car-data" role="tabpanel" aria-labelledby="tab-data" hidden><div id="vehicleData"></div></section>
+              <section id="car-history" role="tabpanel" aria-labelledby="tab-history" hidden><div class="head"><h3 data-v2="logbook">Vehicle Log</h3><button class="btn" type="button" data-car-action="entry" data-v2="addEntry">+ Add entry</button></div><div class="vehicle-filters" aria-label="History filters"><button type="button" data-car-filter="all" data-v2="all">All</button><button type="button" data-car-filter="maintenance" data-v2="maintenance">Maintenance</button><button type="button" data-car-filter="repairs" data-v2="repairs">Repairs</button><button type="button" data-car-filter="problems" data-v2="problems">Problems</button></div><div id="vehicleHistory"></div></section>
             </div>
-            <div class="card vehicle-strip-card">
-              <div class="head car-section-head">
-                <div>
-                  <h3 data-i18n="car.vehicleTitle">Мои машины</h3>
-                  <p data-i18n="car.vehicleSubtitle">Сохраняйте несколько автомобилей и переключайтесь между ними без потери истории.</p>
-                </div>
-                <div class="profile-actions">
-                  <button class="btn danger-btn" id="deleteVehicleBtn" type="button" data-i18n="car.deleteVehicle">Удалить автомобиль</button>
-                </div>
-              </div>
-              <div id="vehicleSwitcher" class="vehicle-switcher" aria-label="Vehicle switcher"></div>
-            </div>
-            <div class="grid-2">
-              <div>
-                <div class="card car-info">
-                  <div>
-                    <h3 data-i18n="car.infoTitle">Информация об автомобиле</h3>
-                    <div class="info-table">
-                      <span data-i18n="car.model">Модель:</span><b id="carInfoModel" data-i18n="hero.car">Укажите машину</b>
-                      <span data-i18n="car.year">Год выпуска:</span><b id="carInfoYear" data-i18n="hero.yearValue">Укажите год</b>
-                      <span data-i18n="car.engine">Двигатель:</span><b id="carInfoEngine" data-i18n="hero.engineValue">Укажите мотор</b>
-                      <span data-i18n="car.drive">Привод:</span><b id="carInfoDrive" data-i18n="hero.driveValue">Укажите привод</b>
-                      <span data-i18n="car.fuel">Топливо:</span><b id="carInfoFuel" data-i18n="hero.fuelValue">Укажите топливо</b>
-                      <span data-i18n="car.transmission">КПП:</span><b id="carInfoTransmission" data-i18n="car.transmissionValue">Укажите КПП</b>
-                      <span>VIN:</span><b id="carInfoVin" data-i18n="car.vinValue">Укажите VIN</b>
-                    </div>
-                  </div>
-                  <label class="car-photo-upload auth-required">
-                    <input id="carPhotoInput" type="file" accept="image/*">
-                    <span class="car-photo-label" data-i18n="car.photoUpload">Attach car photo</span>
-                  </label>
-                </div>
-                <div class="card car-form-card">
-                  <div class="head car-section-head">
-                    <div>
-                      <h3 data-i18n="car.formTitle">Редактор автомобиля</h3>
-                      <p data-i18n="car.formSubtitle">Заполните данные машины один раз, чтобы PULS всегда понимал контекст.</p>
-                    </div>
-                  </div>
+            <section id="carEditor" class="card car-form-card" hidden><h2 id="carEditorTitle" data-v2="add">+ Add vehicle</h2><div class="vehicle-entry-methods"><button class="btn" type="button" data-car-action="method-vin" data-v2="vinMethod">VIN / chassis · Recommended</button><button class="btn" type="button" data-car-action="method-manual" data-v2="manualMethod">Manual entry</button></div>
                   <form id="carForm" class="car-form">
                     <div class="car-form-grid">
                       <label>
                         <span data-i18n="car.formBrand">Марка</span>
-                        <input id="carBrandInput" type="text" data-i18n-placeholder="car.formBrandPlaceholder" placeholder="Toyota">
+                        <input required id="carBrandInput" type="text" data-i18n-placeholder="car.formBrandPlaceholder" placeholder="Toyota">
                       </label>
                       <label>
                         <span data-i18n="car.formModel">Модель</span>
-                        <input id="carModelInput" type="text" data-i18n-placeholder="car.formModelPlaceholder" placeholder="Land Cruiser">
+                        <input required id="carModelInput" type="text" data-i18n-placeholder="car.formModelPlaceholder" placeholder="Land Cruiser">
                       </label>
                       <label>
                         <span data-i18n="car.formYear">Год</span>
@@ -206,9 +182,9 @@
                       </label>
                       <label>
                         <span data-i18n="car.formMileage">Пробег</span>
-                        <input id="carMileageInput" type="text" data-i18n-placeholder="car.formMileagePlaceholder" placeholder="185000 km">
+                        <input id="carMileageInput" type="text" data-i18n-placeholder="car.formMileagePlaceholder" placeholder="185000" inputmode="numeric">
                       </label>
-                      <label class="car-form-wide">
+                      <label><span data-v2="generation">Generation / chassis</span><input id="carGenerationInput" type="text"></label><label class="car-form-wide">
                         <span data-i18n="car.formVin">VIN</span>
                         <input id="carVinInput" type="text" data-i18n-placeholder="car.formVinPlaceholder" placeholder="JT...">
                       </label>
@@ -220,27 +196,12 @@
                     <p class="card-note car-form-note" data-i18n="car.formHint">Данные можно редактировать в любой момент. Позже сюда можно подключить авто-подтягивание из VIN или каталога.</p>
                     <div class="profile-actions">
                       <button class="btn blue" id="carSaveBtn" type="submit" data-i18n="car.formSave">Сохранить машину</button>
-                      <button class="btn" id="carFillDemoBtn" type="button" data-i18n="car.formDemo">Заполнить пример</button>
+                      <button class="btn" id="carCancelEdit" type="button" data-v2="cancel">Cancel</button>
                     </div>
                     <div class="auth-status" id="carFormStatus" aria-live="polite"></div>
                     <div class="auth-status" id="carLookupStatus" aria-live="polite"></div>
                   </form>
-                </div>
-                <div class="card">
-                  <h3 data-i18n="car.quickTitle">Быстрый доступ</h3>
-                  <div class="quick-grid">
-                    <div class="quick" data-icon="service" data-i18n="car.quickService">Регламент ТО</div>
-                    <div class="quick" data-icon="drivetrain" data-i18n="car.quickSchemes">Схемы узлов</div>
-                    <div class="quick" data-icon="settings" data-i18n="car.quickTorque">Моменты затяжки</div>
-                    <div class="quick" data-icon="journal" data-i18n="car.quickElectrical">Электросхемы</div>
-                    <div class="quick" data-icon="file" data-i18n="car.quickFuses">Предохранители</div>
-                  </div>
-                </div>
-              </div>
-              <div class="card">
-                <h3 data-i18n="car.specTitle">Технические характеристики</h3>
-                <p class="card-note" data-i18n="spec.note">These fields are filled automatically from vehicle data after the user enters the car information.</p>
-                <div class="spec-list">
+<details class="vehicle-spec-editor"><summary data-v2="specifications">Technical specifications (optional)</summary>                <div class="spec-list">
                   <div><span data-i18n="spec.displacement">Engine displacement:</span><input id="specDisplacement" class="spec-value" type="text" data-i18n-placeholder="spec.displacementValue" placeholder="Auto-filled after car selection"></div>
                   <div><span data-i18n="spec.power">Power:</span><input id="specPower" class="spec-value" type="text" data-i18n-placeholder="spec.powerValue" placeholder="Auto-filled after car selection"></div>
                   <div><span data-i18n="spec.torque">Torque:</span><input id="specTorque" class="spec-value" type="text" data-i18n-placeholder="spec.torqueValue" placeholder="Auto-filled after car selection"></div>
@@ -248,35 +209,9 @@
                   <div><span data-i18n="spec.cylinders">Cylinders:</span><input id="specCylinders" class="spec-value" type="text" data-i18n-placeholder="spec.cylindersValue" placeholder="Auto-filled after car selection"></div>
                   <div><span data-i18n="spec.emissions">Emissions class:</span><input id="specEmissions" class="spec-value" type="text" data-i18n-placeholder="spec.emissionsValue" placeholder="Auto-filled after car selection"></div>
                   <div><span data-i18n="spec.tank">Fuel tank:</span><input id="specTank" class="spec-value" type="text" data-i18n-placeholder="spec.tankValue" placeholder="Auto-filled after car selection"></div>
-                </div>
-              </div>
-            </div>
-
-              <div class="card car-service-card">
-                <div class="head car-section-head">
-                  <div>
-                    <h3 data-i18n="car.serviceTitle">Сервис и ТО</h3>
-                    <p data-i18n="car.serviceSubtitle">История обслуживания и выполненных работ по выбранной машине</p>
-                  </div>
-                <button class="btn auth-required" id="serviceAddBtn" type="button" data-i18n="car.serviceAdd">Добавить запись</button>
-                </div>
-              <p class="card-note car-service-note" data-i18n="car.serviceHelp">Все записи обслуживания и ТО отображаются внутри карточки выбранного автомобиля, чтобы контекст машины не терялся.</p>
-              <div id="serviceList"></div>
-            </div>
-          </section>
-
-          <section class="view" id="journal">
-            <div class="head"><div><h1 data-i18n="journal.title">Подтверждённые кейсы</h1><p data-i18n="journal.subtitle">Подтверждённые решения и сохранённые итоги</p></div></div>
-            <div class="page-help" id="journalHelp" data-i18n="journal.help">Здесь сохраняются только подтверждённые кейсы: PULS помог определить проблему, пользователь подтвердил, что она решена, и итоговое решение было сохранено.</div>
-            <div class="search"><input id="journalSearch" data-i18n-placeholder="search.requests" placeholder="Поиск по запросам"><button class="btn" data-action="filter" data-i18n="common.filter">Фильтр</button></div>
-            <div class="list" id="journalList"></div>
-          </section>
-
-          <section class="view" id="history">
-            <div class="head"><div><h1 data-i18n="history.title">История запросов</h1><p data-i18n="history.subtitle">Ваши недавние запросы и обращения к PULSу</p></div></div>
-            <div class="page-help" id="historyHelp" data-i18n="history.help">Здесь хранится история ваших обращений к PULS и полученных ответов.</div>
-            <div class="search"><input id="historySearch" data-i18n-placeholder="search.requests" placeholder="Поиск по запросам"><button class="btn" data-action="filter" data-i18n="common.filter">Фильтр</button></div>
-            <div class="list" id="historyList"></div>
+                </div><button class="btn" id="specLookupBtn" type="button" data-v2="fillMissing">Find missing specifications</button><p data-v2="preserveManual">Existing values are kept. Review the draft and save explicitly.</p></details>
+            </section>
+            <dialog id="vehicleDialog" class="vehicle-dialog"><button class="btn dialog-close" type="button" data-car-action="close" data-v2="close">Close</button><div id="vehicleDialogContent"></div></dialog>
           </section>
 
           <section class="view" id="dtc">
@@ -524,6 +459,8 @@
   <script src="assets/js/supabaseClient.js?v=20260531-22"></script>
   <script src="assets/js/auth.js?v=20260606-01"></script>
   <script src="assets/js/config.js?v=20260706-01"></script>
-  <script src="assets/js/app.js?v=20260916-quota"></script>
+  <script src="assets/js/chat-session.js?v=20260916-v2"></script>
+  <script src="assets/pages/car.js?v=20260916-v2"></script>
+  <script src="assets/js/app.js?v=20260916-v2"></script>
 </body>
 </html>

@@ -670,6 +670,13 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         id: "",
         brand: "",
         model: "",
+        generation: "",
+        country: "",
+        city: "",
+        notes: "",
+        lifecycle_status: "ACTIVE",
+        trashed_at: "",
+        restore_until: "",
         year: "",
         engine: "",
         fuel: "",
@@ -765,6 +772,13 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         id: row.id,
         brand: row.brand,
         model: row.model,
+        generation: row.generation,
+        country: row.country,
+        city: row.city,
+        notes: row.notes,
+        lifecycle_status: row.lifecycle_status,
+        trashed_at: row.trashed_at,
+        restore_until: row.restore_until,
         year: row.year,
         engine: row.engine,
         fuel: row.fuel || row.fuel_type,
@@ -808,6 +822,10 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       return {
         brand: normalized.brand,
         model: normalized.model,
+        generation: normalized.generation,
+        country: normalized.country,
+        city: normalized.city,
+        notes: normalized.notes,
         year: normalized.year,
         engine: normalized.engine,
         fuel: normalized.fuel,
@@ -892,16 +910,15 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       const store = loadVehicleStore();
       const targetId = String(profile?.id || store.activeId || createVehicleId()).trim();
       const index = store.vehicles.findIndex((vehicle) => vehicle.id === targetId);
-      const activeIndex = store.vehicles.findIndex((vehicle) => vehicle.id === store.activeId);
       const draftIndex = store.vehicles.findIndex((vehicle) => !hasVehicleContent(vehicle));
       const reusableIndex = index >= 0
         ? index
-        : (activeIndex >= 0 ? activeIndex : draftIndex);
+        : draftIndex;
       const existing = reusableIndex >= 0 ? store.vehicles[reusableIndex] : getDefaultVehicleProfile();
       const normalized = normalizeVehicleProfile({
         ...existing,
         ...profile,
-        id: String(existing.id || targetId).trim()
+        id: targetId
       });
       if (reusableIndex >= 0) {
         store.vehicles[reusableIndex] = normalized;
@@ -925,8 +942,10 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
     async function syncVehicleStoreFromBackend() {
       if (!isSignedIn()) return loadVehicleStore();
+      const owner = window.pulsCurrentUser?.id;
       try {
         const backendVehicles = await fetchBackendVehicles();
+        if (owner !== window.pulsCurrentUser?.id) return loadVehicleStore();
         vehicleSyncError = "";
         const currentActiveId = serverVehicleStore?.activeId || "";
         const blank = normalizeVehicleProfile({ id: createVehicleId() });
@@ -936,9 +955,10 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           : vehicles[0].id;
         const nextStore = { activeId, vehicles };
         saveVehicleStore(nextStore);
-        fillVehicleForm(loadVehicleProfile());
+        if (!window.PulsCar?.isEditing()) fillVehicleForm(loadVehicleProfile());
         return nextStore;
       } catch (error) {
+        if (owner !== window.pulsCurrentUser?.id) return loadVehicleStore();
         console.warn("Could not sync vehicles from backend:", error);
         vehicleSyncError = String(error?.message || error || "");
         serverVehicleStore = null;
@@ -952,6 +972,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       const headers = await backendJsonHeaders();
       if (!headers.Authorization) throw new Error("Vehicle save requires authentication.");
 
+      const owner = window.pulsCurrentUser?.id;
       const normalized = normalizeVehicleProfile(profile);
       const method = isBackendVehicleId(normalized.id) ? "PUT" : "POST";
       const url = method === "PUT" ? `${API_BASE_URL}/api/vehicles/${encodeURIComponent(normalized.id)}` : `${API_BASE_URL}/api/vehicles`;
@@ -962,7 +983,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       });
       if (!res.ok) throw new Error(`Vehicle save returned ${res.status}`);
       const data = await res.json();
-      if (!data.vehicle) return normalized;
+      if (owner !== window.pulsCurrentUser?.id) throw new Error("Account changed during save.");
+      if (!data.vehicle?.id) throw new Error("Vehicle API did not confirm the saved vehicle.");
       return saveVehicleProfile(vehicleFromApi(data.vehicle));
     }
 
@@ -972,11 +994,6 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       if (!headers.Authorization) throw new Error("Vehicle delete requires authentication.");
       const res = await fetch(`${API_BASE_URL}/api/vehicles/${encodeURIComponent(vehicle.id)}`, { method: "DELETE", headers });
       if (!res.ok) throw new Error(`Vehicle delete returned ${res.status}`);
-      if (vehicle?.photoUrl) {
-        removeVehiclePhotoFromStorage(vehicle.photoUrl).catch((error) => {
-          console.warn("Could not remove vehicle photo from storage:", error);
-        });
-      }
       return true;
     }
 
@@ -1133,10 +1150,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       const cached = getVinLookupCache(normalizedVin);
       if (cached && !force) {
         const current = getVehicleDraftProfile();
-        const preserveManualEdits = String(current.vin || "").trim().toUpperCase() === normalizedVin;
-        const mergedCached = preserveManualEdits
-          ? mergeVehicleProfiles(current, { ...cached, vin: normalizedVin })
-          : mergeVehicleProfiles({ ...cached, vin: normalizedVin }, current);
+        const mergedCached = mergeVehicleProfiles(current, { ...cached, vin: normalizedVin });
         mergedCached.id = current.id;
         fillVehicleForm(mergedCached);
         updateLookupStatus(t("car.lookupReady"), "ok");
@@ -1154,11 +1168,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
             return null;
           }
           const previous = getVehicleDraftProfile();
-          const merged = normalizeVehicleProfile({
-            ...getDefaultVehicleProfile(),
-            ...decoded,
-            vin: normalizedVin
-          });
+          if (requestId !== vehicleLookupRequestId || normalizeVehicleIdentifier($("#carVinInput")?.value) !== normalizedVin) return null;
+          const merged = mergeVehicleProfiles(previous, { ...decoded, vin: normalizedVin });
           merged.id = previous.id;
           setVinLookupCache(normalizedVin, merged);
           fillVehicleForm(merged);
@@ -1169,7 +1180,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         const response = await fetch(`${VIN_LOOKUP_URL}${encodeURIComponent(normalizedVin)}?format=json`);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
-        if (requestId !== vehicleLookupRequestId) return null;
+        if (requestId !== vehicleLookupRequestId || normalizeVehicleIdentifier($("#carVinInput")?.value) !== normalizedVin) return null;
 
         const record = Array.isArray(data?.Results) ? data.Results[0] : null;
         if (!record) {
@@ -1187,15 +1198,12 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         const decoded = decodeVinRecord({ ...record, VIN: normalizedVin });
         const previous = getVehicleDraftProfile();
         const keepPreviousModel = Boolean(previous.model && previous.brand && decoded.brand && previous.brand === decoded.brand);
-        const preserveManualEdits = String(previous.vin || "").trim().toUpperCase() === normalizedVin;
         const lookupData = {
           ...decoded,
           model: decoded.model || (keepPreviousModel ? previous.model : ""),
           vin: normalizedVin
         };
-        const merged = preserveManualEdits
-          ? mergeVehicleProfiles(previous, lookupData)
-          : mergeVehicleProfiles(lookupData, previous);
+        const merged = mergeVehicleProfiles(previous, lookupData);
         merged.id = previous.id;
 
         setVinLookupCache(normalizedVin, merged);
@@ -1290,7 +1298,9 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     function getVehicleFormValues() {
       const active = getVehicleDraftProfile();
       return normalizeVehicleProfile({
+        ...active,
         id: active.id,
+        generation: $("#carGenerationInput")?.value,
         brand: $("#carBrandInput")?.value,
         model: $("#carModelInput")?.value,
         year: $("#carYearInput")?.value,
@@ -1317,6 +1327,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       const mapping = {
         "#carBrandInput": normalized.brand,
         "#carModelInput": normalized.model,
+        "#carGenerationInput": normalized.generation,
         "#carYearInput": normalized.year,
         "#carEngineInput": normalized.engine,
         "#carFuelInput": normalized.fuel,
@@ -1342,38 +1353,26 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       fillVehicleForm(initialProfile);
       updateLookupStatus(t("car.lookupReady"), "info");
 
-      const saveProfile = (profile, state = "saved", { syncBackend = true } = {}) => {
-        if (!isSignedIn()) {
-          requireSignedInForEdit();
-          return;
-        }
-        const draftProfile = setVehicleDraftProfile(profile);
-        const savedProfile = saveVehicleProfile(draftProfile);
-        const status = $("#carFormStatus");
-        if (status) {
-          status.dataset.state = state;
-          status.textContent = state === "saved" ? t("car.formSaved") : "";
-        }
-        setCarSummaryText(savedProfile);
-        if (syncBackend) {
-          clearTimeout(vehicleBackendSaveTimer);
-          const delay = state === "typing" ? 900 : 0;
-          vehicleBackendSaveTimer = window.setTimeout(async () => {
-            try {
-              const backendProfile = await saveVehicleProfileToBackend(savedProfile);
-              setVehicleDraftProfile(backendProfile);
-              fillVehicleForm(backendProfile);
-              renderLists();
-            } catch (error) {
-              console.warn("Could not save vehicle to backend:", error);
-            }
-          }, delay);
-        }
-      };
-
-      form.addEventListener("submit", (event) => {
+      form.addEventListener("submit", async (event) => {
         event.preventDefault();
-        saveProfile(getVehicleFormValues());
+        if (!requireSignedInForEdit() || !form.reportValidity()) return;
+        const button = $("#carSaveBtn");
+        const status = $("#carFormStatus");
+        if (button.disabled) return;
+        button.disabled = true;
+        window.PulsCar.setBusy(true);
+        const owner = window.pulsCurrentUser?.id;
+        try {
+          const saved = await saveVehicleProfileToBackend(getVehicleFormValues());
+          if (owner !== window.pulsCurrentUser?.id) return;
+          fillVehicleForm(saved);
+          status.textContent = t("car.formSaved");
+          window.PulsCar.saved();
+          await renderLists();
+        } catch (error) {
+          status.textContent = window.PulsCar.text("saveError");
+          status.classList.add("error");
+        } finally { button.disabled = !isSignedIn(); window.PulsCar.setBusy(false); }
       });
 
       form.addEventListener("input", () => {
@@ -1501,6 +1500,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       }
 
       try {
+        const lookupId = vehicleLookupRequestId;
+        const draftId = draftProfile.id;
         const response = await fetch(`${API_BASE_URL}/api/vehicles/enrich`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1508,11 +1509,12 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         });
         if (!response.ok) throw new Error(`Vehicle enrich returned ${response.status}`);
         const data = await response.json();
+        if (lookupId !== vehicleLookupRequestId || getVehicleDraftProfile().id !== draftId) return null;
         const enrichedVehicle = data?.vehicle ? vehicleFromApi(data.vehicle) : null;
         if (!enrichedVehicle) {
           throw new Error("Vehicle enrich returned empty payload");
         }
-        const mergedDraft = mergeVehicleProfiles(enrichedVehicle, draftProfile);
+        const mergedDraft = mergeVehicleProfiles(getVehicleFormValues(), enrichedVehicle);
         mergedDraft.id = draftProfile.id || enrichedVehicle.id || "";
         fillVehicleForm(mergedDraft);
         const status = $("#carFormStatus");
@@ -1552,6 +1554,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       if (requestModalState.currentItem && $("#requestModal")?.classList.contains("show")) {
         openRequestModal(requestModalState.currentItem);
       }
+      window.PulsCar?.translate();
       void renderAssistantMessages();
     }
 
@@ -1689,6 +1692,9 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
       const input = $("#carPhotoInput");
       const previousProfile = loadVehicleProfile();
+      const owner = window.pulsCurrentUser?.id;
+      if (!window.PulsCar.photoReady()) return "";
+      window.PulsCar.setBusy(true);
       if (input) input.disabled = true;
 
       const previewUrl = await fileToDataUrl(file);
@@ -1702,10 +1708,11 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         }
 
         const uploadResult = await uploadVehiclePhotoToStorage(file, activeProfile);
-        const nextProfile = saveVehicleProfile({ ...activeProfile, photoUrl: uploadResult.publicUrl });
-        setCarSummaryText(nextProfile);
+        if (owner !== window.pulsCurrentUser?.id) return "";
+        const nextProfile = { ...activeProfile, photoUrl: uploadResult.publicUrl };
         const syncedProfile = await saveVehicleProfileToBackend(nextProfile);
         fillVehicleForm(syncedProfile);
+        window.PulsCar.invalidate();
         renderLists();
         if (previousProfile.photoUrl && previousProfile.photoUrl !== syncedProfile.photoUrl) {
           removeVehiclePhotoFromStorage(previousProfile.photoUrl).catch((error) => {
@@ -1716,10 +1723,11 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         return syncedProfile.photoUrl || uploadResult.publicUrl;
       } catch (error) {
         console.error("Car photo upload failed:", error);
-        fillVehicleForm(previousProfile);
+        if (owner === window.pulsCurrentUser?.id) fillVehicleForm(previousProfile);
         toast(describeVehiclePhotoUploadError(error));
         return "";
       } finally {
+        window.PulsCar.setBusy(false);
         if (input) {
           input.value = "";
           input.disabled = !isSignedIn();
@@ -1732,27 +1740,32 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       const input = $("#carPhotoInput");
       const previousProfile = loadVehicleProfile();
       if (!previousProfile.photoUrl) return "";
+      if (!window.PulsCar.photoReady()) return "";
+      const owner = window.pulsCurrentUser?.id;
+      window.PulsCar.setBusy(true);
       if (input) input.disabled = true;
 
       try {
-        const nextProfile = saveVehicleProfile({ ...previousProfile, photoUrl: "" });
+        const nextProfile = { ...previousProfile, photoUrl: "" };
         setCarPhotoPreview("");
         setCarSummaryText(nextProfile);
         const syncedProfile = await saveVehicleProfileToBackend(nextProfile);
         fillVehicleForm(syncedProfile);
+        window.PulsCar.invalidate();
+        window.PulsCar.render();
         await removeVehiclePhotoFromStorage(previousProfile.photoUrl).catch((error) => {
           console.warn("Could not remove vehicle photo from storage:", error);
-          throw error;
         });
         toast(t("car.photoRemoved"));
         return "";
       } catch (error) {
         console.error("Car photo remove failed:", error);
-        fillVehicleForm(previousProfile);
+        if (owner === window.pulsCurrentUser?.id) fillVehicleForm(previousProfile);
         toast(describeVehiclePhotoUploadError(error));
         return previousProfile.photoUrl || "";
       } finally {
         closeCarPhotoMenu();
+        window.PulsCar.setBusy(false);
         if (input) {
           input.value = "";
           input.disabled = !isSignedIn();
@@ -2096,76 +2109,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       const possibleCausesLabel = english ? "Possible causes:" : "Возможные причины:";
       const actionsLabel = english ? "Recommended actions:" : "Рекомендуемые действия:";
 
-      const savedHistory = await loadUserHistory();
-      const historyRows = savedHistory.map((item) => ({
-        question: item.question,
-        answer: item.answer,
-        links: item.links || [],
-        date: item.date,
-        vehicle: item.vehicle || [selectCar, selectYear, selectEngine, selectDrive].filter(Boolean).join(" • "),
-        type: normalizeRequestTypeLabel(item.type || textRequestLabel),
-        status: normalizeStatusLabel(item.status || "new")
-      }));
-      const solvedStatuses = ["solved", "resolved", "closed", "done", "completed", "решено", "закрыто", "выполнено"];
-      const solvedHistory = historyRows.filter((item) => solvedStatuses.includes(String(item.status).toLowerCase()));
-      const closedCases = solvedHistory.length ? solvedHistory.map((item) => ({
-        question: item.question,
-        answer: item.answer,
-        date: item.date,
-        vehicle: item.vehicle,
-        status: completedLabel
-      })) : (isSignedIn() ? [{
-        question: t("journal.sampleQuestion"),
-        answer: t("journal.sampleSolution"),
-        date: english ? "Example" : "Пример",
-        vehicle: selectCar,
-        status: completedLabel
-      }] : []);
-
-      const journalQuery = getSearchValue("#journalSearch");
-      const visibleCases = closedCases.filter((item) => matchesSearch([item.question, item.answer, item.vehicle, item.status], journalQuery));
-      requestModalState.visibleJournal = visibleCases;
-      $("#journalList").innerHTML = visibleCases.length ? visibleCases.map((item, index) => `
-        <article class="row request-row ${index === 0 ? "featured" : ""}" data-request-kind="journal" data-request-index="${index}" role="button" tabindex="0">
-          <div class="thumb" aria-hidden="true"></div>
-          <div>
-            <h3>${escapeHtml(item.question)}</h3>
-            <span class="tag">${escapeHtml(item.vehicle)}</span>
-            <p>${escapeHtml(item.answer)}</p>
-          </div>
-          <div><p>${escapeHtml(item.date)}</p><p class="ok">${escapeHtml(item.status)} ✓</p></div>
-        </article>
-      `).join("") : emptyState(journalQuery ? t("common.noMatches") : t("journal.empty"));
-
-      const historyQuery = getSearchValue("#historySearch");
-      const visibleHistory = historyRows.filter((item) => matchesSearch([item.question, item.answer, item.vehicle, item.type, item.date], historyQuery));
-      requestModalState.visibleHistory = visibleHistory;
-      $("#historyList").innerHTML = visibleHistory.length ? visibleHistory.map((item, index) => `
-        <article class="row request-row" style="grid-template-columns:64px 1fr 150px" data-request-kind="history" data-request-index="${index}" role="button" tabindex="0">
-          <div class="square ${item.type === voiceRequestLabel ? "violet" : ""}">${item.type === voiceRequestLabel ? "🎙" : "⌨"}</div>
-          <div>
-            <h3>${escapeHtml(item.question)}</h3>
-            <p>${escapeHtml(item.vehicle)}</p>
-            <p class="history-answer-preview">${escapeHtml(item.answer || t("history.answerPreviewEmpty"))}</p>
-          </div>
-          <div><p>${escapeHtml(item.date)}</p><span class="tag">${escapeHtml(item.type)}</span></div>
-        </article>
-      `).join("") : emptyState(historyQuery ? t("common.noMatches") : t("history.empty"));
-
-      const serviceList = $("#serviceList");
-      if (serviceList) {
-        serviceList.innerHTML = serviceRows.map((item) => `
-          <article class="service">
-            <div class="square ${item[4]}">${item[5]}</div>
-            <div><h3>${item[0]}</h3><p>${item[1]}</p><p class="ok">${completedLabel}</p></div>
-            <div><p>${item[2]}</p><p>${english ? "Mileage" : "Пробег"}: ${item[3]}</p></div>
-          </article>
-        `).join("");
-      }
-
-      setCarSummaryText(vehicleProfile);
-      renderVehicleSwitcher();
-      renderServiceRecords(vehicleProfile);
+      setCarSummaryText(window.PulsCar?.isEditing() ? getVehicleDraftProfile() : vehicleProfile);
+      window.PulsCar?.render();
 
       $("#dtcList").innerHTML = dtcRows.map((item) => `
         <article class="dtc">
@@ -2209,50 +2154,18 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     }
 
     async function renderAssistantMessages() {
-      const messagesBox = $("#messages");
-      if (!messagesBox) return;
-
-      if (!isSignedIn()) {
-        messagesBox.innerHTML = `
-          <div class="bubble user"><span data-i18n="assistant.demoQuestion">${escapeHtml(t("assistant.demoQuestion"))}</span> <small>10:42</small></div>
-          <div class="bubble">
-            <strong>PULS</strong><br>
-            <span data-i18n="assistant.demoAnswer">${escapeHtml(t("assistant.demoAnswer"))}</span>
-            <br><br><strong data-i18n="assistant.demoActions">${escapeHtml(t("assistant.demoActions"))}</strong><br>
-            <span data-i18n="assistant.demoChecks">${t("assistant.demoChecks")}</span>
-            <small>10:43</small>
-          </div>
-        `;
-        scrollMessagesToBottom();
-        return;
-      }
-
-      const history = await loadUserHistory();
-      if (!history.length) {
-        messagesBox.innerHTML = `<div class="chat-empty-state">${escapeHtml(t("assistant.emptyAuthenticated"))}</div>`;
-        return;
-      }
-
-      messagesBox.innerHTML = history
-        .slice(0, 20)
-        .reverse()
-        .map((item) => {
-          const time = escapeHtml(item.date || "");
-          return `
-            <div class="bubble user">${linkifyText(item.question)} ${time ? `<small>${time}</small>` : ""}</div>
-            <div class="bubble"><strong>PULS</strong><br>${linkifyText(item.answer || t("history.answerPreviewEmpty"))} ${time ? `<small>${time}</small>` : ""}</div>
-          `;
-        })
-        .join("");
-      scrollMessagesToBottom();
+      return window.PulsChat.restore();
     }
 
     function showView(viewId) {
+      if (!["assistant", "car", "dtc", "manuals", "video", "settings"].includes(viewId)) return;
+      window.PulsCar.closeNavigation();
       $$(".nav button, .view").forEach((node) => node.classList.remove("active"));
       $(`.nav button[data-view="${viewId}"]`).classList.add("active");
       $(`#${viewId}`).classList.add("active");
       document.body.classList.toggle("assistant-mode", viewId === "assistant");
       document.body.classList.toggle("page-mode", viewId !== "assistant");
+      if (viewId === "car") window.PulsCar.render();
       syncAssistantMessageHeight();
       if (window.innerWidth < 1050) window.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -2270,42 +2183,16 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       div.className = `bubble ${isUser ? "user" : ""}`;
       div.innerHTML = `${linkifyText(text)} <small>${new Date().toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" })}</small>`;
       const messagesBox = $("#messages");
+      messagesBox.querySelector(".chat-empty-state")?.remove();
       messagesBox.appendChild(div);
+      document.body.classList.add("chat-active");
       scrollMessagesToBottom();
       return div;
     }
 
     function scrollMessagesToBottom() {
-      const messagesBox = $("#messages");
-      if (!messagesBox) return;
-      requestAnimationFrame(() => {
-        const isAssistantMode = document.body.classList.contains("assistant-mode");
-
-        if (!isAssistantMode && getComputedStyle(messagesBox).overflowY !== "visible") {
-          messagesBox.scrollTop = messagesBox.scrollHeight;
-          return;
-        }
-
-        const lastBubble = messagesBox.querySelector(".bubble:last-child");
-        const composer = $(".composer");
-        const scrollBox = $(".content > .main-panel");
-
-        if (!lastBubble || !composer || !scrollBox) return;
-        if (!isAssistantMode) return;
-
-        lastBubble.scrollIntoView({ block: "end", behavior: "smooth" });
-
-        requestAnimationFrame(() => {
-          const bubbleBottom = lastBubble.getBoundingClientRect().bottom;
-          const composerTop = composer.getBoundingClientRect().top;
-          const safeGap = 32;
-          const hiddenByComposer = bubbleBottom - (composerTop - safeGap);
-
-          if (hiddenByComposer > 0) {
-            window.scrollBy({ top: hiddenByComposer, behavior: "smooth" });
-          }
-        });
-      });
+      const box = $("#messages");
+      requestAnimationFrame(() => { if (box) box.scrollTop = box.scrollHeight; });
     }
 
     function syncAssistantMessageHeight() {
@@ -2754,31 +2641,6 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       }
     }
 
-    async function saveHistoryItem(question, answer, links = []) {
-      if (!isSignedIn()) return;
-      await renderLists();
-      return;
-
-      const item = {
-        question,
-        answer,
-        links,
-        vehicle: `${t("hero.car")} • ${t("hero.engineValue")} • ${t("hero.driveValue")}`,
-        type: t("request.type.text")
-      };
-
-      const now = new Date();
-      const localItem = {
-        ...item,
-        date: now.toLocaleDateString(currentLocale(), { day: "2-digit", month: "short" }) + ", " + now.toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" })
-      };
-
-      const history = loadLocalHistory();
-      history.unshift(localItem);
-      localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history.slice(0, 50)));
-      await renderLists();
-    }
-
     function updateQuota(quota) {
       if (!quota) return;
       currentQuota = quota;
@@ -2859,6 +2721,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       const prompt = input.value.trim();
       if (!prompt) return;
       if (!requireSignedInForChat()) return;
+      if (window.PulsChat.sending) return;
+      await window.PulsChat.beforeSend();
       showView("assistant");
 
       const chatUser = await getChatUserContext();
@@ -2867,6 +2731,11 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         return;
       }
 
+      if (window.PulsChat.sending) return;
+
+      window.PulsChat.sending = true;
+      const chatOwner = window.pulsCurrentUser?.id;
+      $("#sendBtn").disabled = true;
       appendMessage(prompt, true);
       input.value = "";
 
@@ -2881,7 +2750,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
             username: chatUser.payload.username,
             first_name: chatUser.payload.first_name,
             language: getLanguage(),
-            car_info: chatUser.payload.car_info
+            car_info: chatUser.payload.car_info,
+            ...window.PulsChat.requestContext()
           })
         });
 
@@ -2898,19 +2768,24 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           data = { answer: rawAnswer };
         }
 
+        if (chatOwner !== window.pulsCurrentUser?.id) return;
         const answer = data.answer || data.reply || data.message || data.output || rawAnswer || JSON.stringify(data, null, 2);
         const links = normalizeResponseLinks(data.links || []);
         loading.innerHTML = `<strong>PULS</strong><br>${linkifyText(answer)} <small>${new Date().toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" })}</small>`;
           updateQuota(data.quota);
-          await saveHistoryItem(prompt, answer, links);
-          await renderLists();
+          await window.PulsChat.afterSend(prompt, chatOwner);
+          window.PulsCar.invalidate();
           scrollMessagesToBottom();
         } catch (error) {
           console.error("PULS /chat request failed:", error);
+          if (chatOwner !== window.pulsCurrentUser?.id) return;
           const errorText = t("assistant.error");
           loading.innerHTML = `<strong>PULS</strong><br>${errorText} <small>${new Date().toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" })}</small>`;
-          await saveHistoryItem(prompt, errorText, []);
+
           scrollMessagesToBottom();
+        } finally {
+          window.PulsChat.sending = false;
+          $("#sendBtn").disabled = false;
         }
       }
 
@@ -2976,10 +2851,11 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       setPulsScreenState();
       injectIcons();
       ensureCarPhotoActions();
-      ensureSpecLookupControls();
+      window.PulsCar.init();
       applyLanguage();
       initVehicleEditor();
       await syncVehicleStoreFromBackend();
+      await refreshQuotaFromBackend();
       await renderLists();
       await renderAssistantMessages();
       connectSpline();
@@ -3040,6 +2916,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         }
       });
       window.addEventListener("puls-auth-change", async (event) => {
+        window.PulsChat.authChanged();
+        window.PulsCar.authChanged();
         if (!event.detail?.user) {
           clearPrivateUiCache();
           window.pulsAppUser = null;
@@ -3104,49 +2982,6 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           const active = !toggleButton.classList.contains("active");
           toggleButton.classList.toggle("active", active);
           toggleButton.setAttribute("aria-pressed", String(active));
-          return;
-        }
-
-        const addVehicleButton = event.target.closest("#addVehicleBtn, #vehicleAddChip");
-        if (addVehicleButton) {
-          const vehicle = addVehicleProfile();
-          fillVehicleForm(vehicle);
-          renderLists();
-          showView("car");
-          return;
-        }
-
-        const deleteVehicleButton = event.target.closest("#deleteVehicleBtn");
-        if (deleteVehicleButton) {
-          const store = loadVehicleStore();
-          const activeVehicle = store.vehicles.find((vehicle) => vehicle.id === store.activeId) || store.vehicles[0];
-          const label = getVehicleLabel(activeVehicle);
-          const confirmed = window.confirm(`${t("car.deleteVehicle")}: ${label}?`);
-          if (!confirmed) return;
-          try {
-            await deleteVehicleFromBackend(activeVehicle);
-          } catch (error) {
-            console.warn("Could not delete vehicle from backend:", error);
-            return;
-          }
-          const nextVehicle = removeActiveVehicleProfile();
-          fillVehicleForm(nextVehicle);
-          renderLists();
-          showView("car");
-          return;
-        }
-
-        const vehicleChip = event.target.closest("[data-vehicle-id]");
-        if (vehicleChip) {
-          const active = setActiveVehicleProfile(vehicleChip.dataset.vehicleId);
-          fillVehicleForm(active);
-          renderLists();
-          return;
-        }
-
-        const serviceButton = event.target.closest("#serviceAddBtn");
-        if (serviceButton) {
-          openServiceModal();
           return;
         }
 

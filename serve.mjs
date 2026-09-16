@@ -1,8 +1,9 @@
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const root = new URL(".", import.meta.url).pathname;
+const root = fileURLToPath(new URL(".", import.meta.url));
 const port = Number(process.env.PORT || 4173);
 const backendBaseUrl = String(process.env.PULS_BACKEND_URL || "https://puls-backend-t3sn.onrender.com").replace(/\/$/, "");
 
@@ -57,7 +58,7 @@ createServer(async (req, res) => {
     return;
   }
 
-  if (req.method === "GET" && ["/api/history", "/api/quota"].includes(url.pathname)) {
+  if (req.method === "GET" && (["/api/history", "/api/quota"].includes(url.pathname) || /^\/api\/problems\/[0-9a-f-]+$/.test(url.pathname) || /^\/api\/conversations\/[0-9a-f-]+\/messages$/.test(url.pathname))) {
     const proxied = await proxyBackend(url.pathname, {
       headers: req.headers.authorization ? { Authorization: req.headers.authorization } : {},
     });
