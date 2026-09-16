@@ -2166,18 +2166,58 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       const style = document.createElement("style");
       style.id = "pulsRuntimeVisualFixes";
       style.textContent = `
+        /* Splash: cover the real viewport and hide all underlying scrollbars */
+        html.puls-splash-lock,
+        html.puls-splash-lock body,
+        body.puls-splash-active,
+        body.puls-splash-active #app {
+          overflow: hidden !important;
+          overscroll-behavior: none !important;
+        }
+
+        body.puls-splash-active .main-panel,
+        body.puls-splash-active .assistant-right,
+        body.puls-splash-active .side,
+        body.puls-splash-active .content,
+        body.puls-splash-active .workspace,
+        body.puls-splash-active .messages {
+          overflow: hidden !important;
+          scrollbar-width: none !important;
+          -ms-overflow-style: none !important;
+        }
+
+        body.puls-splash-active *::-webkit-scrollbar {
+          width: 0 !important;
+          height: 0 !important;
+          display: none !important;
+        }
+
         body.puls-splash-active .composer,
-        body.puls-idle-active .composer,
         body.page-mode .composer {
           display: none !important;
         }
 
         .puls-splash-screen,
         .puls-spline-screen {
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          right: auto !important;
+          bottom: auto !important;
           margin: 0 !important;
           padding: 0 !important;
           overflow: hidden !important;
+          overscroll-behavior: none !important;
           background: #000 !important;
+          scrollbar-width: none !important;
+          -ms-overflow-style: none !important;
+        }
+
+        .puls-splash-screen::-webkit-scrollbar,
+        .puls-spline-screen::-webkit-scrollbar {
+          width: 0 !important;
+          height: 0 !important;
+          display: none !important;
         }
 
         .puls-splash-video {
@@ -2207,6 +2247,29 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           padding: 0 !important;
           border: 0 !important;
           background: transparent !important;
+        }
+
+        /* Hidden toast must be completely outside the visible viewport.
+           This removes the blue rounded "half-circle" at bottom-right. */
+        .toast {
+          opacity: 0 !important;
+          visibility: hidden !important;
+          pointer-events: none !important;
+          transform: translateY(calc(100% + 100px)) !important;
+        }
+
+        .toast.show {
+          opacity: 1 !important;
+          visibility: visible !important;
+          pointer-events: auto !important;
+          transform: translateY(0) !important;
+        }
+
+        body.puls-splash-active .toast {
+          opacity: 0 !important;
+          visibility: hidden !important;
+          pointer-events: none !important;
+          transform: translateY(calc(100% + 100px)) !important;
         }
       `;
       document.head.appendChild(style);
@@ -2292,10 +2355,16 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
     function toast(message) {
       const box = $("#toast");
+      if (!box) return;
+
+      clearTimeout(window.__toastTimer);
       box.textContent = message;
       box.classList.add("show");
-      clearTimeout(window.__toastTimer);
-      window.__toastTimer = setTimeout(() => box.classList.remove("show"), 3600);
+
+      window.__toastTimer = setTimeout(() => {
+        box.classList.remove("show");
+        box.textContent = "";
+      }, 3600);
     }
 
     function appendMessage(text, isUser) {
@@ -2946,7 +3015,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
     function setPulsScreenState() {
       document.body.classList.toggle("puls-splash-active", splashVisible);
-      document.body.classList.toggle("puls-idle-active", idleVisible);
+      document.body.classList.remove("puls-idle-active");
+      document.documentElement.classList.toggle("puls-splash-lock", splashVisible);
       syncSplashLayout();
       syncComposerVisibility();
     }
@@ -2960,31 +3030,21 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     }
 
     function showIdleScreen() {
-      if (idleVisible || splashVisible) return;
-      if (!document.body.classList.contains("assistant-mode")) return;
-      idleVisible = true;
-      setPulsScreenState();
-      startSplashVideo();
+      // Startup video is intentionally shown only once per page load.
+      return;
     }
 
     function hideIdleScreen() {
-      if (!idleVisible) return;
       idleVisible = false;
-      setPulsScreenState();
-      stopSplashVideo();
     }
 
     function resetIdleTimer() {
       clearTimeout(idleTimerId);
-      if (splashVisible) return;
-      if (!document.body.classList.contains("assistant-mode")) return;
-      idleTimerId = window.setTimeout(showIdleScreen, IDLE_TIMEOUT_MS);
+      idleTimerId = null;
     }
 
     function handlePulsActivity() {
-      if (splashVisible) return;
-      if (idleVisible) hideIdleScreen();
-      resetIdleTimer();
+      // No idle splash: normal page activity does not reopen the startup video.
     }
 
     function handleSplashActivation(event) {
