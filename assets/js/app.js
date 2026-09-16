@@ -2909,11 +2909,24 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       const input = $("#promptInput");
       if (!input) return;
 
-      const maxHeight = 144;
-      input.style.height = "42px";
-      const nextHeight = Math.min(Math.max(input.scrollHeight, 42), maxHeight);
-      input.style.height = `${nextHeight}px`;
-      input.style.overflowY = input.scrollHeight > maxHeight ? "auto" : "hidden";
+      const shell = input.closest(".composer-shell");
+      const minTextHeight = 24;
+      const maxTextHeight = 126;
+
+      input.style.height = `${minTextHeight}px`;
+      const contentHeight = Math.max(input.scrollHeight, minTextHeight);
+      const expanded = contentHeight > 27 || input.value.includes("\n");
+
+      shell?.classList.toggle("is-expanded", expanded);
+
+      if (expanded) {
+        const nextHeight = Math.min(contentHeight, maxTextHeight);
+        input.style.height = `${nextHeight}px`;
+        input.style.overflowY = contentHeight > maxTextHeight ? "auto" : "hidden";
+      } else {
+        input.style.height = "48px";
+        input.style.overflowY = "hidden";
+      }
     }
 
     async function sendPrompt() {
