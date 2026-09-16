@@ -3169,8 +3169,8 @@ body.assistant-mode .composer-shell {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  border: 1px solid var(--blue);
-  border-radius: 20px;
+  border: 0;
+  border-radius: 18px;
   background: #04111d;
   overflow: visible;
   transition: min-height .12s ease, border-color .12s ease, box-shadow .12s ease;
@@ -3178,8 +3178,7 @@ body.assistant-mode .composer-shell {
 
 .composer-shell:focus-within,
 body.assistant-mode .composer-shell:focus-within {
-  border-color: var(--cyan);
-  box-shadow: 0 0 0 1px rgba(19, 217, 255, .12);
+  box-shadow: none;
 }
 
 .composer textarea,
