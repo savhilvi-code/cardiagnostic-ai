@@ -2905,6 +2905,17 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       };
     }
 
+    function resizePromptInput() {
+      const input = $("#promptInput");
+      if (!input) return;
+
+      const maxHeight = 144;
+      input.style.height = "42px";
+      const nextHeight = Math.min(Math.max(input.scrollHeight, 42), maxHeight);
+      input.style.height = `${nextHeight}px`;
+      input.style.overflowY = input.scrollHeight > maxHeight ? "auto" : "hidden";
+    }
+
     async function sendPrompt() {
       const input = $("#promptInput");
       const prompt = input.value.trim();
@@ -2927,6 +2938,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       $("#sendBtn").disabled = true;
       appendMessage(prompt, true);
       input.value = "";
+      resizePromptInput();
 
       const loading = appendMessage(t("assistant.loading"), false);
       try {
@@ -3072,12 +3084,16 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       await renderAssistantMessages();
 
       $("#sendBtn").addEventListener("click", sendPrompt);
-      $("#promptInput").addEventListener("keydown", (event) => {
-        if (event.key === "Enter") {
+
+      const promptInput = $("#promptInput");
+      promptInput.addEventListener("input", resizePromptInput);
+      promptInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
           event.preventDefault();
           sendPrompt();
         }
       });
+      resizePromptInput();
       $("#pulsSplashHitArea")?.addEventListener("pointerdown", handleSplashActivation);
       $("#pulsSplashHitArea")?.addEventListener("click", handleSplashActivation);
       ["#journalSearch", "#historySearch", "#manualSearch", "#videoSearch"].forEach((selector) => {
