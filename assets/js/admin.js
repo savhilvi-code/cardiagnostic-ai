@@ -31,10 +31,14 @@ async function getAdminSession() {
     return null;
   }
 
-  const { data, error } = await window.supabaseClient.auth.getSession();
+  const { data, error } =
+    await window.supabaseClient.auth.getSession();
 
   if (error) {
-    console.error("Could not read Supabase session:", error);
+    console.error(
+      "Could not read Supabase session:",
+      error
+    );
     return null;
   }
 
@@ -50,15 +54,20 @@ async function adminFetch(path, options = {}) {
   }
 
   const headers = {
-    ...(options.body ? { "Content-Type": "application/json" } : {}),
+    ...(options.body
+      ? { "Content-Type": "application/json" }
+      : {}),
     ...(options.headers || {}),
     Authorization: `Bearer ${session.access_token}`
   };
 
-  const response = await fetch(`${ADMIN_API_BASE_URL}${path}`, {
-    ...options,
-    headers
-  });
+  const response = await fetch(
+    `${ADMIN_API_BASE_URL}${path}`,
+    {
+      ...options,
+      headers
+    }
+  );
 
   let payload = null;
 
@@ -119,65 +128,105 @@ function formatAdminDate(value) {
     return "—";
   }
 
-  return date.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "2-digit"
-  });
+  return date.toLocaleDateString(
+    undefined,
+    {
+      year: "numeric",
+      month: "short",
+      day: "2-digit"
+    }
+  );
 }
 
 
 function getUserPlan(user) {
-  return String(user?.plan || "free").toLowerCase();
+  return String(
+    user?.plan || "free"
+  ).toLowerCase();
 }
 
 
 function getQuotaLimit(user) {
-  const value = Number(user?.quota_limit);
+  const value = Number(
+    user?.quota_limit
+  );
 
   if (Number.isFinite(value)) {
     return value;
   }
 
-  return getUserPlan(user) === "paid" ? 100 : 5;
+  return getUserPlan(user) === "paid"
+    ? 100
+    : 5;
 }
 
 
 function getQuotaUsed(user) {
-  const value = Number(user?.quota_used);
-  return Number.isFinite(value) ? value : 0;
+  const value = Number(
+    user?.quota_used
+  );
+
+  return Number.isFinite(value)
+    ? value
+    : 0;
 }
 
 
 function renderAdminSummary(users) {
   const free = users.filter(
-    (user) => getUserPlan(user) === "free"
+    (user) =>
+      getUserPlan(user) === "free"
   ).length;
 
   const paid = users.filter(
-    (user) => getUserPlan(user) === "paid"
+    (user) =>
+      getUserPlan(user) === "paid"
   ).length;
 
-  const vehicles = users.reduce((sum, user) => {
-    const count = Number(user?.vehicles_count);
-    return sum + (Number.isFinite(count) ? count : 0);
-  }, 0);
+  const vehicles = users.reduce(
+    (sum, user) => {
+      const count = Number(
+        user?.vehicles_count
+      );
 
-  adminEl("adminUsersCount").textContent = String(users.length);
-  adminEl("adminFreeCount").textContent = String(free);
-  adminEl("adminPaidCount").textContent = String(paid);
-  adminEl("adminVehiclesCount").textContent = String(vehicles);
+      return (
+        sum +
+        (Number.isFinite(count)
+          ? count
+          : 0)
+      );
+    },
+    0
+  );
+
+  adminEl("adminUsersCount").textContent =
+    String(users.length);
+
+  adminEl("adminFreeCount").textContent =
+    String(free);
+
+  adminEl("adminPaidCount").textContent =
+    String(paid);
+
+  adminEl("adminVehiclesCount").textContent =
+    String(vehicles);
 }
 
 
 function renderAdminUsers(users) {
-  const body = adminEl("adminUsersBody");
+  const body = adminEl(
+    "adminUsersBody"
+  );
+
   if (!body) return;
 
   if (!users.length) {
     body.innerHTML = `
       <tr>
-        <td colspan="6" class="admin-empty">
+        <td
+          colspan="6"
+          class="admin-empty"
+        >
           No users found.
         </td>
       </tr>
@@ -185,203 +234,251 @@ function renderAdminUsers(users) {
     return;
   }
 
-  body.innerHTML = users.map((user) => {
-    const userId = escapeAdminHtml(
-      user.user_id ||
-      user.id ||
-      ""
-    );
+  body.innerHTML = users
+    .map((user) => {
+      const userId = escapeAdminHtml(
+        user.user_id ||
+        user.id ||
+        ""
+      );
 
-    const email = escapeAdminHtml(
-      user.email ||
-      "No email"
-    );
+      const email = escapeAdminHtml(
+        user.email ||
+        "No email"
+      );
 
-    const name = escapeAdminHtml(
-      user.name ||
-      "PULS user"
-    );
+      const name = escapeAdminHtml(
+        user.name ||
+        "PULS user"
+      );
 
-    const plan = getUserPlan(user);
+      const plan =
+        getUserPlan(user);
 
-    const planLabel =
-      plan === "paid"
-        ? "Paid"
-        : "Free";
+      const planLabel =
+        plan === "paid"
+          ? "Paid"
+          : "Free";
 
-    const planClass =
-      plan === "paid"
-        ? "admin-badge-paid"
-        : "admin-badge-free";
+      const planClass =
+        plan === "paid"
+          ? "admin-badge-paid"
+          : "admin-badge-free";
 
-    const used = getQuotaUsed(user);
-    const limit = getQuotaLimit(user);
+      const used =
+        getQuotaUsed(user);
 
-    const vehicles = Number(user.vehicles_count);
+      const limit =
+        getQuotaLimit(user);
 
-    const vehiclesCount =
-      Number.isFinite(vehicles)
-        ? vehicles
-        : 0;
+      const vehicles = Number(
+        user.vehicles_count
+      );
 
-    const isBlocked = user.blocked === true;
+      const vehiclesCount =
+        Number.isFinite(vehicles)
+          ? vehicles
+          : 0;
 
-    const blockStatus = isBlocked
-      ? `
-          <span class="admin-badge admin-badge-blocked">
-            🔒 Blocked
-          </span>
-        `
-      : "";
+      const isBlocked =
+        user.blocked === true;
 
-    const blockButton = isBlocked
-      ? `
-          <button
-            class="admin-button"
-            type="button"
-            data-admin-action="unblock"
-            data-user-id="${userId}"
-          >
-            Unblock
-          </button>
-        `
-      : `
-          <button
-            class="admin-button"
-            type="button"
-            data-admin-action="block"
-            data-user-id="${userId}"
-          >
-            Block
-          </button>
-        `;
+      const blockStatus =
+        isBlocked
+          ? `
+              <span
+                class="admin-badge admin-badge-blocked"
+              >
+                🔒 Blocked
+              </span>
+            `
+          : "";
 
-    return `
-      <tr data-admin-user-id="${userId}">
-        <td>
-          <div class="admin-user-name">
-            ${name}
-            ${blockStatus}
-          </div>
+      const blockButton =
+        isBlocked
+          ? `
+              <button
+                class="admin-button"
+                type="button"
+                data-admin-action="unblock"
+                data-user-id="${userId}"
+              >
+                Unblock
+              </button>
+            `
+          : `
+              <button
+                class="admin-button"
+                type="button"
+                data-admin-action="block"
+                data-user-id="${userId}"
+              >
+                Block
+              </button>
+            `;
 
-          <div class="admin-user-email">
-            ${email}
-          </div>
-        </td>
-
-        <td>
-          <span class="admin-badge ${planClass}">
-            ${planLabel}
-          </span>
-        </td>
-
-        <td>
-          ${used} / ${limit}
-        </td>
-
-        <td>
-          ${vehiclesCount}
-        </td>
-
-        <td>
-          ${escapeAdminHtml(
-            formatAdminDate(user.created_at)
-          )}
-        </td>
-
-        <td>
-          <div class="admin-actions">
-
-            <button
-              class="admin-button"
-              type="button"
-              data-admin-action="reset-quota"
-              data-user-id="${userId}"
+      return `
+        <tr
+          data-admin-user-id="${userId}"
+        >
+          <td>
+            <div
+              class="admin-user-name"
             >
-              Reset quota
-            </button>
+              ${name}
+              ${blockStatus}
+            </div>
 
-            <button
-              class="admin-button"
-              type="button"
-              data-admin-action="change-plan"
-              data-user-id="${userId}"
+            <div
+              class="admin-user-email"
             >
-              Change plan
-            </button>
+              ${email}
+            </div>
+          </td>
 
-            ${blockButton}
-
-            <button
-              class="admin-button admin-button-danger"
-              type="button"
-              data-admin-action="delete"
-              data-user-id="${userId}"
+          <td>
+            <span
+              class="admin-badge ${planClass}"
             >
-              Delete
-            </button>
+              ${planLabel}
+            </span>
+          </td>
 
-          </div>
-        </td>
-      </tr>
-    `;
-  }).join("");
+          <td>
+            ${used} / ${limit}
+          </td>
+
+          <td>
+            ${vehiclesCount}
+          </td>
+
+          <td>
+            ${escapeAdminHtml(
+              formatAdminDate(
+                user.created_at
+              )
+            )}
+          </td>
+
+          <td>
+            <div
+              class="admin-actions"
+            >
+              <button
+                class="admin-button"
+                type="button"
+                data-admin-action="reset-quota"
+                data-user-id="${userId}"
+              >
+                Reset quota
+              </button>
+
+              <button
+                class="admin-button"
+                type="button"
+                data-admin-action="change-plan"
+                data-user-id="${userId}"
+              >
+                Change plan
+              </button>
+
+              ${blockButton}
+
+              <button
+                class="admin-button"
+                type="button"
+                data-admin-action="clear-history"
+                data-user-id="${userId}"
+              >
+                Clear history
+              </button>
+
+              <button
+                class="admin-button admin-button-danger"
+                type="button"
+                data-admin-action="delete"
+                data-user-id="${userId}"
+              >
+                Delete
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
 }
 
 
 function filterAdminUsers() {
   const query = String(
-    adminEl("adminSearchInput")?.value || ""
+    adminEl(
+      "adminSearchInput"
+    )?.value || ""
   )
     .trim()
     .toLowerCase();
 
   if (!query) {
-    renderAdminUsers(adminUsers);
+    renderAdminUsers(
+      adminUsers
+    );
     return;
   }
 
-  const filtered = adminUsers.filter((user) => {
-    const email = String(
-      user.email || ""
-    ).toLowerCase();
+  const filtered =
+    adminUsers.filter((user) => {
+      const email = String(
+        user.email || ""
+      ).toLowerCase();
 
-    const name = String(
-      user.name || ""
-    ).toLowerCase();
+      const name = String(
+        user.name || ""
+      ).toLowerCase();
 
-    return (
-      email.includes(query) ||
-      name.includes(query)
-    );
-  });
+      return (
+        email.includes(query) ||
+        name.includes(query)
+      );
+    });
 
   renderAdminUsers(filtered);
 }
 
 
 function findAdminUser(userId) {
-  return adminUsers.find((user) => {
-    return String(
-      user.user_id ||
-      user.id ||
-      ""
-    ) === String(userId);
-  }) || null;
+  return (
+    adminUsers.find((user) => {
+      return String(
+        user.user_id ||
+        user.id ||
+        ""
+      ) === String(userId);
+    }) || null
+  );
 }
 
 
 async function loadAdminUsers() {
-  setAdminStatus("Loading users...");
+  setAdminStatus(
+    "Loading users..."
+  );
 
   try {
-    const payload = await adminFetch(
-      "/admin/users"
+    const payload =
+      await adminFetch(
+        "/admin/users"
+      );
+
+    adminUsers =
+      normalizeAdminUsers(
+        payload
+      );
+
+    renderAdminSummary(
+      adminUsers
     );
 
-    adminUsers = normalizeAdminUsers(payload);
-
-    renderAdminSummary(adminUsers);
     filterAdminUsers();
 
     setAdminStatus("");
@@ -392,7 +489,8 @@ async function loadAdminUsers() {
     );
 
     if (
-      error.message === "AUTH_REQUIRED" ||
+      error.message ===
+        "AUTH_REQUIRED" ||
       error.status === 401
     ) {
       showAdminAccessError(
@@ -417,9 +515,17 @@ async function loadAdminUsers() {
 
 
 function showAdminContent(session) {
-  const access = adminEl("adminAccessState");
-  const content = adminEl("adminContent");
-  const identity = adminEl("adminIdentity");
+  const access = adminEl(
+    "adminAccessState"
+  );
+
+  const content = adminEl(
+    "adminContent"
+  );
+
+  const identity = adminEl(
+    "adminIdentity"
+  );
 
   if (access) {
     access.hidden = true;
@@ -437,9 +543,17 @@ function showAdminContent(session) {
 }
 
 
-function showAdminAccessError(message) {
-  const access = adminEl("adminAccessState");
-  const content = adminEl("adminContent");
+function showAdminAccessError(
+  message
+) {
+  const access = adminEl(
+    "adminAccessState"
+  );
+
+  const content = adminEl(
+    "adminContent"
+  );
+
   const messageNode = adminEl(
     "adminAccessMessage"
   );
@@ -453,7 +567,8 @@ function showAdminAccessError(message) {
   }
 
   if (messageNode) {
-    messageNode.textContent = message;
+    messageNode.textContent =
+      message;
   }
 }
 
@@ -466,7 +581,8 @@ async function initializeAdmin() {
     return;
   }
 
-  const session = await getAdminSession();
+  const session =
+    await getAdminSession();
 
   if (!session) {
     showAdminAccessError(
@@ -475,7 +591,9 @@ async function initializeAdmin() {
     return;
   }
 
-  const identity = adminEl("adminIdentity");
+  const identity = adminEl(
+    "adminIdentity"
+  );
 
   if (identity) {
     identity.textContent =
@@ -484,15 +602,25 @@ async function initializeAdmin() {
   }
 
   try {
-    const payload = await adminFetch(
-      "/admin/users"
-    );
+    const payload =
+      await adminFetch(
+        "/admin/users"
+      );
 
-    adminUsers = normalizeAdminUsers(payload);
+    adminUsers =
+      normalizeAdminUsers(
+        payload
+      );
 
     showAdminContent(session);
-    renderAdminSummary(adminUsers);
-    renderAdminUsers(adminUsers);
+
+    renderAdminSummary(
+      adminUsers
+    );
+
+    renderAdminUsers(
+      adminUsers
+    );
 
     setAdminStatus("");
   } catch (error) {
@@ -502,7 +630,8 @@ async function initializeAdmin() {
     );
 
     if (
-      error.message === "AUTH_REQUIRED" ||
+      error.message ===
+        "AUTH_REQUIRED" ||
       error.status === 401
     ) {
       showAdminAccessError(
@@ -525,16 +654,19 @@ async function initializeAdmin() {
 }
 
 
-async function resetAdminQuota(user) {
+async function resetAdminQuota(
+  user
+) {
   const userId =
     user?.user_id ||
     user?.id;
 
   if (!userId) return;
 
-  const confirmed = window.confirm(
-    `Reset search quota for ${user.email || "this user"}?`
-  );
+  const confirmed =
+    window.confirm(
+      `Reset search quota for ${user.email || "this user"}?`
+    );
 
   if (!confirmed) return;
 
@@ -568,9 +700,14 @@ async function resetAdminQuota(user) {
 function openPlanModal(user) {
   selectedPlanUser = user;
 
-  const modal = adminEl("planModal");
-  const userLabel = adminEl("planModalUser");
-  const select = adminEl("planSelect");
+  const modal =
+    adminEl("planModal");
+
+  const userLabel =
+    adminEl("planModalUser");
+
+  const select =
+    adminEl("planSelect");
 
   if (userLabel) {
     userLabel.textContent =
@@ -581,12 +718,16 @@ function openPlanModal(user) {
 
   if (select) {
     select.value =
-      getUserPlan(user) === "paid"
+      getUserPlan(user) ===
+      "paid"
         ? "paid"
         : "free";
   }
 
-  modal?.classList.add("show");
+  modal?.classList.add(
+    "show"
+  );
+
   modal?.setAttribute(
     "aria-hidden",
     "false"
@@ -597,9 +738,13 @@ function openPlanModal(user) {
 function closePlanModal() {
   selectedPlanUser = null;
 
-  const modal = adminEl("planModal");
+  const modal =
+    adminEl("planModal");
 
-  modal?.classList.remove("show");
+  modal?.classList.remove(
+    "show"
+  );
+
   modal?.setAttribute(
     "aria-hidden",
     "true"
@@ -608,17 +753,25 @@ function closePlanModal() {
 
 
 async function saveAdminPlan() {
-  if (!selectedPlanUser) return;
+  if (!selectedPlanUser) {
+    return;
+  }
 
   const userId =
     selectedPlanUser.user_id ||
     selectedPlanUser.id;
 
   const plan = String(
-    adminEl("planSelect")?.value || ""
+    adminEl(
+      "planSelect"
+    )?.value || ""
   ).toLowerCase();
 
-  if (!["free", "paid"].includes(plan)) {
+  if (
+    !["free", "paid"].includes(
+      plan
+    )
+  ) {
     setAdminStatus(
       "Invalid plan.",
       "error"
@@ -641,7 +794,9 @@ async function saveAdminPlan() {
       `/admin/users/${encodeURIComponent(userId)}/plan`,
       {
         method: "PATCH",
-        body: JSON.stringify({ plan })
+        body: JSON.stringify({
+          plan
+        })
       }
     );
 
@@ -660,16 +815,19 @@ async function saveAdminPlan() {
 }
 
 
-async function blockAdminUser(user) {
+async function blockAdminUser(
+  user
+) {
   const userId =
     user?.user_id ||
     user?.id;
 
   if (!userId) return;
 
-  const confirmed = window.confirm(
-    `Block ${user.email || "this user"} from signing in to PULS?`
-  );
+  const confirmed =
+    window.confirm(
+      `Block ${user.email || "this user"} from signing in to PULS?`
+    );
 
   if (!confirmed) return;
 
@@ -700,16 +858,19 @@ async function blockAdminUser(user) {
 }
 
 
-async function unblockAdminUser(user) {
+async function unblockAdminUser(
+  user
+) {
   const userId =
     user?.user_id ||
     user?.id;
 
   if (!userId) return;
 
-  const confirmed = window.confirm(
-    `Unblock ${user.email || "this user"} and allow sign in to PULS?`
-  );
+  const confirmed =
+    window.confirm(
+      `Unblock ${user.email || "this user"} and allow sign in to PULS?`
+    );
 
   if (!confirmed) return;
 
@@ -740,15 +901,80 @@ async function unblockAdminUser(user) {
 }
 
 
+async function clearAdminUserHistory(
+  user
+) {
+  const userId =
+    user?.user_id ||
+    user?.id;
+
+  if (!userId) return;
+
+  const email =
+    user.email ||
+    "this user";
+
+  const confirmed =
+    window.confirm(
+      `Clear all PULS conversations and diagnostic history for ${email}?\n\nThe account, subscription and vehicles will be preserved.`
+    );
+
+  if (!confirmed) return;
+
+  const finalConfirmation =
+    window.confirm(
+      `Are you sure?\n\nThis will permanently delete the PULS history for ${email}. This cannot be undone.`
+    );
+
+  if (!finalConfirmation) {
+    return;
+  }
+
+  setAdminStatus(
+    `Clearing history for ${email}...`
+  );
+
+  try {
+    await adminFetch(
+      `/admin/users/${encodeURIComponent(userId)}/clear-history`,
+      {
+        method: "POST"
+      }
+    );
+
+    setAdminStatus(
+      "User history cleared successfully.",
+      "success"
+    );
+
+    await loadAdminUsers();
+  } catch (error) {
+    setAdminStatus(
+      `Could not clear history: ${error.message}`,
+      "error"
+    );
+  }
+}
+
+
 function openDeleteModal(user) {
   selectedDeleteUser = user;
 
-  const modal = adminEl("deleteModal");
-  const label = adminEl("deleteModalUser");
-  const input = adminEl("deleteConfirmInput");
-  const button = adminEl(
-    "deleteModalConfirm"
-  );
+  const modal =
+    adminEl("deleteModal");
+
+  const label =
+    adminEl("deleteModalUser");
+
+  const input =
+    adminEl(
+      "deleteConfirmInput"
+    );
+
+  const button =
+    adminEl(
+      "deleteModalConfirm"
+    );
 
   if (label) {
     label.textContent =
@@ -765,7 +991,10 @@ function openDeleteModal(user) {
     button.disabled = true;
   }
 
-  modal?.classList.add("show");
+  modal?.classList.add(
+    "show"
+  );
+
   modal?.setAttribute(
     "aria-hidden",
     "false"
@@ -781,11 +1010,18 @@ function openDeleteModal(user) {
 function closeDeleteModal() {
   selectedDeleteUser = null;
 
-  const modal = adminEl("deleteModal");
-  const input = adminEl("deleteConfirmInput");
-  const button = adminEl(
-    "deleteModalConfirm"
-  );
+  const modal =
+    adminEl("deleteModal");
+
+  const input =
+    adminEl(
+      "deleteConfirmInput"
+    );
+
+  const button =
+    adminEl(
+      "deleteModalConfirm"
+    );
 
   if (input) {
     input.value = "";
@@ -795,7 +1031,10 @@ function closeDeleteModal() {
     button.disabled = true;
   }
 
-  modal?.classList.remove("show");
+  modal?.classList.remove(
+    "show"
+  );
+
   modal?.setAttribute(
     "aria-hidden",
     "true"
@@ -804,13 +1043,15 @@ function closeDeleteModal() {
 
 
 function updateDeleteConfirmation() {
-  const input = adminEl(
-    "deleteConfirmInput"
-  );
+  const input =
+    adminEl(
+      "deleteConfirmInput"
+    );
 
-  const button = adminEl(
-    "deleteModalConfirm"
-  );
+  const button =
+    adminEl(
+      "deleteModalConfirm"
+    );
 
   if (
     !input ||
@@ -821,11 +1062,13 @@ function updateDeleteConfirmation() {
   }
 
   const expected = String(
-    selectedDeleteUser.email || ""
+    selectedDeleteUser.email ||
+    ""
   ).trim();
 
   const actual = String(
-    input.value || ""
+    input.value ||
+    ""
   ).trim();
 
   button.disabled =
@@ -835,9 +1078,12 @@ function updateDeleteConfirmation() {
 
 
 async function permanentlyDeleteAdminUser() {
-  if (!selectedDeleteUser) return;
+  if (!selectedDeleteUser) {
+    return;
+  }
 
-  const user = selectedDeleteUser;
+  const user =
+    selectedDeleteUser;
 
   const userId =
     user.user_id ||
@@ -848,7 +1094,9 @@ async function permanentlyDeleteAdminUser() {
     "user";
 
   const inputValue = String(
-    adminEl("deleteConfirmInput")?.value || ""
+    adminEl(
+      "deleteConfirmInput"
+    )?.value || ""
   ).trim();
 
   if (
@@ -858,9 +1106,10 @@ async function permanentlyDeleteAdminUser() {
     return;
   }
 
-  const finalConfirmation = window.confirm(
-    `PERMANENTLY delete ${email} and personal PULS data? This cannot be undone.`
-  );
+  const finalConfirmation =
+    window.confirm(
+      `PERMANENTLY delete ${email} and personal PULS data? This cannot be undone.`
+    );
 
   if (!finalConfirmation) {
     return;
@@ -895,7 +1144,9 @@ async function permanentlyDeleteAdminUser() {
 }
 
 
-async function handleAdminAction(button) {
+async function handleAdminAction(
+  button
+) {
   const action =
     button.dataset.adminAction;
 
@@ -913,27 +1164,58 @@ async function handleAdminAction(button) {
     return;
   }
 
-  if (action === "reset-quota") {
-    await resetAdminQuota(user);
+  if (
+    action ===
+    "reset-quota"
+  ) {
+    await resetAdminQuota(
+      user
+    );
     return;
   }
 
-  if (action === "change-plan") {
+  if (
+    action ===
+    "change-plan"
+  ) {
     openPlanModal(user);
     return;
   }
 
-  if (action === "block") {
-    await blockAdminUser(user);
+  if (
+    action ===
+    "block"
+  ) {
+    await blockAdminUser(
+      user
+    );
     return;
   }
 
-  if (action === "unblock") {
-    await unblockAdminUser(user);
+  if (
+    action ===
+    "unblock"
+  ) {
+    await unblockAdminUser(
+      user
+    );
     return;
   }
 
-  if (action === "delete") {
+  if (
+    action ===
+    "clear-history"
+  ) {
+    await clearAdminUserHistory(
+      user
+    );
+    return;
+  }
+
+  if (
+    action ===
+    "delete"
+  ) {
     openDeleteModal(user);
   }
 }
@@ -942,65 +1224,92 @@ async function handleAdminAction(button) {
 document.addEventListener(
   "DOMContentLoaded",
   () => {
-
-    adminEl("adminRefreshBtn")?.addEventListener(
+    adminEl(
+      "adminRefreshBtn"
+    )?.addEventListener(
       "click",
       loadAdminUsers
     );
 
-    adminEl("adminSearchInput")?.addEventListener(
+    adminEl(
+      "adminSearchInput"
+    )?.addEventListener(
       "input",
       filterAdminUsers
     );
 
-    adminEl("planModalClose")?.addEventListener(
+    adminEl(
+      "planModalClose"
+    )?.addEventListener(
       "click",
       closePlanModal
     );
 
-    adminEl("planModalCancel")?.addEventListener(
+    adminEl(
+      "planModalCancel"
+    )?.addEventListener(
       "click",
       closePlanModal
     );
 
-    adminEl("planModalSave")?.addEventListener(
+    adminEl(
+      "planModalSave"
+    )?.addEventListener(
       "click",
       saveAdminPlan
     );
 
-    adminEl("deleteModalClose")?.addEventListener(
+    adminEl(
+      "deleteModalClose"
+    )?.addEventListener(
       "click",
       closeDeleteModal
     );
 
-    adminEl("deleteModalCancel")?.addEventListener(
+    adminEl(
+      "deleteModalCancel"
+    )?.addEventListener(
       "click",
       closeDeleteModal
     );
 
-    adminEl("deleteConfirmInput")?.addEventListener(
+    adminEl(
+      "deleteConfirmInput"
+    )?.addEventListener(
       "input",
       updateDeleteConfirmation
     );
 
-    adminEl("deleteModalConfirm")?.addEventListener(
+    adminEl(
+      "deleteModalConfirm"
+    )?.addEventListener(
       "click",
       permanentlyDeleteAdminUser
     );
 
-    adminEl("planModal")?.addEventListener(
+    adminEl(
+      "planModal"
+    )?.addEventListener(
       "click",
       (event) => {
-        if (event.target.id === "planModal") {
+        if (
+          event.target.id ===
+          "planModal"
+        ) {
           closePlanModal();
         }
       }
     );
 
-    adminEl("deleteModal")?.addEventListener(
+    adminEl(
+      "deleteModal"
+    )?.addEventListener(
       "click",
       (event) => {
-        if (event.target.id === "deleteModal") {
+        if (
+          event.target.id ===
+          "deleteModal"
+        ) {
           closeDeleteModal();
         }
       }
@@ -1009,13 +1318,16 @@ document.addEventListener(
     document.addEventListener(
       "click",
       async (event) => {
-        const button = event.target.closest(
-          "[data-admin-action]"
-        );
+        const button =
+          event.target.closest(
+            "[data-admin-action]"
+          );
 
         if (!button) return;
 
-        await handleAdminAction(button);
+        await handleAdminAction(
+          button
+        );
       }
     );
 
