@@ -42,21 +42,21 @@
 </head>
 <body class="puls-splash-active">
   <div class="puls-spline-screen" id="pulsSplineScreen" aria-hidden="true">
-    <div class="puls-spline-backdrop"></div>
-    <!--
-    <iframe
-      title="PULS startup animation"
-      src="https://my.spline.design/starterscenecopy-RDKY0gQFbXbkko9LN657PtBA/"
-      allow="autoplay; fullscreen; xr-spatial-tracking"
-      loading="eager"
-      referrerpolicy="no-referrer"
-    ></iframe>
-    -->
+    <video
+      class="puls-splash-video"
+      autoplay
+      muted
+      playsinline
+      preload="auto"
+    >
+      <source src="assets/video/puls-splash.mp4" type="video/mp4">
+    </video>
+
     <button
-      class='puls-splash-hitarea'
-      id='pulsSplashHitArea'
-      type='button'
-      aria-label='Open PULS'
+      class="puls-splash-hitarea"
+      id="pulsSplashHitArea"
+      type="button"
+      aria-label="Open PULS"
     ></button>
   </div>
   <div class="app" id="app">
