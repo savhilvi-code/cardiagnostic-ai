@@ -19,6 +19,7 @@ const inspectorState = {
   },
   limit: 25
 };
+const SIDEBAR_STORAGE_KEY = "puls-admin-sidebar-collapsed";
 
 
 function adminEl(id) {
@@ -1264,9 +1265,27 @@ function inspectorJson(value) {
 function inspectorVehicle(row) {
   const vehicle = row?.vehicle;
   if (!vehicle) return row?.vehicle_id ? `Vehicle #${row.vehicle_id}` : "—";
-  return [vehicle.brand, vehicle.model, vehicle.generation, vehicle.year]
+  return [vehicle.make || vehicle.brand, vehicle.model, vehicle.generation, vehicle.year]
     .filter(Boolean)
     .join(" ") || `Vehicle #${vehicle.id}`;
+}
+
+
+function inspectorConversationTitle(row) {
+  return row?.title || row?.context?.initial_text || `Conversation #${row?.id || "—"}`;
+}
+
+
+function inspectorTimestamp(row) {
+  return row?.last_message_at || row?.last_updated_at || row?.updated_at ||
+    row?.event_date || row?.completed_at || row?.started_at ||
+    row?.first_seen_at || row?.created_at || null;
+}
+
+
+function compactInspectorValue(value, maxLength = 180) {
+  const text = inspectorJson(value).replace(/\s+/g, " ").trim();
+  return text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text;
 }
 
 
@@ -1330,6 +1349,71 @@ function renderInspectorEmpty(targetId, label = "No canonical rows found.") {
 }
 
 
+function inspectorWarnings(payload) {
+  const warnings = Array.isArray(payload?.warnings) ? payload.warnings.filter(Boolean) : [];
+  return warnings.length
+    ? `<div class="inspector-warning-list">${warnings.map((item) => `<div>${escapeAdminHtml(item)}</div>`).join("")}</div>`
+    : "";
+}
+
+
+function inspectorCount(value) {
+  return value === null || value === undefined ? "ERROR" : Number(value).toLocaleString();
+}
+
+
+function distributionRows(values, tab, filter = "", tabMap = {}) {
+  const entries = Object.entries(values || {});
+  if (!entries.length) return `<div class="admin-empty">No canonical values found.</div>`;
+  const available = entries.map(([, value]) => Number(value)).filter(Number.isFinite);
+  const max = Math.max(1, ...available);
+  return entries.map(([label, value]) => {
+    const unavailable = value === null || value === undefined;
+    const width = unavailable ? 0 : Math.max(1, Math.round((Number(value) / max) * 100));
+    const targetTab = tabMap[label] || tab;
+    return `<button class="distribution-row" type="button" data-dashboard-tab="${escapeAdminHtml(targetTab)}" ${filter ? `data-dashboard-filter="${escapeAdminHtml(filter)}" data-dashboard-value="${escapeAdminHtml(label)}"` : ""}>
+      <span class="distribution-label"><span>${escapeAdminHtml(label.replaceAll("_", " "))}</span><strong class="${unavailable ? "data-unavailable" : ""}">${inspectorCount(value)}</strong></span>
+      <span class="distribution-track"><span class="distribution-fill" style="width:${width}%"></span></span>
+    </button>`;
+  }).join("");
+}
+
+
+function dataFlowNode(label, value, tab) {
+  const unavailable = value === null || value === undefined;
+  return `<button class="data-flow-node" type="button" data-dashboard-tab="${escapeAdminHtml(tab)}"><span>${escapeAdminHtml(label)}</span><strong class="${unavailable ? "data-unavailable" : ""}">${inspectorCount(value)}</strong></button>`;
+}
+
+
+function recentLabel(kind, row) {
+  if (kind === "conversations") return inspectorConversationTitle(row);
+  if (kind === "search_episodes") return row?.problem?.title || `Search Episode #${row?.id || "—"}`;
+  return row?.title || row?.summary || row?.symptom_summary || `${kind.replaceAll("_", " ")} #${row?.id || "—"}`;
+}
+
+
+function renderRecentGroups(recent, errors) {
+  const specs = [
+    ["conversations", "Recent conversations", "conversations"],
+    ["problems", "Recent problems", "problems"],
+    ["search_episodes", "Recent searches", "search"],
+    ["knowledge_items", "Recent knowledge", "knowledge"]
+  ];
+  return specs.map(([key, label, tab]) => {
+    const items = recent?.[key];
+    const error = errors?.[`recent.${key}`];
+    let content = `<div class="admin-status">No recent rows.</div>`;
+    if (error) content = `<div class="admin-status inspector-error">Unavailable</div>`;
+    else if (Array.isArray(items) && items.length) content = items.map((row) => `
+      <button class="recent-item distribution-row" type="button" data-dashboard-tab="${tab}">
+        <strong>${escapeAdminHtml(recentLabel(key, row))}</strong>
+        <span>${escapeAdminHtml(row.status || row.problem_class || row.provenance_type || "—")} · ${escapeAdminHtml(formatAdminDate(inspectorTimestamp(row)))}</span>
+      </button>`).join("");
+    return `<section class="recent-group"><h3>${label}</h3>${content}</section>`;
+  }).join("");
+}
+
+
 function inspectorQuery(params) {
   const query = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
@@ -1361,24 +1445,51 @@ async function loadInspectorOverview() {
   renderInspectorLoading("inspectorRecent");
   const payload = await adminFetch("/admin/knowledge/overview");
   const labels = {
-    conversations: "Conversations", messages: "Messages", problems: "Problems",
-    vehicle_events: "Vehicle events", search_episodes: "Search episodes",
-    search_runs: "Search runs", sources: "Sources", problem_sources: "Problem sources",
-    knowledge_items: "Knowledge items", knowledge_sources: "Knowledge sources",
-    fleet_events: "Fleet events"
+    users: ["Users", "users"], vehicles: ["Vehicles", "users"],
+    conversations: ["Conversations", "conversations"], messages: ["Messages", "conversations"],
+    active_problems: ["Active problems", "problems"], vehicle_events: ["Vehicle events", "events"],
+    search_episodes: ["Search episodes", "search"], search_runs: ["Search runs", "search"],
+    sources: ["Sources", "sources"], knowledge_items: ["Knowledge items", "knowledge"]
   };
-  adminEl("inspectorStats").innerHTML = Object.entries(labels).map(([key, label]) => `
-    <article class="inspector-stat-card"><span>${label}</span><strong>${Number(payload?.counts?.[key] || 0)}</strong></article>`).join("");
-  const recent = Array.isArray(payload?.recent_conversations) ? payload.recent_conversations : [];
-  if (!recent.length) return renderInspectorEmpty("inspectorRecent", "No conversation activity yet.");
-  adminEl("inspectorRecent").innerHTML = recent.map((row) => inspectorRow({
-    id: row.id, kind: "recent", primary: row.title || `Conversation #${row.id}`,
-    secondary: row.status || "—", meta: [
-      { label: "Last message", value: formatAdminDate(row.last_message_at) },
-      { label: "Vehicle", value: row.vehicle_id ? `#${row.vehicle_id}` : "—" },
-      { label: "Problem", value: row.problem_id ? `#${row.problem_id}` : "—" }
-    ], fields: [{ label: "Created", value: row.created_at }]
-  })).join("");
+  adminEl("inspectorStats").innerHTML = Object.entries(labels).map(([key, [label, tab]]) => {
+    const value = payload?.metrics?.[key];
+    const target = tab === "users" ? `data-admin-jump="users"` : `data-dashboard-tab="${tab}"`;
+    return `<button class="inspector-stat-card" type="button" ${target}><span>${label}</span><strong class="${value === null || value === undefined ? "data-unavailable" : ""}">${inspectorCount(value)}</strong></button>`;
+  }).join("");
+
+  const counts = payload?.counts || {};
+  adminEl("inspectorDataFlow").innerHTML = `
+    <div class="data-flow-label">Raw conversation layer</div>
+    <div class="data-flow-lane">${dataFlowNode("Conversations", counts.conversations, "conversations")}<span class="data-flow-arrow">→</span>${dataFlowNode("Messages", counts.messages, "conversations")}<span class="data-flow-arrow">→</span>${dataFlowNode("Problems", counts.problems, "problems")}</div>
+    <div class="data-flow-lane"><span class="data-flow-arrow">↙</span>${dataFlowNode("Vehicle Events", counts.vehicle_events, "events")}<span class="data-flow-arrow">↘</span>${dataFlowNode("Search Episodes", counts.search_episodes, "search")}<span class="data-flow-arrow">→</span>${dataFlowNode("Search Runs", counts.search_runs, "search")}<span class="data-flow-arrow">→</span>${dataFlowNode("Sources", counts.sources, "sources")}<span class="data-flow-arrow">→</span>${dataFlowNode("Problem Sources", counts.problem_sources, "sources")}</div>
+    <div class="data-flow-divider"></div><div class="data-flow-label">Reusable knowledge layer — no direct Problem relationship</div>
+    <div class="data-flow-lane">${dataFlowNode("Sources", counts.sources, "sources")}<span class="data-flow-arrow">↔</span>${dataFlowNode("Knowledge Sources", counts.knowledge_sources, "knowledge")}<span class="data-flow-arrow">↔</span>${dataFlowNode("Knowledge Items", counts.knowledge_items, "knowledge")}</div>`;
+
+  adminEl("inspectorDataVolume").innerHTML = distributionRows(
+    payload?.distributions?.data_volume, "overview", "", {
+      messages: "conversations", problems: "problems", vehicle_events: "events",
+      search_runs: "search", sources: "sources", knowledge_items: "knowledge"
+    }
+  );
+  adminEl("inspectorProblemStatus").innerHTML = distributionRows(payload?.distributions?.problem_status, "problems", "problemStatus");
+  adminEl("inspectorEventTypes").innerHTML = distributionRows(payload?.distributions?.vehicle_event_type, "events", "eventType");
+  adminEl("inspectorSourceTypes").innerHTML = distributionRows(payload?.distributions?.source_type, "sources", "sourceType");
+
+  const pipeline = [
+    ["Search Episodes", counts.search_episodes, "search"], ["Search Runs", counts.search_runs, "search"],
+    ["Sources", counts.sources, "sources"], ["Problem Sources", counts.problem_sources, "sources"]
+  ];
+  adminEl("inspectorSearchPipeline").innerHTML = pipeline.map(([label, value, tab], index) => {
+    const previous = index ? Number(pipeline[index - 1][1]) : 0;
+    const gap = value !== null && value !== undefined && previous > 0 && Number(value) === 0;
+    return `<button class="pipeline-node ${gap ? "is-gap" : ""}" type="button" data-dashboard-tab="${tab}"><span>${label}</span><strong class="${value === null || value === undefined ? "data-unavailable" : ""}">${inspectorCount(value)}</strong></button>`;
+  }).join("");
+
+  adminEl("inspectorRecent").innerHTML = renderRecentGroups(payload?.recent, payload?.errors);
+  const failures = Object.keys(payload?.errors || {}).length;
+  adminEl("inspectorOverviewErrors").innerHTML = failures
+    ? `<div class="inspector-warning-list">${failures} dashboard metric${failures === 1 ? " is" : "s are"} unavailable; affected values are marked ERROR.</div>`
+    : "";
 }
 
 
@@ -1393,7 +1504,7 @@ async function loadInspectorConversations() {
   const items = Array.isArray(payload?.items) ? payload.items : [];
   if (!items.length) renderInspectorEmpty("conversationList");
   else adminEl("conversationList").innerHTML = items.map((row) => inspectorRow({
-    id: row.id, kind: "conversation", primary: row.title || `Conversation #${row.id}`,
+    id: row.id, kind: "conversation", primary: inspectorConversationTitle(row),
     secondary: `${inspectorUser(row)} · ${inspectorVehicle(row)}`,
     meta: [
       { label: "Status", value: row.status || "—" },
@@ -1402,10 +1513,12 @@ async function loadInspectorConversations() {
     ],
     fields: [
       { label: "Problem", value: row.problem?.title || row.problem_id },
-      { label: "Channel", value: row.channel },
-      { label: "Started", value: row.created_at }
+      { label: "Type", value: row.conversation_type },
+      { label: "Started", value: row.started_at },
+      { label: "Context", value: row.context }
     ], body: `<div class="inspector-messages" data-conversation-messages="${escapeAdminHtml(row.id)}"><div class="admin-empty">Expand to load messages.</div></div>`
   })).join("");
+  if (payload?.warnings?.length) adminEl("conversationList").insertAdjacentHTML("afterbegin", inspectorWarnings(payload));
   renderInspectorPager(kind, payload, "conversationPager");
 }
 
@@ -1421,7 +1534,7 @@ async function loadConversationMessages(details) {
     target.dataset.loaded = "true";
     target.innerHTML = items.length ? items.map((row) => {
       const role = String(row.role || "unknown").toLowerCase();
-      return `<article class="inspector-message is-${escapeAdminHtml(role)}"><header>${escapeAdminHtml(role)} · ${escapeAdminHtml(formatAdminDate(row.created_at))}</header><div>${escapeAdminHtml(row.message_text || "")}</div></article>`;
+      return `<article class="inspector-message is-${escapeAdminHtml(role)}"><header>${escapeAdminHtml(role)} · ${escapeAdminHtml(formatAdminDate(row.created_at))}</header><div>${escapeAdminHtml(row.content || row.message_text || "")}</div></article>`;
     }).join("") : `<div class="admin-empty">No messages in this conversation.</div>`;
     if (Number(payload?.total || 0) > items.length) {
       target.insertAdjacentHTML("beforeend", `<div class="admin-status">Showing first ${items.length} of ${payload.total} messages.</div>`);
@@ -1437,7 +1550,8 @@ async function loadInspectorProblems() {
   renderInspectorLoading("problemList");
   const query = inspectorQuery({
     limit: inspectorState.limit, offset: inspectorState.offsets[kind],
-    q: adminEl("problemSearch")?.value, problem_class: adminEl("problemClass")?.value
+    q: adminEl("problemSearch")?.value, problem_class: adminEl("problemClass")?.value,
+    status: adminEl("problemStatus")?.value
   });
   const payload = await adminFetch(`/admin/knowledge/problems?${query}`);
   const items = Array.isArray(payload?.items) ? payload.items : [];
@@ -1459,13 +1573,29 @@ async function loadInspectorProblems() {
       { label: "Confirmation", value: row.confirmation }
     ], body: `<div class="inspector-trace"><button class="admin-button" type="button" data-load-trace="${escapeAdminHtml(row.id)}">Load Problem Trace</button><div data-problem-trace="${escapeAdminHtml(row.id)}"></div></div>`
   })).join("");
+  if (payload?.warnings?.length) adminEl("problemList").insertAdjacentHTML("afterbegin", inspectorWarnings(payload));
   renderInspectorPager(kind, payload, "problemPager");
+}
+
+
+function traceRowSummary(label, row) {
+  if (label === "Conversations") return inspectorConversationTitle(row);
+  if (label === "Relevant messages") return `${row.role || "MESSAGE"}: ${compactInspectorValue(row.content || row.message_text || "")}`;
+  if (label === "Vehicle events") return `${row.event_type || "EVENT"}: ${row.title || compactInspectorValue(row.details)}`;
+  if (label === "Search episodes") return `Episode ${row.id} · ${row.status || "—"} · ${compactInspectorValue(row.search_context?.reason || row.search_context)}`;
+  if (label === "Search runs") return `Stage ${row.stage_number || "—"} · ${row.status || "—"} · ${compactInspectorValue(row.result_summary || row.query)}`;
+  if (label === "Problem sources") return `${row.relation_type || "SOURCE"} · relevance ${row.relevance_score ?? "—"} · ${compactInspectorValue(row.extracted_evidence)}`;
+  if (label === "Sources") return `${row.title || row.url || "Source"} · ${row.source_type || "—"}`;
+  if (label === "Fleet events") return row.symptom_summary || row.confirmed_cause || `Fleet event ${row.id}`;
+  if (label === "Vehicle") return inspectorVehicle({ vehicle: row });
+  return row.title || row.summary || `${label} #${row.id || "—"}`;
 }
 
 
 function traceGroup(label, rows) {
   const items = Array.isArray(rows) ? rows : [];
-  return `<h3>${escapeAdminHtml(label)} (${items.length})</h3>${items.length ? `<pre class="inspector-json">${escapeAdminHtml(JSON.stringify(items, null, 2))}</pre>` : `<div class="admin-status">No linked rows.</div>`}`;
+  return `<section class="trace-group"><h3>${escapeAdminHtml(label)} (${items.length})</h3>${items.length ? items.map((row) => `
+    <details class="trace-item"><summary><strong>${escapeAdminHtml(traceRowSummary(label, row))}</strong><span>${escapeAdminHtml(formatAdminDate(inspectorTimestamp(row)))}</span></summary><pre class="inspector-json">${escapeAdminHtml(JSON.stringify(row, null, 2))}</pre></details>`).join("") : `<div class="admin-status">No linked rows.</div>`}</section>`;
 }
 
 
@@ -1483,6 +1613,7 @@ async function loadProblemTrace(problemId) {
       traceGroup("Search runs", trace.search_runs), traceGroup("Problem sources", trace.problem_sources),
       traceGroup("Sources", trace.sources), traceGroup("Fleet events", trace.fleet_events),
       traceGroup("Knowledge items", trace.knowledge_items),
+      inspectorWarnings(trace),
       (trace.limitations || []).map((item) => `<div class="admin-status">Limitation: ${escapeAdminHtml(item)}</div>`).join("")
     ].join("");
   } catch (error) {
@@ -1506,13 +1637,14 @@ async function loadInspectorEvents() {
     secondary: `${inspectorVehicle(row)} · ${inspectorProblem(row)}`,
     meta: [
       { label: "Type", value: row.event_type || "—" },
-      { label: "Source", value: row.source || "—" },
-      { label: "Event date", value: formatAdminDate(row.occurred_at) }
+      { label: "Source", value: row.source_kind || row.source || "—" },
+      { label: "Event date", value: formatAdminDate(row.event_date || row.occurred_at) }
     ], fields: [
-      { label: "Description", value: row.description }, { label: "Mileage", value: row.mileage },
-      { label: "Event data / result", value: row.event_data }, { label: "Created", value: row.created_at }
+      { label: "Details", value: row.details || row.description }, { label: "Mileage", value: row.mileage },
+      { label: "Result", value: row.result }, { label: "Created", value: row.created_at }
     ]
   })).join("");
+  if (payload?.warnings?.length) adminEl("eventList").insertAdjacentHTML("afterbegin", inspectorWarnings(payload));
   renderInspectorPager(kind, payload, "eventPager");
 }
 
@@ -1529,14 +1661,22 @@ async function loadInspectorSearch() {
   if (!items.length) renderInspectorEmpty("episodeList");
   else adminEl("episodeList").innerHTML = items.map((row) => inspectorRow({
     id: row.id, kind: "episode", primary: row.problem?.title || `Search Episode #${row.id}`,
-    secondary: `${inspectorVehicle(row)} · ${row.reason || "No trigger recorded"}`,
+    secondary: `${inspectorVehicle(row)} · ${compactInspectorValue(row.search_context?.reason || row.search_context || "No trigger recorded")}`,
     meta: [
       { label: "Status", value: row.status || "—" },
-      { label: "Created", value: formatAdminDate(row.created_at) },
+      { label: "Started", value: formatAdminDate(row.started_at) },
       { label: "Updated", value: formatAdminDate(row.updated_at) }
-    ], fields: [{ label: "Trigger / reason", value: row.reason }],
+    ], fields: [
+      { label: "Episode id", value: row.id },
+      { label: "Linked problem", value: row.problem?.title || row.problem_id },
+      { label: "Trigger / reason", value: row.search_context?.reason || row.search_context },
+      { label: "Current stage", value: row.current_stage },
+      { label: "Completed", value: row.completed_at },
+      { label: "Final summary", value: row.final_summary }
+    ],
     body: `<div class="inspector-runs" data-episode-runs="${escapeAdminHtml(row.id)}"><div class="admin-empty">Expand to load search stages.</div></div>`
   })).join("");
+  if (payload?.warnings?.length) adminEl("episodeList").insertAdjacentHTML("afterbegin", inspectorWarnings(payload));
   renderInspectorPager(kind, payload, "episodePager");
 }
 
@@ -1554,10 +1694,13 @@ async function loadEpisodeRuns(details) {
       <article class="inspector-run">
         <header>Stage ${escapeAdminHtml(run.stage_number)} · ${escapeAdminHtml(run.status || "—")} · ${escapeAdminHtml(run.provider || "provider —")} / ${escapeAdminHtml(run.model || "model —")}</header>
         <div><strong>Mode:</strong> ${escapeAdminHtml(run.run_type || "—")}</div>
-        <div><strong>Query:</strong> ${escapeAdminHtml(run.query || "—")}</div>
+        <div><strong>Started:</strong> ${escapeAdminHtml(formatAdminDate(run.started_at))} · <strong>Completed:</strong> ${escapeAdminHtml(formatAdminDate(run.completed_at))}</div>
+        <div><strong>Query:</strong> ${escapeAdminHtml(compactInspectorValue(run.query))}</div>
+        <div><strong>Input:</strong> ${escapeAdminHtml(compactInspectorValue(run.input_context))}</div>
         <div><strong>Sufficient:</strong> ${run.sufficient_evidence === true ? "yes" : "no"}</div>
-        <div><strong>Summary:</strong> ${escapeAdminHtml(run.result_summary || "—")}</div>
-        <div><strong>Sources found:</strong> ${Array.isArray(run.sources_found) ? run.sources_found.length : "—"} · <strong>Relevant:</strong> ${Array.isArray(run.relevant_sources) ? run.relevant_sources.length : "—"}</div>
+        <div><strong>Summary:</strong> ${escapeAdminHtml(compactInspectorValue(run.result_summary))}</div>
+        <div><strong>Sources found:</strong> ${escapeAdminHtml(run.sources_found ?? "—")} · <strong>Relevant:</strong> ${escapeAdminHtml(run.relevant_sources ?? "—")}</div>
+        ${run.next_stage_reason ? `<div><strong>Next stage:</strong> ${escapeAdminHtml(compactInspectorValue(run.next_stage_reason))}</div>` : ""}
         ${run.error_message ? `<div class="inspector-error"><strong>Error:</strong> ${escapeAdminHtml(run.error_message)}</div>` : ""}
         <details><summary>Raw persisted result</summary><pre class="inspector-json">${escapeAdminHtml(inspectorJson(run.result_data))}</pre></details>
       </article>`).join("") : `<div class="admin-empty">No search runs were persisted for this episode.</div>`;
@@ -1578,20 +1721,23 @@ async function loadInspectorSources() {
   const items = Array.isArray(payload?.items) ? payload.items : [];
   if (!items.length) renderInspectorEmpty("sourceList");
   else adminEl("sourceList").innerHTML = items.map((row) => {
-    const url = safeInspectorUrl(row.canonical_url);
+    const url = safeInspectorUrl(row.url || row.canonical_url);
     return inspectorRow({
-      id: row.id, kind: "source", primary: row.title || row.canonical_url || `Source #${row.id}`,
-      secondary: row.canonical_url,
+      id: row.id, kind: "source", primary: row.title || row.url || row.canonical_url || `Source #${row.id}`,
+      secondary: row.domain || row.url || row.canonical_url,
       meta: [
         { label: "Type", value: row.source_type || "—" },
         { label: "Problems", value: row.problem_sources?.length || 0 },
         { label: "Updated", value: formatAdminDate(row.updated_at) }
       ], fields: [
-        { label: "URL", value: row.canonical_url }, { label: "Description", value: row.description },
+        { label: "URL", value: row.url || row.canonical_url }, { label: "Domain", value: row.domain },
+        { label: "Language", value: row.language }, { label: "Trust", value: row.trust_level },
+        { label: "Status", value: row.status }, { label: "Description", value: row.description || row.metadata?.description },
         { label: "Metadata", value: row.metadata }, { label: "Problem relations", value: row.problem_sources }
       ], body: url ? `<p><a class="inspector-link" href="${escapeAdminHtml(url)}" target="_blank" rel="noopener noreferrer">Open source ↗</a></p>` : ""
     });
   }).join("");
+  if (payload?.warnings?.length) adminEl("sourceList").insertAdjacentHTML("afterbegin", inspectorWarnings(payload));
   renderInspectorPager(kind, payload, "sourcePager");
 }
 
@@ -1613,17 +1759,19 @@ async function loadInspectorKnowledge() {
   if (!items.length) renderInspectorEmpty("knowledgeList");
   else adminEl("knowledgeList").innerHTML = items.map((row) => inspectorRow({
     id: row.id, kind: "knowledge", primary: row.title || `Knowledge #${row.id}`,
-    secondary: [row.vehicle_make, row.vehicle_model, row.engine].filter(Boolean).join(" ") || row.provenance_type,
+    secondary: row.vehicle_configuration_id ? `Vehicle configuration #${row.vehicle_configuration_id}` : (row.provenance_type || "Reusable knowledge"),
     meta: [
       { label: "Confidence", value: row.confidence ?? "—" },
       { label: "Component", value: row.component || "—" },
       { label: "Sources", value: row.knowledge_sources?.length || 0 }
     ], fields: [
       { label: "Summary", value: row.summary }, { label: "Content", value: row.content },
+      { label: "Vehicle configuration", value: row.vehicle_configuration_id },
       { label: "Problem class", value: row.problem_class }, { label: "Provenance", value: row.provenance_type },
       { label: "Metadata", value: row.metadata }, { label: "Source relations", value: row.knowledge_sources }
     ]
   })).join("");
+  if (knowledge?.warnings?.length) adminEl("knowledgeList").insertAdjacentHTML("afterbegin", inspectorWarnings(knowledge));
   if (!fleetItems.length) renderInspectorEmpty("fleetList");
   else adminEl("fleetList").innerHTML = fleetItems.map((row) => inspectorRow({
     id: row.id, kind: "fleet", primary: row.symptom_summary || `Fleet Event #${row.id}`,
@@ -1637,6 +1785,7 @@ async function loadInspectorKnowledge() {
       { label: "Confirmed solution", value: row.confirmed_solution }, { label: "Confirmation data", value: row.confirmation_data }
     ]
   })).join("");
+  if (fleet?.warnings?.length) adminEl("fleetList").insertAdjacentHTML("afterbegin", inspectorWarnings(fleet));
   renderInspectorPager(kind, {
     offset: knowledge.offset, limit: knowledge.limit,
     total: Math.max(Number(knowledge.total || 0), Number(fleet.total || 0))
@@ -1685,6 +1834,30 @@ async function selectInspectorTab(tab) {
 }
 
 
+function setSidebarCollapsed(collapsed, persist = true) {
+  const shell = document.querySelector(".admin-shell");
+  const toggle = adminEl("adminSidebarToggle");
+  if (!shell || window.matchMedia("(max-width: 900px)").matches) return;
+  shell.classList.toggle("is-sidebar-collapsed", collapsed);
+  shell.classList.remove("is-sidebar-peek");
+  toggle?.setAttribute("aria-expanded", String(!collapsed));
+  toggle?.setAttribute("aria-label", collapsed ? "Expand sidebar" : "Collapse sidebar");
+  if (persist) localStorage.setItem(SIDEBAR_STORAGE_KEY, collapsed ? "1" : "0");
+}
+
+
+function initializeSidebar() {
+  const shell = document.querySelector(".admin-shell");
+  const sidebar = document.querySelector(".admin-sidebar");
+  if (!shell || !sidebar) return;
+  setSidebarCollapsed(localStorage.getItem(SIDEBAR_STORAGE_KEY) === "1", false);
+  sidebar.addEventListener("mouseenter", () => {
+    if (shell.classList.contains("is-sidebar-collapsed")) shell.classList.add("is-sidebar-peek");
+  });
+  sidebar.addEventListener("mouseleave", () => shell.classList.remove("is-sidebar-peek"));
+}
+
+
 async function selectAdminSection(section) {
   const knowledge = section === "knowledge";
   adminEl("adminUsersSection").hidden = knowledge;
@@ -1700,8 +1873,18 @@ async function selectAdminSection(section) {
 document.addEventListener(
   "DOMContentLoaded",
   () => {
+    initializeSidebar();
+
+    adminEl("adminSidebarToggle")?.addEventListener("click", () => {
+      const shell = document.querySelector(".admin-shell");
+      setSidebarCollapsed(!shell?.classList.contains("is-sidebar-collapsed"));
+    });
+
     document.querySelectorAll("[data-admin-section]").forEach((button) => {
-      button.addEventListener("click", () => selectAdminSection(button.dataset.adminSection));
+      button.addEventListener("click", async () => {
+        await selectAdminSection(button.dataset.adminSection);
+        setSidebarCollapsed(true);
+      });
     });
 
     document.querySelectorAll("[data-inspector-tab]").forEach((button) => {
@@ -1726,6 +1909,21 @@ document.addEventListener(
     }, true);
 
     document.addEventListener("click", async (event) => {
+      const adminJump = event.target.closest?.("[data-admin-jump]");
+      if (adminJump) {
+        await selectAdminSection(adminJump.dataset.adminJump);
+        return;
+      }
+
+      const dashboardButton = event.target.closest?.("[data-dashboard-tab]");
+      if (dashboardButton) {
+        const filterId = dashboardButton.dataset.dashboardFilter;
+        if (filterId && adminEl(filterId)) adminEl(filterId).value = dashboardButton.dataset.dashboardValue || "";
+        const tab = dashboardButton.dataset.dashboardTab;
+        await selectInspectorTab(tab);
+        if (tab !== "overview") await loadInspectorTab(tab, true);
+      }
+
       const traceButton = event.target.closest?.("[data-load-trace]");
       if (traceButton) await loadProblemTrace(traceButton.dataset.loadTrace);
 

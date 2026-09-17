@@ -62,33 +62,44 @@ let browser;
     if (pathname === '/admin/knowledge/overview') {
       return json({
         counts: {
-          conversations: 1, messages: 2, problems: 1, vehicle_events: 1,
+          users: 3, vehicles: 4, conversations: 1, messages: 2, problems: 1, vehicle_events: 1,
           search_episodes: 1, search_runs: 1, sources: 1, problem_sources: 1,
           knowledge_items: 1, knowledge_sources: 1, fleet_events: 1,
         },
-        recent_conversations: [],
+        metrics: {
+          users: 3, vehicles: 4, conversations: 1, messages: 2, active_problems: 1,
+          vehicle_events: 1, search_episodes: 1, search_runs: 1, sources: 1, knowledge_items: 1,
+        },
+        distributions: {
+          data_volume: { messages: 2, problems: 1, vehicle_events: 1, search_runs: 1, sources: 1, knowledge_items: 1 },
+          problem_status: { OPEN: 1, IN_PROGRESS: 0, AWAITING_CONFIRMATION: 0, SOLVED: 0, CLOSED: 0 },
+          vehicle_event_type: { SYMPTOM: 1, DTC: 0, CHECK: 0, REPAIR: 0, SERVICE: 0, REPLACEMENT: 0, RESULT: 0, MILEAGE: 0, NOTE: 0 },
+          source_type: { FORUM: 1 },
+        },
+        recent: { conversations: [], problems: [], search_episodes: [], knowledge_items: [] },
+        errors: {},
       });
     }
     if (pathname === '/admin/knowledge/conversations') {
       return json({ items: [{
-        id: 1, title: 'Noise diagnosis', status: 'active', message_count: 2,
-        user: { email: 'owner@test.local' }, vehicle: { brand: 'Nissan', model: 'X-Trail' },
-      }], total: 1, limit: 25, offset: 0 });
+        id: '1', context: { initial_text: 'Noise diagnosis' }, status: 'ACTIVE', message_count: 2,
+        user: { email: 'owner@test.local' }, vehicle: { make: 'Nissan', model: 'X-Trail' },
+      }], total: 1, limit: 25, offset: 0, warnings: [] });
     }
     if (pathname === '/admin/knowledge/conversations/1/messages') {
       return json({ items: [
-        { id: 1, role: 'USER', message_text: 'Cold start noise' },
-        { id: 2, role: 'ASSISTANT', message_text: 'Check timing chain tension.' },
+        { id: 1, role: 'USER', content: 'Cold start noise' },
+        { id: 2, role: 'ASSISTANT', content: 'Check timing chain tension.' },
       ], total: 2, limit: 100, offset: 0 });
     }
     if (pathname === '/admin/knowledge/search-episodes') {
-      return json({ items: [{ id: 4, status: 'COMPLETED', reason: 'insufficient internal evidence' }], total: 1, limit: 25, offset: 0 });
+      return json({ items: [{ id: 4, status: 'COMPLETED', search_context: { reason: 'insufficient internal evidence', vehicle_id: 'v1' }, current_stage: 1 }], total: 1, limit: 25, offset: 0, warnings: [] });
     }
     if (pathname === '/admin/knowledge/search-episodes/4/runs') {
-      return json({ items: [{ id: 5, stage_number: 1, status: 'COMPLETED', run_type: 'web', sufficient_evidence: true }], total: 1, limit: 50, offset: 0 });
+      return json({ items: [{ id: 5, stage_number: 1, status: 'COMPLETED', run_type: 'web', sufficient_evidence: true, query: { text: 'timing chain noise' }, input_context: { vehicle: 'Nissan' }, result_summary: 'Chain tensioner reports found', sources_found: 3, relevant_sources: 2 }], total: 1, limit: 50, offset: 0 });
     }
     if (pathname === '/admin/knowledge/problems') {
-      return json({ items: [{ id: 7, title: 'Cold start noise', problem_class: 'OTHER', status: 'OPEN' }], total: 1, limit: 25, offset: 0 });
+      return json({ items: [{ id: 7, title: 'Cold start noise', problem_class: 'OTHER', status: 'OPEN' }], total: 1, limit: 25, offset: 0, warnings: [] });
     }
     if (pathname === '/admin/knowledge/problems/7/trace') {
       return json({ problem: { id: 7 }, conversations: [], messages: [], vehicle_events: [], search_episodes: [], search_runs: [], problem_sources: [], sources: [], fleet_events: [], knowledge_items: [], limitations: ['No direct relation.'] });
@@ -104,8 +115,16 @@ let browser;
   const navigation = (await page.locator('[data-admin-section]').allTextContents())
     .map((value) => value.replace(/\s+/g, ' ').trim());
   assert.deepEqual(navigation, ['◎ Users', '▦ Knowledge Base']);
-  assert.equal(await page.locator('#inspectorStats .inspector-stat-card').count(), 11);
+  assert.equal(await page.locator('#inspectorStats .inspector-stat-card').count(), 10);
   assert.equal(await page.locator('.admin-readonly-badge').innerText(), 'READ ONLY');
+  assert.equal(await page.locator('#inspectorDataFlow .data-flow-node').count(), 11);
+  assert.equal(await page.locator('#inspectorSourceTypes .distribution-row').count(), 1);
+  if (process.env.ADMIN_SCREENSHOT) {
+    await page.screenshot({ path: process.env.ADMIN_SCREENSHOT, fullPage: true });
+  }
+
+  await page.locator('#adminSidebarToggle').click();
+  assert(await page.locator('.admin-shell').evaluate((node) => node.classList.contains('is-sidebar-collapsed')));
 
   await page.locator('[data-inspector-tab="conversations"]').click();
   assert(!requested.includes('/admin/knowledge/conversations/1/messages'));
@@ -117,6 +136,7 @@ let browser;
   await page.locator('[data-inspector-kind="episode"] > summary').click();
   await page.locator('.inspector-run').waitFor();
   assert(requested.includes('/admin/knowledge/search-episodes/4/runs'));
+  assert(!(await page.locator('.inspector-run').innerText()).includes('[object Object]'));
 
   await page.locator('[data-inspector-tab="problems"]').click();
   await page.locator('[data-inspector-kind="problem"] > summary').click();

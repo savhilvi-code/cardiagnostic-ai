@@ -50,6 +50,14 @@ select {
   grid-template-columns: 244px minmax(0, 1fr);
 }
 
+.admin-shell.is-sidebar-collapsed {
+  grid-template-columns: 74px minmax(0, 1fr);
+}
+
+.admin-shell.is-sidebar-collapsed.is-sidebar-peek {
+  grid-template-columns: 244px minmax(0, 1fr);
+}
+
 .admin-sidebar {
   position: sticky;
   top: 0;
@@ -60,6 +68,52 @@ select {
   display: flex;
   flex-direction: column;
   gap: 30px;
+}
+
+.admin-sidebar-toggle {
+  position: absolute;
+  z-index: 2;
+  top: 29px;
+  right: -13px;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid rgba(40, 215, 208, .35);
+  border-radius: 50%;
+  background: #10222d;
+  color: var(--accent);
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.admin-shell.is-sidebar-collapsed .admin-sidebar-toggle {
+  transform: rotate(180deg);
+}
+
+.admin-shell.is-sidebar-collapsed:not(.is-sidebar-peek) .admin-brand > div,
+.admin-shell.is-sidebar-collapsed:not(.is-sidebar-peek) .admin-nav-item > span:last-child,
+.admin-shell.is-sidebar-collapsed:not(.is-sidebar-peek) .admin-identity {
+  display: none;
+}
+
+.admin-shell.is-sidebar-collapsed:not(.is-sidebar-peek) .admin-brand,
+.admin-shell.is-sidebar-collapsed:not(.is-sidebar-peek) .admin-nav-item {
+  justify-content: center;
+}
+
+.admin-shell.is-sidebar-collapsed:not(.is-sidebar-peek) .admin-nav-item {
+  padding-inline: 8px;
+}
+
+.admin-shell.is-sidebar-collapsed:not(.is-sidebar-peek) .admin-back-button {
+  overflow: hidden;
+  font-size: 0;
+}
+
+.admin-shell.is-sidebar-collapsed:not(.is-sidebar-peek) .admin-back-button::before {
+  content: "←";
+  font-size: 18px;
 }
 
 .admin-header {
@@ -487,12 +541,241 @@ select {
   margin-bottom: 22px;
 }
 
+.inspector-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.inspector-dashboard-card {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--panel);
+  overflow: hidden;
+}
+
+.inspector-dashboard-wide {
+  grid-column: 1 / -1;
+}
+
+.distribution-chart {
+  padding: 16px 18px 19px;
+  display: grid;
+  gap: 11px;
+}
+
+.distribution-chart-columns {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 28px;
+}
+
+.distribution-row {
+  min-width: 0;
+}
+
+.distribution-label {
+  margin-bottom: 5px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.distribution-label strong {
+  color: var(--text);
+}
+
+.distribution-track {
+  display: block;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.055);
+  overflow: hidden;
+}
+
+.distribution-fill {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #1aaea9, var(--accent));
+}
+
+button.distribution-row {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+button.distribution-row:hover .distribution-label span {
+  color: var(--accent);
+}
+
+.pipeline-chart {
+  padding: 20px 18px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.pipeline-node,
+.data-flow-node {
+  position: relative;
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid rgba(40, 215, 208, .2);
+  border-radius: 11px;
+  background: rgba(40, 215, 208, .045);
+  color: var(--text);
+  text-align: left;
+}
+
+button.pipeline-node,
+button.data-flow-node {
+  cursor: pointer;
+}
+
+.pipeline-node:not(:last-child)::after {
+  content: "→";
+  position: absolute;
+  top: 50%;
+  right: -19px;
+  color: var(--accent);
+  transform: translateY(-50%);
+}
+
+.pipeline-node span,
+.data-flow-node span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.pipeline-node strong,
+.data-flow-node strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 22px;
+}
+
+.pipeline-node.is-gap {
+  border-color: rgba(255, 174, 66, .35);
+  background: rgba(255, 174, 66, .06);
+}
+
+.data-flow {
+  padding: 20px;
+  display: grid;
+  gap: 10px;
+}
+
+.data-flow-lane {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.data-flow-arrow {
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.data-flow-divider {
+  margin: 5px 0;
+  border-top: 1px dashed var(--border);
+}
+
+.data-flow-label {
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: .08em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.data-unavailable {
+  color: var(--danger) !important;
+  font-size: 13px !important;
+}
+
+.recent-grid {
+  padding: 14px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.recent-group {
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: rgba(255,255,255,.018);
+}
+
+.recent-group h3 {
+  margin: 0 0 10px;
+  font-size: 13px;
+}
+
+.recent-item {
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+
+.recent-item:first-of-type {
+  border-top: 0;
+}
+
+.recent-item strong,
+.recent-item span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recent-item span {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.inspector-warning-list {
+  margin: 0 0 12px;
+  padding: 10px 13px;
+  border: 1px solid rgba(255, 174, 66, .28);
+  border-radius: 9px;
+  color: #f3c77b;
+  background: rgba(255, 174, 66, .05);
+  font-size: 12px;
+}
+
 .inspector-stat-card {
+  width: 100%;
   min-width: 0;
   padding: 17px 18px;
   border: 1px solid var(--border);
   border-radius: 13px;
   background: var(--panel);
+  color: var(--text);
+  text-align: left;
+}
+
+button.inspector-stat-card {
+  cursor: pointer;
+}
+
+button.inspector-stat-card:hover {
+  border-color: rgba(40, 215, 208, .35);
+  transform: translateY(-1px);
 }
 
 .inspector-stat-card span {
@@ -678,6 +961,12 @@ select {
 .inspector-pager { margin-top: 14px; display: flex; justify-content: flex-end; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
 .inspector-trace { margin-top: 13px; }
 .inspector-trace h3 { margin: 16px 0 8px; font-size: 14px; }
+.trace-group { margin-top: 16px; }
+.trace-item { margin-top: 7px; border: 1px solid var(--border); border-radius: 8px; background: rgba(255,255,255,.02); }
+.trace-item > summary { padding: 10px 12px; display: flex; justify-content: space-between; gap: 12px; cursor: pointer; }
+.trace-item > summary strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.trace-item > summary span { flex: 0 0 auto; color: var(--muted); font-size: 11px; }
+.trace-item .inspector-json { margin: 0 10px 10px; }
 .inspector-link { color: #7dd8ff; text-decoration: none; }
 .inspector-link:hover { text-decoration: underline; }
 .inspector-error { color: var(--danger); }
@@ -785,6 +1074,11 @@ select {
     grid-template-columns: 1fr;
   }
 
+  .admin-shell.is-sidebar-collapsed,
+  .admin-shell.is-sidebar-collapsed.is-sidebar-peek {
+    grid-template-columns: 1fr;
+  }
+
   .admin-sidebar {
     position: static;
     width: 100%;
@@ -796,6 +1090,16 @@ select {
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
     gap: 16px;
+  }
+
+  .admin-sidebar-toggle {
+    display: none;
+  }
+
+  .admin-shell.is-sidebar-collapsed .admin-brand > div,
+  .admin-shell.is-sidebar-collapsed .admin-nav-item > span:last-child,
+  .admin-shell.is-sidebar-collapsed .admin-identity {
+    display: initial;
   }
 
   .admin-navigation {
@@ -827,6 +1131,14 @@ select {
   }
 
   .inspector-row > summary .inspector-meta:last-child {
+    display: none;
+  }
+
+  .pipeline-chart {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pipeline-node:not(:last-child)::after {
     display: none;
   }
 }
@@ -876,8 +1188,16 @@ select {
 
   .inspector-stat-grid,
   .inspector-columns,
-  .inspector-detail-grid {
+  .inspector-detail-grid,
+  .inspector-dashboard-grid,
+  .recent-grid,
+  .distribution-chart-columns,
+  .pipeline-chart {
     grid-template-columns: 1fr;
+  }
+
+  .inspector-dashboard-wide {
+    grid-column: auto;
   }
 
   .inspector-row > summary {

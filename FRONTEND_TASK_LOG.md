@@ -1,5 +1,12 @@
 # Frontend Task Log
 
+## 2026-09-17 — Admin Data Inspector Block 2
+
+- Replaced the sparse Overview with real metric cards, database-composition bars, Search pipeline, problem/event/source distributions, recent activity, and a canonical PULS Data Flow diagram. Missing metrics render as ERROR rather than zero.
+- Search Memory now formats object-valued query/context/result fields as readable summaries and keeps raw JSON secondary. Problem Trace presents human-readable relationship rows before raw details.
+- Added a persisted desktop sidebar collapse control, icon rail, hover expansion and auto-collapse after section selection. Mobile keeps its existing full-width navigation behavior.
+- Focused browser fixtures cover Dashboard structure, lazy message/run/trace loading, object rendering, sidebar collapse and the absence of mutating Inspector requests.
+
 ## 2026-09-17 — Admin shell and Knowledge Base Data Inspector V1
 
 - Converted the existing Admin page to a persistent responsive left navigation shell with `Users` and `Knowledge Base`, while preserving the existing User Management controls and modals.
