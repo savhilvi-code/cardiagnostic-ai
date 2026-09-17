@@ -3,7 +3,7 @@ window.PulsChat = (() => {
   const CHAT_SESSION_TTL_HOURS = 12;
   const TTL = CHAT_SESSION_TTL_HOURS * 60 * 60 * 1000;
   let owner = '', version = 0, marker = null, context = null, lastActivity = 0;
-  let restoring = null;
+  let restoring = null, pendingProblemSelection = false;
   const key = () => `puls_current_chat_v2:${owner}`;
   const validTime = value => { const n=Date.parse(value); return Number.isFinite(n)?n:0; };
   function readMarker(){try{return JSON.parse(localStorage.getItem(key())||'null');}catch{return null;}}
@@ -22,7 +22,7 @@ window.PulsChat = (() => {
   }
   function authChanged(){
     const next=window.pulsCurrentUser?.id||'';if(next===owner)return;
-    owner=next;++version;restoring=null;context=null;marker=owner?readMarker():null;lastActivity=0;empty();banner();
+    owner=next;++version;restoring=null;pendingProblemSelection=false;context=null;marker=owner?readMarker():null;lastActivity=0;empty();banner();
   }
   async function messages(path){
     const headers=await backendAuthHeaders();if(!headers.Authorization)throw Error('Authentication required');
@@ -43,19 +43,19 @@ window.PulsChat = (() => {
     const request=++version,user=owner;
     restoring=(async()=>{
       try{
-        if(marker?.problemId&&!marker.conversationId&&!marker.lastActivity){empty();banner();return;}
+        if(pendingProblemSelection){empty();banner();return;}
         const path='/api/history';
         const rows=await messages(path);
         if(request!==version||owner!==user||api.sending)return;
-        const scoped=marker?.problemId&&!marker.conversationId?rows.filter(r=>r.problem_id===marker.problemId&&r.vehicle_id===marker.vehicleId&&validTime(r.created_at)>=marker.lastActivity-120000):rows;
-        const visible=sessionRows(scoped);
+        const visible=sessionRows(rows);
         if(!visible.length){marker=null;lastActivity=0;context=null;store();empty();banner();return;}
         const latest=visible.at(-1);lastActivity=validTime(latest.created_at);
         marker={conversationId:latest.conversation_id,vehicleId:latest.vehicle_id||null,problemId:latest.problem_id||null,lastActivity};store();banner();
         const box=document.getElementById('messages');
         box.innerHTML=visible.map(row=>`<div class="bubble ${row.role==='user'?'user':''}">${row.role==='assistant'?'<strong>PULS</strong><br>':''}${linkifyText(row.message_text)}<small>${escapeHtml(new Date(row.created_at).toLocaleTimeString(currentLocale(),{hour:'2-digit',minute:'2-digit'}))}</small></div>`).join('');
         document.body.classList.add('chat-active');scrollMessagesToBottom();
-      }catch{
+      }catch(error){
+        console.warn('Could not restore active conversation:',error);
         if(request===version&&owner===user&&!document.querySelector('#messages .bubble'))empty(getLanguage()==='ru'?'Не удалось восстановить текущий чат. Обновите страницу для повторной попытки.':'Could not restore the current chat. Refresh to retry.');
       }finally{if(request===version)restoring=null;}
     })();return restoring;
@@ -72,6 +72,7 @@ window.PulsChat = (() => {
   async function afterSend(response,user){
     if(user!==window.pulsCurrentUser?.id||owner!==user)return;
     if(!response.conversation_id)return;
+    pendingProblemSelection=false;
     marker={conversationId:response.conversation_id,vehicleId:response.vehicle_id||null,problemId:response.problem_id||null,lastActivity:0};
     try{
       const rows=await messages(`/api/conversations/${encodeURIComponent(marker.conversationId)}/messages`);
@@ -83,6 +84,7 @@ window.PulsChat = (() => {
   }
   function continueProblem(vehicle,problem){
     authChanged();++version;restoring=null;
+    pendingProblemSelection=true;
     context={vehicle:{id:vehicle.id,label:getVehicleLabel(vehicle)},problem:structuredClone(problem)};
     marker={conversationId:null,vehicleId:vehicle.id,problemId:problem.id,lastActivity:0};lastActivity=0;store();empty();banner();
   }

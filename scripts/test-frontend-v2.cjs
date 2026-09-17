@@ -22,7 +22,7 @@ let browser;
   await context.route('**/*',async route=>{
     const request=route.request(),url=new URL(request.url()),p=url.pathname;
     const json=data=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(data)});
-    if(url.hostname==='cdn.jsdelivr.net')return route.fulfill({contentType:'text/javascript',body:`window.supabase={createClient(){return {auth:{async getUser(){return {data:{user:window.__guest?null:{id:'owner-a',email:'test@example.test'}}}},async getSession(){return {data:{session:window.__guest?null:{access_token:'test-token'}}}},onAuthStateChange(){},async signOut(){window.__guest=true;return {}},async signInWithPassword(){window.__guest=false;return {data:{user:{id:'owner-a',email:'test@example.test'}}}}},from(){const q={select(){return q},eq(){return q},update(){return q},insert(){return q},async maybeSingle(){return {data:{id:'owner-a',email:'test@example.test'}}},async single(){return {data:{id:'owner-a',email:'test@example.test'}}}};return q;}}}};`});
+    if(url.hostname==='cdn.jsdelivr.net')return route.fulfill({contentType:'text/javascript',body:`window.supabase={createClient(){return {auth:{async getUser(){if(window.__pulsAuthDelayMs)await new Promise(resolve=>setTimeout(resolve,window.__pulsAuthDelayMs));return {data:{user:window.__guest?null:{id:'owner-a',email:'test@example.test'}}}},async getSession(){return {data:{session:window.__guest?null:{access_token:'test-token'}}}},onAuthStateChange(){},async signOut(){window.__guest=true;return {}},async signInWithPassword(){window.__guest=false;return {data:{user:{id:'owner-a',email:'test@example.test'}}}}},from(){const q={select(){return q},eq(){return q},update(){return q},insert(){return q},async maybeSingle(){return {data:{id:'owner-a',email:'test@example.test'}}},async single(){return {data:{id:'owner-a',email:'test@example.test'}}}};return q;}}}};`});
     if(url.hostname!=='127.0.0.1')return route.fulfill({status:200,body:''});
     if(!p.startsWith('/api/'))return route.continue();
     if(p==='/api/vehicles/enrich')return route.fulfill({status:404,body:'Identifier not recognized'});
@@ -111,10 +111,25 @@ let browser;
   assert.equal(lastChat.conversation_id,CONV);
   await page.reload();await page.locator('#pulsSplashHitArea').click();
   await page.waitForFunction(()=>document.querySelectorAll('#messages .bubble').length===4);
-  // A new device has no session marker: history alone must restore the same tail.
-  await page.evaluate(()=>localStorage.removeItem('puls_current_chat_v2:owner-a'));
-  await page.reload();await page.locator('#pulsSplashHitArea').click();
+  // A clean browser has no local/session state and may restore auth later than app startup.
+  await page.addInitScript(()=>{
+    const marker='puls-auth-delay-tested';
+    window.__pulsAuthDelayMs=window.name.includes(marker)?0:250;
+    if(window.__pulsAuthDelayMs)window.name=`${window.name} ${marker}`.trim();
+  });
+  await page.evaluate(()=>{localStorage.clear();sessionStorage.clear();});
+  await page.reload();
   await page.waitForFunction(()=>document.querySelectorAll('#messages .bubble').length===4);
+  await page.waitForTimeout(50);await page.locator('#pulsSplashHitArea').click();
+  const restoredFromServer=await page.evaluate(()=>JSON.parse(localStorage.getItem('puls_current_chat_v2:owner-a')));
+  assert.equal(restoredFromServer.conversationId,CONV);
+  // A stale browser-only problem marker must not suppress canonical discovery after reload.
+  await page.evaluate(({vehicleId,problemId})=>localStorage.setItem('puls_current_chat_v2:owner-a',JSON.stringify({conversationId:null,vehicleId,problemId,lastActivity:0})),{vehicleId:A,problemId:P});
+  await page.reload();
+  await page.waitForFunction(()=>document.querySelectorAll('#messages .bubble').length===4);
+  await page.waitForTimeout(50);await page.locator('#pulsSplashHitArea').click();
+  const restoredPastStaleMarker=await page.evaluate(()=>JSON.parse(localStorage.getItem('puls_current_chat_v2:owner-a')));
+  assert.equal(restoredPastStaleMarker.conversationId,CONV);
   await clickNav('settings');await clickNav('assistant');
   await page.waitForFunction(()=>document.querySelectorAll('#messages .bubble').length===4);
   await clickNav('car');await clickNav('assistant');

@@ -1,5 +1,6 @@
 const AUTH_STATUS_READY = "Введите email и пароль.";
 const AUTH_STATUS_CONFIG = "Добавьте Supabase URL и anon key в assets/js/supabaseClient.js.";
+window.pulsAuthReady = Promise.resolve(null);
 
 function authText(key, fallback) {
   return window.pulsT ? window.pulsT(key) : fallback;
@@ -265,7 +266,11 @@ window.openAuthModal = openAuthModal;
 window.closeAuthModal = closeAuthModal;
 
 document.addEventListener("DOMContentLoaded", () => {
-  updateProfileBlock();
+  window.pulsAuthReady = updateProfileBlock().catch((error) => {
+    console.warn("Could not restore authentication state:", error);
+    publishAuthState(null);
+    return null;
+  });
 
   document.getElementById("authBtn")?.addEventListener("click", openAuthModal);
   document.getElementById("authCloseBtn")?.addEventListener("click", closeAuthModal);

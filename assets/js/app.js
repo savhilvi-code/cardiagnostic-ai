@@ -3137,6 +3137,25 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       window.PulsCar.init();
       applyLanguage();
       initVehicleEditor();
+      await window.pulsAuthReady;
+      window.addEventListener("puls-auth-change", async (event) => {
+        window.PulsChat.authChanged();
+        window.PulsCar.authChanged();
+        if (!event.detail?.user) {
+          clearPrivateUiCache();
+          window.pulsAppUser = null;
+          fillVehicleForm(loadVehicleProfile());
+        }
+        const supportEmailInput = $("#supportEmailInput");
+        if (supportEmailInput && $("#supportModal")?.classList.contains("show")) {
+          supportEmailInput.value = getSupportEmailValue();
+        }
+        applyAuthLockedState();
+        await refreshQuotaFromBackend(event.detail?.user || null);
+        await syncVehicleStoreFromBackend();
+        await renderLists();
+        await renderAssistantMessages();
+      });
       await syncVehicleStoreFromBackend();
       await refreshQuotaFromBackend();
       await renderLists();
@@ -3200,24 +3219,6 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           renderSupportFiles([]);
           setSupportStatus(String(error.message || t("support.error")), true);
         }
-      });
-      window.addEventListener("puls-auth-change", async (event) => {
-        window.PulsChat.authChanged();
-        window.PulsCar.authChanged();
-        if (!event.detail?.user) {
-          clearPrivateUiCache();
-          window.pulsAppUser = null;
-          fillVehicleForm(loadVehicleProfile());
-        }
-        const supportEmailInput = $("#supportEmailInput");
-        if (supportEmailInput && $("#supportModal")?.classList.contains("show")) {
-          supportEmailInput.value = getSupportEmailValue();
-        }
-        applyAuthLockedState();
-        await refreshQuotaFromBackend(event.detail?.user || null);
-        await syncVehicleStoreFromBackend();
-        await renderLists();
-        await renderAssistantMessages();
       });
       SPLASH_ACTIVATE_EVENTS.forEach((eventName) => {
         document.addEventListener(eventName, handleSplashActivation, { passive: eventName !== "keydown" });
