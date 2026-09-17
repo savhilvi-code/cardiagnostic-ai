@@ -2395,13 +2395,20 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     function appendMessage(text, isUser) {
       const div = document.createElement("div");
       div.className = `bubble ${isUser ? "user" : "assistant"}`;
-      div.innerHTML = `${linkifyText(text)} <small>${new Date().toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" })}</small>`;
+      const time = new Date().toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" });
+      div.innerHTML = isUser
+        ? `${linkifyText(text)} <small>${time}</small>`
+        : assistantMessageMarkup(text, time);
       const messagesBox = $("#messages");
       messagesBox.querySelector(".chat-empty-state")?.remove();
       messagesBox.appendChild(div);
       document.body.classList.add("chat-active");
       scrollMessagesToBottom();
       return div;
+    }
+
+    function assistantMessageMarkup(text, time) {
+      return `<img class="puls-message-avatar" src="assets/img/puls-logo.png" alt=""><div class="puls-message-body"><strong>PULS</strong><br>${linkifyText(text)} <small>${time}</small></div>`;
     }
 
     function scrollMessagesToBottom() {
@@ -3031,7 +3038,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         if (chatOwner !== window.pulsCurrentUser?.id) return;
         const answer = data.answer || data.reply || data.message || data.output || rawAnswer || JSON.stringify(data, null, 2);
         const links = normalizeResponseLinks(data.links || []);
-        loading.innerHTML = `<strong>PULS</strong><br>${linkifyText(answer)} <small>${new Date().toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" })}</small>`;
+        loading.innerHTML = assistantMessageMarkup(answer, new Date().toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" }));
           updateQuota(data.quota);
           await window.PulsChat.afterSend(data, chatOwner);
           window.PulsCar.invalidate();
@@ -3040,7 +3047,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           console.error("PULS /chat request failed:", error);
           if (chatOwner !== window.pulsCurrentUser?.id) return;
           const errorText = t("assistant.error");
-          loading.innerHTML = `<strong>PULS</strong><br>${errorText} <small>${new Date().toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" })}</small>`;
+          loading.innerHTML = assistantMessageMarkup(errorText, new Date().toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" }));
 
           scrollMessagesToBottom();
         } finally {

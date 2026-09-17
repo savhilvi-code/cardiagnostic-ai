@@ -3178,6 +3178,21 @@ body.assistant-mode .bubble.assistant {
   background: transparent !important;
   box-shadow: none !important;
   color: var(--soft);
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+body.assistant-mode .puls-message-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+body.assistant-mode .puls-message-body {
+  min-width: 0;
 }
 
 body.assistant-mode .bubble.assistant strong {
@@ -3222,6 +3237,26 @@ body.assistant-mode .bubble.user small {
 
   body.assistant-mode .bubble.assistant {
     width: 100%;
+    grid-template-columns: 38px minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  body.assistant-mode .puls-message-avatar {
+    width: 38px;
+    height: 38px;
+  }
+}
+
+@media (min-width: 1051px) {
+  body.assistant-mode.chat-active .side {
+    position: relative !important;
+    top: 0 !important;
+    align-self: stretch !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
   }
 }
 

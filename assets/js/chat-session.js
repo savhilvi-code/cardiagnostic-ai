@@ -52,7 +52,7 @@ window.PulsChat = (() => {
         const latest=visible.at(-1);lastActivity=validTime(latest.created_at);
         marker={conversationId:latest.conversation_id,vehicleId:latest.vehicle_id||null,problemId:latest.problem_id||null,lastActivity};store();banner();
         const box=document.getElementById('messages');
-        box.innerHTML=visible.map(row=>`<div class="bubble ${row.role==='user'?'user':'assistant'}">${row.role==='assistant'?'<strong>PULS</strong><br>':''}${linkifyText(row.message_text)}<small>${escapeHtml(new Date(row.created_at).toLocaleTimeString(currentLocale(),{hour:'2-digit',minute:'2-digit'}))}</small></div>`).join('');
+        box.innerHTML=visible.map(row=>{const time=escapeHtml(new Date(row.created_at).toLocaleTimeString(currentLocale(),{hour:'2-digit',minute:'2-digit'}));return row.role==='user'?`<div class="bubble user">${linkifyText(row.message_text)}<small>${time}</small></div>`:`<div class="bubble assistant"><img class="puls-message-avatar" src="assets/img/puls-logo.png" alt=""><div class="puls-message-body"><strong>PULS</strong><br>${linkifyText(row.message_text)}<small>${time}</small></div></div>`;}).join('');
         document.body.classList.add('chat-active');scrollMessagesToBottom();
       }catch(error){
         console.warn('Could not restore active conversation:',error);
