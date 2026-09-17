@@ -8,7 +8,7 @@ window.PulsCar = (() => {
     vinMethod:['VIN / chassis · Recommended','VIN / номер кузова · Рекомендуется'], manualMethod:['Manual entry','Вручную'], generation:['Generation / chassis','Поколение / кузов'], cancel:['Cancel','Отмена'], close:['Close','Закрыть'], specifications:['Technical specifications (optional)','Технические характеристики (необязательно)'], fillMissing:['Find missing specifications','Найти недостающие характеристики'], preserveManual:['Existing values are kept. Review the draft and save explicitly.','Введённые значения сохраняются. Проверьте черновик и нажмите «Сохранить».'],
     saveError:['Could not save. Your draft is still here; please retry.','Не удалось сохранить. Черновик остаётся на экране; попробуйте снова.'], loading:['Loading…','Загрузка…'], loadError:['Could not load this data.','Не удалось загрузить данные.'], retry:['Retry','Повторить'], noProblems:['No active problems recorded for this vehicle.','Для этого автомобиля нет активных проблем.'], noEvents:['No technical entries recorded for this vehicle.','Для этого автомобиля пока нет технических записей.'], unavailable:['Not recorded','Нет данных'], mileage:['Mileage','Пробег'],
     mainSpecs:['Main specifications','Основные характеристики'], engineFluids:['Engine and fluids','Двигатель и жидкости'], consumables:['Filters and consumables','Фильтры и расходники'], wheels:['Wheels and pressure','Колёса и давление'], fuelCapacities:['Fuel and capacities','Топливо и объёмы'], electrical:['Electrical','Электрика'], dimensions:['Dimensions and weight','Размеры и масса'], service:['Service specifications / torque','Сервисные данные / моменты затяжки'], environment:['Environmental parameters','Экологические параметры'], recommended:['Recommended','Рекомендовано'], actual:['Used on this vehicle','Используется на автомобиле'],
-    continue:['Continue discussion in PULS','Продолжить обсуждение в PULS'], symptoms:['Symptoms','Симптомы'], conditions:['Conditions','Условия'], confirmed_facts:['Confirmed facts','Подтверждённые факты'], checks_summary:['Already checked','Что проверено'], hypotheses:['Hypotheses','Гипотезы'], actions_summary:['Actions taken','Выполненные действия'], current_conclusion:['Current conclusion','Текущий вывод'], next_step:['Next step','Следующий шаг'], confirmation:['Confirmed result','Подтверждённый результат'], started:['Started','Начало'],
+    continue:['Continue discussion in PULS','Продолжить обсуждение в PULS'], sources:['Sources used','Использованные материалы'], symptoms:['Symptoms','Симптомы'], conditions:['Conditions','Условия'], confirmed_facts:['Confirmed facts','Подтверждённые факты'], checks_summary:['Already checked','Что проверено'], hypotheses:['Hypotheses','Гипотезы'], actions_summary:['Actions taken','Выполненные действия'], current_conclusion:['Current conclusion','Текущий вывод'], next_step:['Next step','Следующий шаг'], confirmation:['Confirmed result','Подтверждённый результат'], started:['Started','Начало'],
     OPEN:['Open','Открыта'], IN_PROGRESS:['Diagnosis in progress','Диагностика в процессе'], SOLVED:['Solved','Решена'], CLOSED:['Closed','Закрыта'], ARCHIVED:['Archived','В архиве'],
     entryBoundary:['Manual log entries are not available yet. Existing technical records remain visible here. Nothing has been saved.','Ручное добавление записей пока недоступно. Существующая техническая история доступна в журнале. Ничего не сохранено.'],
     deleteTitle:['Delete vehicle?','Удалить автомобиль?'], deleteHelp:['The vehicle will be moved to Trash. Its technical history and photo will be retained; it can be restored during the recovery period shown in Trash.','Автомобиль будет перемещён в корзину. Техническая история и фото сохранятся. Восстановление доступно в течение срока, указанного в корзине.'], restore:['Restore','Восстановить'], restoreUntil:['Restore until','Восстановить до'], expired:['Recovery period has expired','Срок восстановления истёк'], noTrash:['No deleted vehicles.','Нет удалённых автомобилей.'],
@@ -101,6 +101,16 @@ window.PulsCar = (() => {
   }
   function modal(content){el('vehicleDialogContent').innerHTML=content;if(!el('vehicleDialog').open)el('vehicleDialog').showModal();}
   function close(){el('vehicleDialog').close();selectedProblem=null;}
+  function sourceMarkup(relations){
+    const seen=new Set(),sources=[];
+    for(const relation of Array.isArray(relations)?relations:[]){
+      const source=relation?.sources&&typeof relation.sources==='object'?relation.sources:relation;
+      const url=String(source?.url||'').trim();if(!url||seen.has(url))continue;seen.add(url);
+      sources.push({url,title:String(source?.title||url),description:String(source?.description||relation?.extracted_evidence||source?.domain||'')});
+    }
+    if(!sources.length)return '';
+    return `<section class="problem-detail"><h3>${esc(text('sources'))}</h3><div class="request-links">${sources.map(item=>`<a class="request-link" href="${esc(item.url)}" target="_blank" rel="noopener noreferrer"><strong>${esc(item.title)}</strong>${item.description?`<small>${esc(item.description)}</small>`:''}</a>`).join('')}</div></section>`;
+  }
   async function problem(id){
     const vehicleId=loadVehicleProfile().id,owner=window.pulsCurrentUser?.id,request=version;
     selectedProblem=null;modal(notice('loading'));
@@ -108,7 +118,7 @@ window.PulsCar = (() => {
       if(!el('vehicleDialog').open||request!==version||owner!==window.pulsCurrentUser?.id||vehicleId!==loadVehicleProfile().id)return;
       if(data.problem?.vehicle_id!==vehicleId)throw Error('Vehicle mismatch');
       const p=selectedProblem=data.problem;
-      modal(`<h2>${esc(p.title)}</h2><p>${esc(text(p.status))} · ${esc(date(p.first_seen_at||p.created_at))}${p.mileage!=null?` · ${esc(p.mileage)} km`:''}</p>${['symptoms','conditions','confirmed_facts','checks_summary','hypotheses','actions_summary','current_conclusion','next_step','confirmation'].filter(k=>p[k]&&(typeof p[k]!=='object'||Object.keys(p[k]).length)).map(k=>`<section class="problem-detail"><h3>${esc(text(k))}</h3><p>${esc(valueText(p[k]))}</p></section>`).join('')}<button type="button" class="btn blue" data-car-action="continue">${esc(text('continue'))}</button>`);
+      modal(`<h2>${esc(p.title)}</h2><p>${esc(text(p.status))} · ${esc(date(p.first_seen_at||p.created_at))}${p.mileage!=null?` · ${esc(p.mileage)} km`:''}</p>${['symptoms','conditions','confirmed_facts','checks_summary','hypotheses','actions_summary','current_conclusion','next_step','confirmation'].filter(k=>p[k]&&(typeof p[k]!=='object'||Object.keys(p[k]).length)).map(k=>`<section class="problem-detail"><h3>${esc(text(k))}</h3><p>${esc(valueText(p[k]))}</p></section>`).join('')}${sourceMarkup(data.sources)}<button type="button" class="btn blue" data-car-action="continue">${esc(text('continue'))}</button>`);
     }catch{if(request===version&&el('vehicleDialog').open)modal(notice('loadError'));}
   }
   function beginEdit(add=false){

@@ -1445,6 +1445,15 @@ html { scroll-behavior: smooth; }
       line-height: 1.45;
     }
 
+    .topic-link-image {
+      display: block;
+      width: 100%;
+      max-height: 180px;
+      object-fit: contain;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .04);
+    }
+
     .request-empty {
       color: var(--muted);
     }

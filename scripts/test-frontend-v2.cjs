@@ -36,7 +36,7 @@ let browser;
       rows.push({id:'u',role:'USER',content:lastChat.message,conversation_id:CONV,vehicle_id:lastChat.vehicle_id||null,problem_id:lastChat.problem_id||null,created_at:now},{id:'a',role:'ASSISTANT',content:'Check the intake safely.',conversation_id:CONV,vehicle_id:lastChat.vehicle_id||null,problem_id:lastChat.problem_id||null,created_at:now});
       return json({conversation_id:CONV,vehicle_id:lastChat.vehicle_id||null,problem_id:lastChat.problem_id||null,answer:'Check the intake safely.',quota:{remaining:2,limit:5}});
     }
-    if(p===`/api/problems/${P}`)return json({problem,vehicle:vehicles.find(v=>v.id===A)});
+    if(p===`/api/problems/${P}`)return json({problem,vehicle:vehicles.find(v=>v.id===A),sources:[{extracted_evidence:'Confirmed forum case',sources:{title:'Technical forum thread',url:'https://example.test/peugeot-thread',domain:'example.test'}}]});
     if(p==='/api/vehicles'&&request.method()==='GET')return json({vehicles:url.searchParams.has('include_trashed')?vehicles:vehicles.filter(v=>v.lifecycle_status==='ACTIVE')});
     if(p==='/api/vehicles'&&request.method()==='POST'){
       if(failSave)return route.fulfill({status:503,body:'Unavailable'});
@@ -99,6 +99,8 @@ let browser;
   await page.locator('[data-car-tab="overview"]').click();
   await page.locator('#vehicleProblems [data-car-problem]').click();await page.locator('[data-car-action="continue"]').waitFor();
   assert((await page.locator('#vehicleDialogContent').innerText()).includes('Air filter checked'));
+  assert((await page.locator('#vehicleDialogContent').innerText()).includes('Technical forum thread'));
+  assert.equal(await page.locator('#vehicleDialogContent .request-link').getAttribute('href'),'https://example.test/peugeot-thread');
   await page.locator('[data-car-action="continue"]').click();
   assert(await page.locator('#assistant').evaluate(n=>n.classList.contains('active')));
   await page.locator('#promptInput').fill('What should I inspect?');await page.locator('#sendBtn').click();
@@ -156,5 +158,5 @@ let browser;
   await page.waitForFunction(()=>!document.querySelector('#authModal').classList.contains('show'));
   assert.deepEqual(errors,[]);
   assert(!mutations.some(m=>/history|messages|conversations/.test(m.path)));
-  console.log('PASS: paid/free Settings subscription, startup, auth/logout, empty/manual/VIN failure/save failure/create, multiple vehicles and isolation, tabs/specs/timeline, structured problem + chat context, F5 restore, 12h expiry, chat viewport, trash/restore, mobile navigation/overflow. No live writes.');
+  console.log('PASS: paid/free Settings subscription, startup, auth/logout, empty/manual/VIN failure/save failure/create, multiple vehicles and isolation, tabs/specs/timeline, structured problem sources + chat context, F5 restore, 12h expiry, chat viewport, trash/restore, mobile navigation/overflow. No live writes.');
 })().catch(error=>{console.error(error);process.exitCode=1;}).finally(async()=>{await browser?.close();server.kill();});

@@ -2474,13 +2474,16 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         if (!item || typeof item !== "object") continue;
         const url = cleanUrl(item.url || item.link || "");
         if (!url || links.some((existing) => existing.url === url)) continue;
-        const isVideo = /youtube\.com|youtu\.be|rutube\.ru|vimeo\.com/i.test(url) || item.type === "video";
+        const linkType = String(item.type || "").toLowerCase();
+        const isVideo = /youtube\.com|youtu\.be|rutube\.ru|vimeo\.com/i.test(url) || linkType === "video";
+        const isImage = ["image", "photo", "picture"].includes(linkType) || /\.(?:png|jpe?g|webp|gif)(?:\?|$)/i.test(url);
         links.push({
           title: String(item.title || item.forum || item.name || item.source || (isVideo ? t("request.relatedVideo") : t("request.relatedLink"))),
           url,
           source: String(item.source || item.forum || item.description || ""),
           description: String(item.description || item.key_info || ""),
-          isVideo
+          isVideo,
+          isImage
         });
       }
       return links;
@@ -2499,6 +2502,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
       box.innerHTML = links.slice(0, 10).map((item) => `
         <div class="topic-link-item">
+          ${item.isImage ? `<a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer"><img class="topic-link-image" src="${escapeHtml(item.url)}" alt="${escapeHtml(item.title)}" loading="lazy"></a>` : ""}
           <div class="topic-link-title">${item.isVideo ? (getLanguage() === "en" ? "Video: " : "Видео: ") : ""}${escapeHtml(item.title)}</div>
           <div>${escapeHtml(item.source)}</div>
           <a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.url)}</a>
