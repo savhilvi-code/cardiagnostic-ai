@@ -286,7 +286,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "search.requests": "Search requests",
         "search.manuals": "Search manuals",
         "search.video": "Search videos",
-        "composer.placeholder": "Describe the problem or ask a question...",
+        "composer.placeholder": "Describe the problem.",
         "composer.attachPhoto": "Attach photo",
         "composer.sendVideo": "Send video",
         "composer.dtc": "Code diagnostics",
@@ -550,7 +550,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "search.requests": "Поиск по запросам",
         "search.manuals": "Поиск по мануалам",
         "search.video": "Поиск по видео",
-        "composer.placeholder": "Опишите проблему или задайте вопрос...",
+        "composer.placeholder": "Опишите проблему.",
         "composer.attachPhoto": "Прикрепить фото",
         "composer.sendVideo": "Отправить видео",
         "composer.dtc": "Диагностика по коду",
@@ -2394,7 +2394,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
     function appendMessage(text, isUser) {
       const div = document.createElement("div");
-      div.className = `bubble ${isUser ? "user" : ""}`;
+      div.className = `bubble ${isUser ? "user" : "assistant"}`;
       div.innerHTML = `${linkifyText(text)} <small>${new Date().toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" })}</small>`;
       const messagesBox = $("#messages");
       messagesBox.querySelector(".chat-empty-state")?.remove();
@@ -3095,6 +3095,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     function hideSplashScreen() {
       if (!splashVisible) return;
       splashVisible = false;
+      document.body.classList.add("chat-active");
       setPulsScreenState();
       stopSplashVideo();
       resetIdleTimer();
@@ -3137,6 +3138,9 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       window.PulsCar.init();
       applyLanguage();
       initVehicleEditor();
+      SPLASH_ACTIVATE_EVENTS.forEach((eventName) => {
+        document.addEventListener(eventName, handleSplashActivation, { passive: eventName !== "keydown" });
+      });
       await window.pulsAuthReady;
       window.addEventListener("puls-auth-change", async (event) => {
         window.PulsChat.authChanged();
@@ -3172,8 +3176,6 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         }
       });
       resizePromptInput();
-      $("#pulsSplashHitArea")?.addEventListener("pointerdown", handleSplashActivation);
-      $("#pulsSplashHitArea")?.addEventListener("click", handleSplashActivation);
       ["#journalSearch", "#historySearch", "#manualSearch", "#videoSearch"].forEach((selector) => {
         $(selector)?.addEventListener("input", () => renderLists());
       });
@@ -3219,9 +3221,6 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           renderSupportFiles([]);
           setSupportStatus(String(error.message || t("support.error")), true);
         }
-      });
-      SPLASH_ACTIVATE_EVENTS.forEach((eventName) => {
-        document.addEventListener(eventName, handleSplashActivation, { passive: eventName !== "keydown" });
       });
       IDLE_ACTIVITY_EVENTS.forEach((eventName) => {
         window.addEventListener(eventName, handlePulsActivity, { passive: eventName !== "keydown" });

@@ -3026,19 +3026,6 @@ body.assistant-mode .bubble:last-child {
   margin-bottom: 36px !important;
 }
 
-.chat-empty-state {
-  min-height: 260px;
-  display: grid;
-  place-items: center;
-  border: 1px dashed rgba(19, 217, 255, .36);
-  border-radius: 12px;
-  background: rgba(7, 26, 42, .42);
-  color: var(--muted);
-  text-align: center;
-  padding: 24px;
-  line-height: 1.5;
-}
-
 /* Final desktop assistant rail override: keep a visible internal scrollbar */
 @media (min-width: 1051px) {
   body.assistant-mode .assistant-right {
@@ -3162,6 +3149,81 @@ body.assistant-mode.chat-active .bubble small { display:block; float:none; margi
   body.assistant-mode.chat-active .messages { padding-bottom:100px !important; }
 }
 @media(max-width:480px) { .brand-logo { width:34px; height:34px; }.brand-title { font-size:12px; }.system-pill { font-size:11px; max-width:145px; white-space:normal; }.car-form-grid { grid-template-columns:1fr; }.car-form-wide { grid-column:auto; }.vehicle-identity p { font-size:13px; } }
+
+/* Frontend chat quick fix: reveal the shell immediately and keep PULS replies open. */
+body:not(.puls-splash-active) #app,
+body:not(.puls-splash-active) .puls-splash-screen {
+  transition: none !important;
+}
+
+body.assistant-mode .messages {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 18px;
+}
+
+body.assistant-mode .bubble {
+  margin-bottom: 0 !important;
+  overflow-wrap: anywhere;
+}
+
+body.assistant-mode .bubble.assistant {
+  align-self: flex-start;
+  width: min(100%, 920px);
+  max-width: 100% !important;
+  padding: 8px 4px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--soft);
+}
+
+body.assistant-mode .bubble.assistant strong {
+  display: inline-block;
+  margin-bottom: 3px;
+  color: white;
+}
+
+body.assistant-mode.chat-active .bubble.assistant small,
+body.assistant-mode .bubble.assistant small {
+  display: block;
+  float: none;
+  margin: 8px 0 0;
+  text-align: left;
+}
+
+body.assistant-mode .bubble.user {
+  align-self: flex-end;
+  width: fit-content;
+  max-width: min(72%, 680px) !important;
+  margin-left: auto !important;
+  padding: 13px 16px !important;
+  border: 1px solid #13a9ff !important;
+  border-radius: 16px !important;
+  background: linear-gradient(180deg, #0869f3, #064bbf) !important;
+  box-shadow: 0 8px 24px rgba(0, 105, 255, .18);
+  color: white;
+}
+
+body.assistant-mode.chat-active .bubble.user small,
+body.assistant-mode .bubble.user small {
+  display: block;
+  float: none;
+  margin: 8px 0 0;
+  text-align: right;
+}
+
+@media (max-width: 680px) {
+  body.assistant-mode .bubble.user {
+    max-width: 88% !important;
+  }
+
+  body.assistant-mode .bubble.assistant {
+    width: 100%;
+  }
+}
 
 /* ===== PULS ChatGPT-style expanding composer ===== */
 .composer,

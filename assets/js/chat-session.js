@@ -10,8 +10,8 @@ window.PulsChat = (() => {
   function store(){try{if(marker)localStorage.setItem(key(),JSON.stringify(marker));else localStorage.removeItem(key());}catch{/* Storage is optional. */}}
   function empty(message){
     const box=document.getElementById('messages');if(!box)return;
-    box.innerHTML=`<div class="chat-empty-state">${escapeHtml(message||t('assistant.emptyAuthenticated'))}</div>`;
-    document.body.classList.remove('chat-active');
+    box.innerHTML='';
+    document.body.classList.add('chat-active');
   }
   function banner(){
     document.getElementById('chatProblemContext')?.remove();
@@ -52,7 +52,7 @@ window.PulsChat = (() => {
         const latest=visible.at(-1);lastActivity=validTime(latest.created_at);
         marker={conversationId:latest.conversation_id,vehicleId:latest.vehicle_id||null,problemId:latest.problem_id||null,lastActivity};store();banner();
         const box=document.getElementById('messages');
-        box.innerHTML=visible.map(row=>`<div class="bubble ${row.role==='user'?'user':''}">${row.role==='assistant'?'<strong>PULS</strong><br>':''}${linkifyText(row.message_text)}<small>${escapeHtml(new Date(row.created_at).toLocaleTimeString(currentLocale(),{hour:'2-digit',minute:'2-digit'}))}</small></div>`).join('');
+        box.innerHTML=visible.map(row=>`<div class="bubble ${row.role==='user'?'user':'assistant'}">${row.role==='assistant'?'<strong>PULS</strong><br>':''}${linkifyText(row.message_text)}<small>${escapeHtml(new Date(row.created_at).toLocaleTimeString(currentLocale(),{hour:'2-digit',minute:'2-digit'}))}</small></div>`).join('');
         document.body.classList.add('chat-active');scrollMessagesToBottom();
       }catch(error){
         console.warn('Could not restore active conversation:',error);
