@@ -25,7 +25,7 @@ let browser;
     headless: true,
     ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}),
   });
-  const context = await browser.newContext({ viewport: { width: 1440, height: 960 } });
+  const context = await browser.newContext({ viewport: { width: 1440, height: 960 }, locale: 'ru-RU' });
   const requested = [];
   const mutations = [];
 
@@ -86,6 +86,20 @@ let browser;
         user: { email: 'owner@test.local' }, vehicle: { make: 'Nissan', model: 'X-Trail' },
       }], total: 1, limit: 25, offset: 0, warnings: [] });
     }
+    if (pathname === '/admin/knowledge/vehicles') {
+      return json({ items: [{
+        id: 'v1', user_id: 'u2', make: 'Peugeot', model: '307', year: 2006,
+        engine_code: 'TU5JP4', transmission: 'AL4', fuel_type: 'Petrol', drivetrain: 'FWD',
+        lifecycle_status: 'ACTIVE', spec_count: 1, problem_count: 2, event_count: 3,
+        user: { email: 'owner@test.local' },
+      }], total: 1, limit: 25, offset: 0, warnings: [] });
+    }
+    if (pathname === '/admin/knowledge/vehicles/v1/specs') {
+      return json({ items: [{
+        id: 'vs1', category: 'transmission', parameter_key: 'fluid',
+        parameter_name: 'Transmission fluid', actual_value: 'LT 71141', source_type: 'USER',
+      }], total: 1, limit: 100, offset: 0, warnings: [] });
+    }
     if (pathname === '/admin/knowledge/conversations/1/messages') {
       return json({ items: [
         { id: 1, role: 'USER', content: 'Cold start noise' },
@@ -119,12 +133,21 @@ let browser;
   assert.equal(await page.locator('.admin-readonly-badge').innerText(), 'READ ONLY');
   assert.equal(await page.locator('#inspectorDataFlow .data-flow-node').count(), 11);
   assert.equal(await page.locator('#inspectorSourceTypes .distribution-row').count(), 1);
+  assert((await page.locator('#inspectorProblemStatus').innerText()).includes('ОТКРЫТА'));
   if (process.env.ADMIN_SCREENSHOT) {
     await page.screenshot({ path: process.env.ADMIN_SCREENSHOT, fullPage: true });
   }
 
   await page.locator('#adminSidebarToggle').click();
   assert(await page.locator('.admin-shell').evaluate((node) => node.classList.contains('is-sidebar-collapsed')));
+
+  await page.locator('#inspectorStats .inspector-stat-card').filter({ hasText: 'Vehicles' }).click();
+  await page.locator('[data-inspector-kind="vehicle"] > summary').waitFor();
+  assert.equal(await page.locator('[data-inspector-tab="vehicles"]').getAttribute('class'), 'inspector-tab is-active');
+  assert(!requested.includes('/admin/knowledge/vehicles/v1/specs'));
+  await page.locator('[data-inspector-kind="vehicle"] > summary').click();
+  await page.locator('[data-inspector-kind="vehicle-spec"]').waitFor();
+  assert(requested.includes('/admin/knowledge/vehicles/v1/specs'));
 
   await page.locator('[data-inspector-tab="conversations"]').click();
   assert(!requested.includes('/admin/knowledge/conversations/1/messages'));

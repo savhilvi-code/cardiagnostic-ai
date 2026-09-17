@@ -8,7 +8,7 @@
   <meta name="robots" content="noindex, nofollow">
 
   <link rel="icon" type="image/png" href="assets/img/puls-logo.png">
-  <link rel="stylesheet" href="assets/css/admin.css?v=20260917-02">
+  <link rel="stylesheet" href="assets/css/admin.css?v=20260917-03">
 </head>
 
 <body>
@@ -171,6 +171,7 @@
 
           <div class="inspector-tabs" role="tablist" aria-label="Data Inspector views">
             <button class="inspector-tab is-active" type="button" data-inspector-tab="overview">Overview</button>
+            <button class="inspector-tab" type="button" data-inspector-tab="vehicles">Vehicles</button>
             <button class="inspector-tab" type="button" data-inspector-tab="conversations">Conversations</button>
             <button class="inspector-tab" type="button" data-inspector-tab="problems">Problems</button>
             <button class="inspector-tab" type="button" data-inspector-tab="events">Vehicle Events</button>
@@ -219,6 +220,16 @@
                 <div id="inspectorRecent" class="recent-grid"><div class="admin-empty">Loading real data…</div></div>
               </section>
             </div>
+          </div>
+
+          <div id="inspectorVehicles" class="inspector-panel" hidden>
+            <div class="inspector-toolbar">
+              <input id="vehicleSearch" class="admin-search" type="search" placeholder="Search vehicle make…">
+              <select id="vehicleLifecycleStatus" class="admin-select"><option value="">All lifecycle states</option><option value="ACTIVE">Active</option><option value="TRASHED">Trashed</option></select>
+              <button class="admin-button" type="button" data-inspector-load="vehicles">Apply</button>
+            </div>
+            <div id="vehicleList" class="inspector-list"></div>
+            <div id="vehiclePager" class="inspector-pager"></div>
           </div>
 
           <div id="inspectorConversations" class="inspector-panel" hidden>
@@ -421,6 +432,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/supabaseClient.js"></script>
   <script src="assets/js/config.js"></script>
-  <script src="assets/js/admin.js?v=20260917-02"></script>
+  <script src="assets/js/admin.js?v=20260917-03"></script>
 </body>
 </html>

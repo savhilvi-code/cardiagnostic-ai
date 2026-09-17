@@ -10,6 +10,7 @@ const inspectorState = {
   tab: "overview",
   loaded: new Set(),
   offsets: {
+    vehicles: 0,
     conversations: 0,
     problems: 0,
     events: 0,
@@ -1262,6 +1263,49 @@ function inspectorJson(value) {
 }
 
 
+const INSPECTOR_RU_ENUM_LABELS = {
+  TRANSMISSION: "ТРАНСМИССИЯ",
+  OTHER: "ДРУГОЕ",
+  ENGINE: "ДВИГАТЕЛЬ",
+  ELECTRICAL: "ЭЛЕКТРИКА",
+  BRAKES: "ТОРМОЗА",
+  SUSPENSION: "ПОДВЕСКА",
+  STEERING: "РУЛЕВОЕ УПРАВЛЕНИЕ",
+  COOLING: "ОХЛАЖДЕНИЕ",
+  FUEL: "ТОПЛИВНАЯ СИСТЕМА",
+  EXHAUST: "ВЫХЛОПНАЯ СИСТЕМА",
+  HVAC: "КЛИМАТ-КОНТРОЛЬ",
+  BODY: "КУЗОВ",
+  SYMPTOM: "СИМПТОМ",
+  DTC: "КОД НЕИСПРАВНОСТИ",
+  CHECK: "ПРОВЕРКА",
+  REPAIR: "РЕМОНТ",
+  SERVICE: "ОБСЛУЖИВАНИЕ",
+  REPLACEMENT: "ЗАМЕНА",
+  RESULT: "РЕЗУЛЬТАТ",
+  MILEAGE: "ПРОБЕГ",
+  NOTE: "ЗАМЕТКА",
+  OPEN: "ОТКРЫТА",
+  IN_PROGRESS: "В РАБОТЕ",
+  AWAITING_CONFIRMATION: "ОЖИДАЕТ ПОДТВЕРЖДЕНИЯ",
+  SOLVED: "РЕШЕНА",
+  CLOSED: "ЗАКРЫТА",
+  ACTIVE: "АКТИВЕН",
+  TRASHED: "В КОРЗИНЕ",
+  RUNNING: "ВЫПОЛНЯЕТСЯ",
+  COMPLETED: "ЗАВЕРШЕН",
+  FAILED: "ОШИБКА"
+};
+
+
+function inspectorEnumLabel(value) {
+  const canonical = String(value || "").trim().toUpperCase();
+  if (!canonical) return "—";
+  const isRussian = String(navigator.language || "").toLowerCase().startsWith("ru");
+  return (isRussian ? INSPECTOR_RU_ENUM_LABELS[canonical] : "") || canonical.replaceAll("_", " ");
+}
+
+
 function inspectorVehicle(row) {
   const vehicle = row?.vehicle;
   if (!vehicle) return row?.vehicle_id ? `Vehicle #${row.vehicle_id}` : "—";
@@ -1372,7 +1416,7 @@ function distributionRows(values, tab, filter = "", tabMap = {}) {
     const width = unavailable ? 0 : Math.max(1, Math.round((Number(value) / max) * 100));
     const targetTab = tabMap[label] || tab;
     return `<button class="distribution-row" type="button" data-dashboard-tab="${escapeAdminHtml(targetTab)}" ${filter ? `data-dashboard-filter="${escapeAdminHtml(filter)}" data-dashboard-value="${escapeAdminHtml(label)}"` : ""}>
-      <span class="distribution-label"><span>${escapeAdminHtml(label.replaceAll("_", " "))}</span><strong class="${unavailable ? "data-unavailable" : ""}">${inspectorCount(value)}</strong></span>
+      <span class="distribution-label"><span title="${escapeAdminHtml(label)}">${escapeAdminHtml(inspectorEnumLabel(label))}</span><strong class="${unavailable ? "data-unavailable" : ""}">${inspectorCount(value)}</strong></span>
       <span class="distribution-track"><span class="distribution-fill" style="width:${width}%"></span></span>
     </button>`;
   }).join("");
@@ -1407,7 +1451,7 @@ function renderRecentGroups(recent, errors) {
     else if (Array.isArray(items) && items.length) content = items.map((row) => `
       <button class="recent-item distribution-row" type="button" data-dashboard-tab="${tab}">
         <strong>${escapeAdminHtml(recentLabel(key, row))}</strong>
-        <span>${escapeAdminHtml(row.status || row.problem_class || row.provenance_type || "—")} · ${escapeAdminHtml(formatAdminDate(inspectorTimestamp(row)))}</span>
+        <span>${escapeAdminHtml(inspectorEnumLabel(row.status || row.problem_class || row.provenance_type))} · ${escapeAdminHtml(formatAdminDate(inspectorTimestamp(row)))}</span>
       </button>`).join("");
     return `<section class="recent-group"><h3>${label}</h3>${content}</section>`;
   }).join("");
@@ -1445,7 +1489,7 @@ async function loadInspectorOverview() {
   renderInspectorLoading("inspectorRecent");
   const payload = await adminFetch("/admin/knowledge/overview");
   const labels = {
-    users: ["Users", "users"], vehicles: ["Vehicles", "users"],
+    users: ["Users", "users"], vehicles: ["Vehicles", "vehicles"],
     conversations: ["Conversations", "conversations"], messages: ["Messages", "conversations"],
     active_problems: ["Active problems", "problems"], vehicle_events: ["Vehicle events", "events"],
     search_episodes: ["Search episodes", "search"], search_runs: ["Search runs", "search"],
@@ -1493,6 +1537,72 @@ async function loadInspectorOverview() {
 }
 
 
+async function loadInspectorVehicles() {
+  const kind = "vehicles";
+  renderInspectorLoading("vehicleList");
+  const query = inspectorQuery({
+    limit: inspectorState.limit, offset: inspectorState.offsets[kind],
+    q: adminEl("vehicleSearch")?.value,
+    lifecycle_status: adminEl("vehicleLifecycleStatus")?.value
+  });
+  const payload = await adminFetch(`/admin/knowledge/vehicles?${query}`);
+  const items = Array.isArray(payload?.items) ? payload.items : [];
+  if (!items.length) renderInspectorEmpty("vehicleList");
+  else adminEl("vehicleList").innerHTML = items.map((row) => inspectorRow({
+    id: row.id, kind: "vehicle",
+    primary: [row.make || row.brand, row.model, row.generation, row.year].filter(Boolean).join(" ") || `Vehicle #${row.id}`,
+    secondary: inspectorUser(row),
+    meta: [
+      { label: "Lifecycle", value: inspectorEnumLabel(row.lifecycle_status || "ACTIVE") },
+      { label: "Problems", value: row.problem_count ?? "ERROR" },
+      { label: "Events", value: row.event_count ?? "ERROR" }
+    ],
+    fields: [
+      { label: "VIN / chassis", value: row.vin || row.chassis_number },
+      { label: "Engine", value: row.engine_code || row.engine },
+      { label: "Transmission", value: row.transmission },
+      { label: "Fuel", value: row.fuel_type || row.fuel },
+      { label: "Drivetrain", value: row.drivetrain || row.drive },
+      { label: "Mileage", value: [row.mileage, row.mileage_unit].filter((value) => value !== null && value !== undefined && value !== "").join(" ") },
+      { label: "Created", value: row.created_at },
+      { label: "Updated", value: row.updated_at }
+    ],
+    body: `<div class="inspector-specs" data-vehicle-specs="${escapeAdminHtml(row.id)}"><div class="admin-empty">Expand to load ${escapeAdminHtml(row.spec_count ?? "—")} specification rows.</div></div>`
+  })).join("");
+  if (payload?.warnings?.length) adminEl("vehicleList").insertAdjacentHTML("afterbegin", inspectorWarnings(payload));
+  renderInspectorPager(kind, payload, "vehiclePager");
+}
+
+
+async function loadVehicleSpecs(details) {
+  const id = details.dataset.inspectorId;
+  const target = details.querySelector(`[data-vehicle-specs="${CSS.escape(id)}"]`);
+  if (!target || target.dataset.loaded === "true") return;
+  target.innerHTML = `<div class="admin-empty">Loading vehicle specifications…</div>`;
+  try {
+    const payload = await adminFetch(`/admin/knowledge/vehicles/${encodeURIComponent(id)}/specs?limit=100`);
+    const items = Array.isArray(payload?.items) ? payload.items : [];
+    target.dataset.loaded = "true";
+    target.innerHTML = items.length ? items.map((row) => inspectorRow({
+      id: row.id, kind: "vehicle-spec",
+      primary: row.parameter_name || row.parameter_key || `Specification #${row.id}`,
+      secondary: row.category || "general",
+      meta: [
+        { label: "Actual", value: [row.actual_value, row.actual_unit].filter(Boolean).join(" ") || "—" },
+        { label: "Recommended", value: [row.recommended_value, row.recommended_unit].filter(Boolean).join(" ") || "—" },
+        { label: "Source", value: row.source_type || "—" }
+      ],
+      fields: Object.entries(row).map(([label, value]) => ({ label, value }))
+    })).join("") : `<div class="admin-empty">No specification rows for this vehicle.</div>`;
+    if (Number(payload?.total || 0) > items.length) {
+      target.insertAdjacentHTML("beforeend", `<div class="admin-status">Showing first ${items.length} of ${payload.total} specifications.</div>`);
+    }
+  } catch (error) {
+    target.innerHTML = `<div class="admin-empty inspector-error">${escapeAdminHtml(error.message)}</div>`;
+  }
+}
+
+
 async function loadInspectorConversations() {
   const kind = "conversations";
   renderInspectorLoading("conversationList");
@@ -1507,7 +1617,7 @@ async function loadInspectorConversations() {
     id: row.id, kind: "conversation", primary: inspectorConversationTitle(row),
     secondary: `${inspectorUser(row)} · ${inspectorVehicle(row)}`,
     meta: [
-      { label: "Status", value: row.status || "—" },
+      { label: "Status", value: inspectorEnumLabel(row.status) },
       { label: "Messages", value: row.message_count ?? 0 },
       { label: "Last message", value: formatAdminDate(row.last_message_at) }
     ],
@@ -1560,9 +1670,9 @@ async function loadInspectorProblems() {
     id: row.id, kind: "problem", primary: row.title || `Problem #${row.id}`,
     secondary: `${inspectorUser(row)} · ${inspectorVehicle(row)}`,
     meta: [
-      { label: "Class", value: row.problem_class || "—" },
+      { label: "Class", value: inspectorEnumLabel(row.problem_class) },
       { label: "Component", value: row.component || "—" },
-      { label: "Status", value: row.status || "—" }
+      { label: "Status", value: inspectorEnumLabel(row.status) }
     ],
     fields: [
       { label: "Symptoms", value: row.symptoms }, { label: "Conditions", value: row.conditions },
@@ -1636,7 +1746,7 @@ async function loadInspectorEvents() {
     id: row.id, kind: "event", primary: row.title || row.event_type || `Event #${row.id}`,
     secondary: `${inspectorVehicle(row)} · ${inspectorProblem(row)}`,
     meta: [
-      { label: "Type", value: row.event_type || "—" },
+      { label: "Type", value: inspectorEnumLabel(row.event_type) },
       { label: "Source", value: row.source_kind || row.source || "—" },
       { label: "Event date", value: formatAdminDate(row.event_date || row.occurred_at) }
     ], fields: [
@@ -1795,6 +1905,7 @@ async function loadInspectorKnowledge() {
 
 const inspectorLoaders = {
   overview: loadInspectorOverview,
+  vehicles: loadInspectorVehicles,
   conversations: loadInspectorConversations,
   problems: loadInspectorProblems,
   events: loadInspectorEvents,
@@ -1904,6 +2015,7 @@ document.addEventListener(
     document.addEventListener("toggle", (event) => {
       const details = event.target.closest?.("details[data-inspector-kind]");
       if (!details?.open) return;
+      if (details.dataset.inspectorKind === "vehicle") loadVehicleSpecs(details);
       if (details.dataset.inspectorKind === "conversation") loadConversationMessages(details);
       if (details.dataset.inspectorKind === "episode") loadEpisodeRuns(details);
     }, true);

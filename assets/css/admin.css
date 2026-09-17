@@ -608,6 +608,7 @@ button.distribution-row {
   padding: 0;
   border: 0;
   background: transparent;
+  color: var(--text);
   text-align: left;
   cursor: pointer;
 }
@@ -728,6 +729,7 @@ button.data-flow-node {
 .recent-item {
   padding: 8px 0;
   border-top: 1px solid var(--border);
+  color: var(--text);
 }
 
 .recent-item:first-of-type {
@@ -740,6 +742,10 @@ button.data-flow-node {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.recent-item strong {
+  color: var(--text);
 }
 
 .recent-item span {
