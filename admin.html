@@ -8,13 +8,12 @@
   <meta name="robots" content="noindex, nofollow">
 
   <link rel="icon" type="image/png" href="assets/img/puls-logo.png">
-  <link rel="stylesheet" href="assets/css/admin.css">
+  <link rel="stylesheet" href="assets/css/admin.css?v=20260917-01">
 </head>
 
 <body>
   <div class="admin-shell">
-
-    <header class="admin-header">
+    <aside class="admin-sidebar">
       <div class="admin-brand">
         <img
           class="admin-logo"
@@ -28,7 +27,18 @@
         </div>
       </div>
 
-      <div class="admin-header-actions">
+      <nav class="admin-navigation" aria-label="Admin sections">
+        <button class="admin-nav-item is-active" type="button" data-admin-section="users">
+          <span class="admin-nav-icon" aria-hidden="true">◎</span>
+          <span>Users</span>
+        </button>
+        <button class="admin-nav-item" type="button" data-admin-section="knowledge">
+          <span class="admin-nav-icon" aria-hidden="true">▦</span>
+          <span>Knowledge Base</span>
+        </button>
+      </nav>
+
+      <div class="admin-sidebar-footer">
         <span id="adminIdentity" class="admin-identity">
           Checking access...
         </span>
@@ -37,7 +47,7 @@
           Back to PULS
         </a>
       </div>
-    </header>
+    </aside>
 
     <main class="admin-main">
 
@@ -51,7 +61,9 @@
       </section>
 
       <!-- ADMIN CONTENT -->
-      <section id="adminContent" hidden>
+      <section id="adminContent" class="admin-workspace" hidden>
+
+        <div id="adminUsersSection" class="admin-section">
 
         <div class="admin-page-heading">
           <div>
@@ -140,6 +152,105 @@
           role="status"
           aria-live="polite"
         ></div>
+
+        </div>
+
+        <div id="adminKnowledgeSection" class="admin-section" hidden>
+          <div class="admin-page-heading">
+            <div>
+              <div class="admin-eyebrow">Knowledge Base</div>
+              <h1>Data Inspector</h1>
+              <p>Read-only observability for canonical PULS V2 data.</p>
+            </div>
+            <div class="admin-heading-actions">
+              <span class="admin-readonly-badge">Read only</span>
+              <button id="inspectorRefreshBtn" class="admin-button" type="button">Refresh</button>
+            </div>
+          </div>
+
+          <div class="inspector-tabs" role="tablist" aria-label="Data Inspector views">
+            <button class="inspector-tab is-active" type="button" data-inspector-tab="overview">Overview</button>
+            <button class="inspector-tab" type="button" data-inspector-tab="conversations">Conversations</button>
+            <button class="inspector-tab" type="button" data-inspector-tab="problems">Problems</button>
+            <button class="inspector-tab" type="button" data-inspector-tab="events">Vehicle Events</button>
+            <button class="inspector-tab" type="button" data-inspector-tab="search">Search Memory</button>
+            <button class="inspector-tab" type="button" data-inspector-tab="sources">Sources</button>
+            <button class="inspector-tab" type="button" data-inspector-tab="knowledge">Knowledge</button>
+          </div>
+
+          <div id="inspectorOverview" class="inspector-panel">
+            <div id="inspectorStats" class="inspector-stat-grid"></div>
+            <div class="admin-table-card inspector-block">
+              <div class="inspector-block-heading">
+                <div><h2>Recent activity</h2><p>Latest conversation containers by message activity.</p></div>
+              </div>
+              <div id="inspectorRecent" class="inspector-list"><div class="admin-empty">Loading real data…</div></div>
+            </div>
+          </div>
+
+          <div id="inspectorConversations" class="inspector-panel" hidden>
+            <div class="inspector-toolbar">
+              <input id="conversationSearch" class="admin-search" type="search" placeholder="Search conversation title…">
+              <select id="conversationStatus" class="admin-select"><option value="">All statuses</option><option value="active">Active</option><option value="closed">Closed</option></select>
+              <button class="admin-button" type="button" data-inspector-load="conversations">Apply</button>
+            </div>
+            <div id="conversationList" class="inspector-list"></div>
+            <div id="conversationPager" class="inspector-pager"></div>
+          </div>
+
+          <div id="inspectorProblems" class="inspector-panel" hidden>
+            <div class="inspector-toolbar">
+              <input id="problemSearch" class="admin-search" type="search" placeholder="Search problem title…">
+              <input id="problemClass" class="admin-search admin-search-short" type="search" placeholder="Class, e.g. OTHER">
+              <button class="admin-button" type="button" data-inspector-load="problems">Apply</button>
+            </div>
+            <div id="problemList" class="inspector-list"></div>
+            <div id="problemPager" class="inspector-pager"></div>
+          </div>
+
+          <div id="inspectorEvents" class="inspector-panel" hidden>
+            <div class="inspector-toolbar">
+              <input id="eventSearch" class="admin-search" type="search" placeholder="Search event title…">
+              <input id="eventType" class="admin-search admin-search-short" type="search" placeholder="Event type">
+              <button class="admin-button" type="button" data-inspector-load="events">Apply</button>
+            </div>
+            <div id="eventList" class="inspector-list"></div>
+            <div id="eventPager" class="inspector-pager"></div>
+          </div>
+
+          <div id="inspectorSearch" class="inspector-panel" hidden>
+            <div class="inspector-toolbar">
+              <select id="episodeStatus" class="admin-select"><option value="">All statuses</option><option value="RUNNING">Running</option><option value="COMPLETED">Completed</option><option value="FAILED">Failed</option></select>
+              <button class="admin-button" type="button" data-inspector-load="search">Apply</button>
+            </div>
+            <div id="episodeList" class="inspector-list"></div>
+            <div id="episodePager" class="inspector-pager"></div>
+          </div>
+
+          <div id="inspectorSources" class="inspector-panel" hidden>
+            <div class="inspector-toolbar">
+              <input id="sourceSearch" class="admin-search" type="search" placeholder="Search source title…">
+              <input id="sourceType" class="admin-search admin-search-short" type="search" placeholder="Source type">
+              <button class="admin-button" type="button" data-inspector-load="sources">Apply</button>
+            </div>
+            <div id="sourceList" class="inspector-list"></div>
+            <div id="sourcePager" class="inspector-pager"></div>
+          </div>
+
+          <div id="inspectorKnowledge" class="inspector-panel" hidden>
+            <div class="inspector-toolbar">
+              <input id="knowledgeSearch" class="admin-search" type="search" placeholder="Search knowledge…">
+              <button class="admin-button" type="button" data-inspector-load="knowledge">Apply</button>
+            </div>
+            <div class="inspector-columns">
+              <div class="inspector-column"><h2>Knowledge items</h2><div id="knowledgeList" class="inspector-list"></div></div>
+              <div class="inspector-column"><h2>Fleet events</h2><div id="fleetList" class="inspector-list"></div></div>
+            </div>
+            <div id="knowledgePager" class="inspector-pager"></div>
+          </div>
+
+          <div id="inspectorStatus" class="admin-status" role="status" aria-live="polite"></div>
+        </div>
 
       </section>
 
@@ -276,6 +387,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/supabaseClient.js"></script>
   <script src="assets/js/config.js"></script>
-  <script src="assets/js/admin.js"></script>
+  <script src="assets/js/admin.js?v=20260917-01"></script>
 </body>
 </html>

@@ -1,5 +1,11 @@
 # Frontend Task Log
 
+## 2026-09-17 — Admin shell and Knowledge Base Data Inspector V1
+
+- Converted the existing Admin page to a persistent responsive left navigation shell with `Users` and `Knowledge Base`, while preserving the existing User Management controls and modals.
+- Added the read-only Data Inspector views: Overview, Conversations, Problems, Vehicle Events, Search Memory, Sources, and Knowledge. Counts and rows come from authenticated backend endpoints; there are no fake metrics or production placeholders.
+- Conversation messages and Search Episode runs load only when their parent row expands. Problem Trace loads on demand and visibly reports the missing direct Problem-to-Knowledge relation instead of inferring one.
+
 ## 2026-09-13
 
 - Renamed the frontend "Request log" surface to `Confirmed cases` / `Подтверждённые кейсы` in navigation and page headings without changing its backend data source.
