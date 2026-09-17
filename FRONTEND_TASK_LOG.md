@@ -89,3 +89,8 @@
 
 - Normalize canonical uppercase roles/content and use authoritative /chat conversation identity. Restore backend latest history on navigation and refresh regardless of cached marker. Transcript stays backend-only; 12-hour visibility rule retained.
 - Frontend regression passed with actual canonical response shape. Phase A production UI confirmed 206 → 207 kW persisted after save/F5.
+
+## 2026-09-17 — Stabilization Block 1 subscription UI
+
+- Replaced the static Settings `Free — 5 requests` status with the authenticated quota returned by backend `GET /api/quota`, the same state already used by the top quota indicator. Settings now renders plan, limit, and remaining quota; the Pro offer remains static product copy.
+- Focused browser fixtures verify Paid / 100 with 95 remaining and Free / 5 with 5 remaining. Backend subscription contract tests remain green. No backend, Supabase, schema, conversation, or diagnostic-flow changes were made.

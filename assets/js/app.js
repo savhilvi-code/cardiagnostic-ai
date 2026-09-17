@@ -268,7 +268,9 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "support.messageRequired": "Enter a message.",
         "support.emailRequired": "Enter your email address.",
         "support.sending": "Sending...",
-        "subscription.freeStatus": "Status: Free — 5 requests",
+        "subscription.status": "Status: {plan} — {remaining} of {limit} requests remaining",
+        "subscription.loading": "Loading subscription...",
+        "subscription.signIn": "Sign in to view your subscription",
         "subscription.plan": "PULS Pro subscription: 100 requests for $15.",
         "subscription.pay": "Pay $15",
         "notifications.service": "Service reminders",
@@ -530,7 +532,9 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "support.messageRequired": "Введите сообщение.",
         "support.emailRequired": "Введите email.",
         "support.sending": "Отправка...",
-        "subscription.freeStatus": "Статус: Free — 5 запросов",
+        "subscription.status": "Статус: {plan} — осталось {remaining} из {limit} запросов",
+        "subscription.loading": "Загрузка подписки...",
+        "subscription.signIn": "Войдите, чтобы посмотреть подписку",
         "subscription.plan": "Подписка PULS Pro: 100 запросов за $15.",
         "subscription.pay": "Оплатить $15",
         "notifications.service": "Напоминания о ТО",
@@ -645,6 +649,26 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       pill.setAttribute("title", label);
       pill.dataset.authState = signedIn ? "authenticated" : "guest";
       pill.setAttribute("aria-disabled", String(signedIn));
+      renderSettingsSubscription();
+    }
+
+    function renderSettingsSubscription() {
+      const status = $("#settingsSubscriptionStatus");
+      if (!status) return;
+      if (!isSignedIn()) {
+        status.textContent = t("subscription.signIn");
+        return;
+      }
+      if (!currentQuota) {
+        status.textContent = t("subscription.loading");
+        return;
+      }
+      const plan = String(currentQuota.plan_type || "free").toLowerCase() === "paid" ? "Paid" : "Free";
+      status.textContent = t("subscription.status", {
+        plan,
+        remaining: currentQuota.remaining,
+        limit: currentQuota.limit
+      });
     }
 
     window.pulsT = t;
