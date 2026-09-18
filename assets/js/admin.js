@@ -644,6 +644,8 @@ async function initializeAdmin() {
       const requestedTab = hash.split("/")[1];
       if (requestedTab && inspectorLoaders[requestedTab]) inspectorState.tab = requestedTab;
       await selectAdminSection("knowledge");
+    } else if (hash.startsWith("live-flow")) {
+      await selectAdminSection("live-flow");
     }
   } catch (error) {
     console.error(
@@ -1969,14 +1971,184 @@ function initializeSidebar() {
 }
 
 
+const liveFlowState = {
+  traces: [], trace: null, events: [], index: -1, timer: null,
+  speed: 1, streamAbort: null, streamCursor: 0
+};
+
+
+function flowSetStatus(message = "", type = "") {
+  const node = adminEl("flowStatusMessage");
+  if (!node) return;
+  node.textContent = message;
+  node.className = `admin-status ${type}`.trim();
+}
+
+
+function flowValue(value) {
+  if (value === null || value === undefined || value === "") return "—";
+  return typeof value === "object" ? JSON.stringify(value, null, 2) : String(value);
+}
+
+
+function renderFlowTraces() {
+  const node = adminEl("flowTraceList");
+  if (!node) return;
+  node.innerHTML = liveFlowState.traces.length ? liveFlowState.traces.map((trace) => `
+    <button class="flow-trace ${liveFlowState.trace?.id === trace.id ? "is-selected" : ""}" type="button" data-flow-trace="${escapeAdminHtml(trace.id)}">
+      <span><strong>${escapeAdminHtml(trace.status === "RUNNING" ? "LIVE" : "REPLAY")}</strong> ${escapeAdminHtml(trace.intent || "REQUEST")}</span>
+      <span>${escapeAdminHtml(trace.user_label || trace.user_id || "unknown user")}</span>
+      <span>${escapeAdminHtml(trace.message_excerpt || "No excerpt")}</span>
+      <small>${escapeAdminHtml(trace.started_at || "")} · ${Number(trace.duration_ms || 0)} ms</small>
+    </button>`).join("") : '<div class="admin-empty">No traces found.</div>';
+}
+
+
+async function loadFlowTraces() {
+  const params = new URLSearchParams({ limit: "50" });
+  const status = adminEl("flowStatus")?.value;
+  const user = adminEl("flowUser")?.value.trim();
+  const vehicle = adminEl("flowVehicle")?.value.trim();
+  if (status) params.set("status", status);
+  if (user) params.set("user_id", user);
+  if (vehicle) params.set("vehicle_id", vehicle);
+  const payload = await adminFetch(`/admin/knowledge/live-flow/traces?${params}`);
+  liveFlowState.traces = Array.isArray(payload?.items) ? payload.items : [];
+  renderFlowTraces();
+}
+
+
+function flowEventLabel(event) {
+  return event.edge_label || event.operation || event.event_type || `Event ${event.sequence}`;
+}
+
+
+function selectFlowEvent(index) {
+  const maximum = liveFlowState.events.length - 1;
+  liveFlowState.index = Math.max(-1, Math.min(Number(index), maximum));
+  if (adminEl("flowScrubber")) adminEl("flowScrubber").value = String(Math.max(0, liveFlowState.index));
+  if (adminEl("flowClock")) adminEl("flowClock").textContent = `${Math.max(0, liveFlowState.index + 1)} / ${liveFlowState.events.length}`;
+  renderFlowGraph();
+  renderFlowTimeline();
+  const event = liveFlowState.events[liveFlowState.index];
+  if (event) adminEl("flowInspector").textContent = JSON.stringify(event, null, 2);
+}
+
+
+function renderFlowGraph() {
+  const graph = adminEl("flowGraph");
+  if (!graph) return;
+  const applied = liveFlowState.events.slice(0, liveFlowState.index + 1);
+  if (!applied.length) { graph.innerHTML = '<div class="admin-empty">No events at this point in time.</div>'; return; }
+  const nodes = [];
+  const seen = new Set();
+  applied.forEach((event) => [event.from_node, event.to_node, event.table_name].filter(Boolean).forEach((name) => {
+    if (!seen.has(name)) { seen.add(name); nodes.push(name); }
+  }));
+  const active = applied[applied.length - 1];
+  graph.innerHTML = `<div class="flow-node-grid">${nodes.map((name) => {
+    const isDb = applied.some((event) => event.table_name === name);
+    const isActive = active && (active.from_node === name || active.to_node === name);
+    return `<button type="button" class="flow-node ${isDb ? "is-db" : ""} ${isActive ? "is-active" : ""}" data-flow-node="${escapeAdminHtml(name)}">${isDb ? "▰ " : ""}${escapeAdminHtml(name)}</button>`;
+  }).join("")}</div><div class="flow-edge-list">${applied.map((event, index) => `<button type="button" class="flow-edge ${index === applied.length - 1 ? "is-active" : ""}" data-flow-event="${index}"><span>${escapeAdminHtml(event.from_node || "Event")}</span><i><b></b>${escapeAdminHtml(flowEventLabel(event))}</i><span>${escapeAdminHtml(event.to_node || event.table_name || "Result")}</span></button>`).join("")}</div>`;
+}
+
+
+function renderFlowTimeline() {
+  const node = adminEl("flowTimeline");
+  if (!node) return;
+  node.innerHTML = liveFlowState.events.map((event, index) => `<button type="button" class="flow-timeline-event ${index === liveFlowState.index ? "is-active" : ""}" data-flow-event="${index}"><b>${event.sequence}</b><span>${escapeAdminHtml(flowEventLabel(event))}</span><small>+${Number(event.offset_ms || 0)} ms</small></button>`).join("");
+}
+
+
+function renderFlowMedia() {
+  const media = adminEl("flowMedia");
+  if (!media) return;
+  const events = liveFlowState.events.filter((event) => ["SOURCE", "IMAGE"].includes(event.event_type));
+  media.innerHTML = events.length ? events.map((event, index) => `<button type="button" class="flow-media-item" data-flow-event="${liveFlowState.events.indexOf(event)}"><strong>${escapeAdminHtml(event.event_type)} · ${escapeAdminHtml(event.status)}</strong><span>${escapeAdminHtml(event.output_data?.title || event.output_data?.url || flowEventLabel(event))}</span><small>${escapeAdminHtml(event.output_data?.reason || event.output_data?.state || "retained")}</small></button>`).join("") : '<div class="admin-empty">No source or image events.</div>';
+}
+
+
+function stopFlowPlayback() {
+  if (liveFlowState.timer) clearTimeout(liveFlowState.timer);
+  liveFlowState.timer = null;
+}
+
+
+function playFlowReplay() {
+  stopFlowPlayback();
+  if (!liveFlowState.events.length) return;
+  if (liveFlowState.index >= liveFlowState.events.length - 1) liveFlowState.index = -1;
+  const step = () => {
+    if (liveFlowState.index >= liveFlowState.events.length - 1) { stopFlowPlayback(); return; }
+    const current = liveFlowState.events[Math.max(0, liveFlowState.index)];
+    const next = liveFlowState.events[liveFlowState.index + 1];
+    selectFlowEvent(liveFlowState.index + 1);
+    const delta = Math.max(80, Math.min(1800, Number(next?.offset_ms || 0) - Number(current?.offset_ms || 0))) / liveFlowState.speed;
+    liveFlowState.timer = setTimeout(step, delta);
+  };
+  step();
+}
+
+
+async function streamFlowTrace(traceId) {
+  liveFlowState.streamAbort?.abort();
+  const controller = new AbortController();
+  liveFlowState.streamAbort = controller;
+  const session = await getAdminSession();
+  if (!session?.access_token) return;
+  try {
+    const response = await fetch(`${ADMIN_API_BASE_URL}/admin/knowledge/live-flow/stream?trace_id=${encodeURIComponent(traceId)}&after_sequence=${liveFlowState.streamCursor}`, { headers: { Authorization: `Bearer ${session.access_token}` }, signal: controller.signal });
+    if (!response.ok || !response.body) throw new Error(`SSE ${response.status}`);
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const blocks = buffer.split("\n\n"); buffer = blocks.pop() || "";
+      blocks.forEach((block) => {
+        const data = block.split("\n").find((line) => line.startsWith("data: "))?.slice(6);
+        const type = block.split("\n").find((line) => line.startsWith("event: "))?.slice(7);
+        if (!data || type !== "trace") return;
+        const event = JSON.parse(data);
+        if (!liveFlowState.events.some((item) => item.sequence === event.sequence)) liveFlowState.events.push(event);
+        liveFlowState.events.sort((a, b) => a.sequence - b.sequence);
+        liveFlowState.streamCursor = Math.max(liveFlowState.streamCursor, Number(event.sequence || 0));
+        adminEl("flowScrubber").max = String(Math.max(0, liveFlowState.events.length - 1));
+        renderFlowMedia(); selectFlowEvent(liveFlowState.events.length - 1);
+      });
+    }
+  } catch (error) {
+    if (error.name !== "AbortError") flowSetStatus(`Live stream interrupted: ${error.message}`, "error");
+  }
+}
+
+
+async function selectFlowTrace(traceId) {
+  stopFlowPlayback(); liveFlowState.streamAbort?.abort();
+  const trace = await adminFetch(`/admin/knowledge/live-flow/traces/${encodeURIComponent(traceId)}`);
+  liveFlowState.trace = trace; liveFlowState.events = Array.isArray(trace.events) ? trace.events.sort((a, b) => a.sequence - b.sequence) : [];
+  liveFlowState.streamCursor = liveFlowState.events.reduce((max, event) => Math.max(max, Number(event.sequence || 0)), 0);
+  adminEl("flowModeBadge").textContent = trace.status === "RUNNING" ? "LIVE" : "REPLAY · $0";
+  adminEl("flowScrubber").max = String(Math.max(0, liveFlowState.events.length - 1));
+  renderFlowTraces(); renderFlowMedia(); selectFlowEvent(trace.status === "RUNNING" ? liveFlowState.events.length - 1 : 0);
+  if (trace.status === "RUNNING") streamFlowTrace(traceId);
+}
+
+
 async function selectAdminSection(section) {
   const knowledge = section === "knowledge";
-  adminEl("adminUsersSection").hidden = knowledge;
+  const flow = section === "live-flow";
+  adminEl("adminUsersSection").hidden = knowledge || flow;
   adminEl("adminKnowledgeSection").hidden = !knowledge;
+  adminEl("adminLiveFlowSection").hidden = !flow;
   document.querySelectorAll("[data-admin-section]").forEach((button) => {
     button.classList.toggle("is-active", button.dataset.adminSection === section);
   });
   if (knowledge) await selectInspectorTab(inspectorState.tab);
+  else if (flow) { window.history.replaceState(null, "", "#live-flow"); await loadFlowTraces(); }
   else window.history.replaceState(null, "", "#users");
 }
 
@@ -2011,6 +2183,15 @@ document.addEventListener(
     });
 
     adminEl("inspectorRefreshBtn")?.addEventListener("click", () => loadInspectorTab(inspectorState.tab, true));
+    adminEl("flowRefreshBtn")?.addEventListener("click", loadFlowTraces);
+    adminEl("flowStatus")?.addEventListener("change", loadFlowTraces);
+    adminEl("flowUser")?.addEventListener("change", loadFlowTraces);
+    adminEl("flowVehicle")?.addEventListener("change", loadFlowTraces);
+    adminEl("flowPlay")?.addEventListener("click", playFlowReplay);
+    adminEl("flowPause")?.addEventListener("click", stopFlowPlayback);
+    adminEl("flowRestart")?.addEventListener("click", () => { stopFlowPlayback(); selectFlowEvent(0); });
+    adminEl("flowSpeed")?.addEventListener("change", (event) => { liveFlowState.speed = Number(event.target.value || 1); });
+    adminEl("flowScrubber")?.addEventListener("input", (event) => { stopFlowPlayback(); selectFlowEvent(Number(event.target.value)); });
 
     document.addEventListener("toggle", (event) => {
       const details = event.target.closest?.("details[data-inspector-kind]");
@@ -2021,6 +2202,17 @@ document.addEventListener(
     }, true);
 
     document.addEventListener("click", async (event) => {
+      const flowTrace = event.target.closest?.("[data-flow-trace]");
+      if (flowTrace) { await selectFlowTrace(flowTrace.dataset.flowTrace); return; }
+      const flowEvent = event.target.closest?.("[data-flow-event]");
+      if (flowEvent) { stopFlowPlayback(); selectFlowEvent(Number(flowEvent.dataset.flowEvent)); return; }
+      const flowNode = event.target.closest?.("[data-flow-node]");
+      if (flowNode) {
+        const name = flowNode.dataset.flowNode;
+        const index = liveFlowState.events.findLastIndex((item) => item.from_node === name || item.to_node === name || item.table_name === name);
+        if (index >= 0) selectFlowEvent(index);
+        return;
+      }
       const adminJump = event.target.closest?.("[data-admin-jump]");
       if (adminJump) {
         await selectAdminSection(adminJump.dataset.adminJump);

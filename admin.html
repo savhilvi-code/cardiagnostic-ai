@@ -8,7 +8,7 @@
   <meta name="robots" content="noindex, nofollow">
 
   <link rel="icon" type="image/png" href="assets/img/puls-logo.png">
-  <link rel="stylesheet" href="assets/css/admin.css?v=20260917-03">
+  <link rel="stylesheet" href="assets/css/admin.css?v=20260919-01">
 </head>
 
 <body>
@@ -36,6 +36,10 @@
         <button class="admin-nav-item" type="button" data-admin-section="knowledge">
           <span class="admin-nav-icon" aria-hidden="true">▦</span>
           <span>Knowledge Base</span>
+        </button>
+        <button class="admin-nav-item" type="button" data-admin-section="live-flow">
+          <span class="admin-nav-icon" aria-hidden="true">⇄</span>
+          <span>Live Request Flow</span>
         </button>
       </nav>
 
@@ -297,6 +301,25 @@
           <div id="inspectorStatus" class="admin-status" role="status" aria-live="polite"></div>
         </div>
 
+        <div id="adminLiveFlowSection" class="admin-section" hidden>
+          <div class="admin-page-heading">
+            <div><div class="admin-eyebrow">Observability</div><h1>Live Request Flow</h1><p>Actual request paths, data movement and zero-cost replay.</p></div>
+            <div class="admin-heading-actions"><span id="flowModeBadge" class="admin-readonly-badge">REPLAY</span><button id="flowRefreshBtn" class="admin-button" type="button">Refresh</button></div>
+          </div>
+          <div class="flow-layout">
+            <aside class="flow-recent-panel">
+              <div class="inspector-toolbar flow-filters"><select id="flowStatus" class="admin-select"><option value="">All statuses</option><option value="RUNNING">LIVE</option><option value="COMPLETED">Completed</option><option value="FAILED">Failed</option></select><input id="flowUser" class="admin-search" placeholder="User ID"><input id="flowVehicle" class="admin-search" placeholder="Vehicle ID"></div>
+              <h2>Recent requests</h2><div id="flowTraceList" class="flow-trace-list"><div class="admin-empty">Loading traces…</div></div>
+            </aside>
+            <section class="flow-stage-panel">
+              <div class="flow-controls"><button id="flowPlay" class="admin-button" type="button">▶ Play</button><button id="flowPause" class="admin-button" type="button">⏸ Pause</button><button id="flowRestart" class="admin-button" type="button">↺ Restart</button><select id="flowSpeed" class="admin-select" aria-label="Replay speed"><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option></select><input id="flowScrubber" type="range" min="0" max="0" value="0" aria-label="Timeline scrubber"><span id="flowClock">0 / 0</span></div>
+              <div id="flowGraph" class="flow-graph" aria-label="Request data flow"><div class="admin-empty">Select a request.</div></div>
+              <div class="flow-bottom-grid"><section><h2>Timeline</h2><div id="flowTimeline" class="flow-timeline"></div></section><section><h2>Inspector</h2><pre id="flowInspector" class="flow-inspector">Select a node, connection or event.</pre></section><section><h2>Sources & images</h2><div id="flowMedia" class="flow-media"><div class="admin-empty">No source events.</div></div></section></div>
+            </section>
+          </div>
+          <div id="flowStatusMessage" class="admin-status" role="status" aria-live="polite"></div>
+        </div>
+
       </section>
 
     </main>
@@ -432,6 +455,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/supabaseClient.js"></script>
   <script src="assets/js/config.js"></script>
-  <script src="assets/js/admin.js?v=20260917-03"></script>
+  <script src="assets/js/admin.js?v=20260919-01"></script>
 </body>
 </html>
