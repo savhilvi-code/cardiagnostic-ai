@@ -81,9 +81,15 @@ window.PulsCar = (() => {
   function problemCard(p){return `<button type="button" class="problem-card" data-car-problem="${esc(p.id)}"><strong>${esc(p.title||text('problems'))}</strong><span>${esc(text(p.status))}</span><small>${esc(text('started'))}: ${esc(date(p.first_seen_at||p.created_at))}</small></button>`;}
   function timeline(){
     // Structured technical records only. Conversation messages never enter this log.
-    const rows=state.events.map(e=>({...e,time:e.occurred_at||e.created_at,category:/maintenance|service/i.test(e.event_type)?'maintenance':/repair|replacement/i.test(e.event_type)?'repairs':/problem|diagnos|result/i.test(e.event_type)?'problems':'all'}));
-    for(const p of state.problems)rows.push({id:p.id,problem_id:p.id,title:p.title,description:[text(p.status),p.current_conclusion,Object.keys(p.confirmation||{}).length?valueText(p.confirmation):''].filter(Boolean).join('\n'),time:p.last_seen_at||p.updated_at||p.first_seen_at||p.created_at,mileage:p.mileage,category:'problems'});
+    const factualEvents=new Set(['SYMPTOM','DTC','CHECK','REPAIR','SERVICE','MAINTENANCE','REPLACEMENT','RESULT','MILEAGE','NOTE']);
+    const rows=state.events.filter(e=>factualEvents.has(String(e.event_type||'').toUpperCase())).map(e=>{const type=String(e.event_type||'').toUpperCase();return {...e,time:e.occurred_at||e.created_at,category:['SERVICE','MAINTENANCE'].includes(type)?'maintenance':['REPAIR','REPLACEMENT','RESULT'].includes(type)?'repairs':'event',recordKind:'event'};});
+    for(const p of state.problems)rows.push({id:p.id,problem_id:p.id,title:p.title,description:[text(p.status),p.current_conclusion,Object.keys(p.confirmation||{}).length?valueText(p.confirmation):''].filter(Boolean).join('\n'),time:p.last_seen_at||p.updated_at||p.first_seen_at||p.created_at,mileage:p.mileage,category:'problems',recordKind:'problem',active:['OPEN','IN_PROGRESS'].includes(p.status)});
     return rows.sort((a,b)=>(Date.parse(b.time)||0)-(Date.parse(a.time)||0));
+  }
+  function matchesHistoryFilter(row){
+    if(filter==='all')return true;
+    if(filter==='problems')return row.recordKind==='problem'&&row.active;
+    return row.recordKind==='event'&&row.category===filter;
   }
   function logMarkup(rows){return rows.length?`<ol class="vehicle-log">${rows.map(e=>`<li><div class="log-meta">${esc(date(e.time))}${e.mileage!=null?` · ${esc(e.mileage)} km`:''}</div>${e.problem_id?`<button class="log-problem" type="button" data-car-problem="${esc(e.problem_id)}">${esc(e.title||e.event_type)}</button>`:`<strong>${esc(e.title||e.event_type)}</strong>`}${e.description?`<p>${esc(e.description)}</p>`:''}${Object.keys(e.event_data||{}).length?`<p>${esc(valueText(e.event_data))}</p>`:''}</li>`).join('')}</ol>`:notice('noEvents');}
   function renderSections(v){
@@ -92,7 +98,7 @@ window.PulsCar = (() => {
     el('vehicleProblems').innerHTML=state.errors.problems?errorBlock():active.map(problemCard).join('')||notice('noProblems');
     const rows=timeline(), warning=state.errors.events||state.errors.problems?errorBlock():'';
     el('vehicleRecentLog').innerHTML=warning+logMarkup(rows.slice(0,5));
-    el('vehicleHistory').innerHTML=warning+logMarkup(rows.filter(e=>filter==='all'||e.category===filter));
+    el('vehicleHistory').innerHTML=warning+logMarkup(rows.filter(matchesHistoryFilter));
     document.querySelectorAll('[data-car-filter]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.carFilter===filter)));
     if(state.errors.detail){el('vehicleData').innerHTML=errorBlock();return;}
     const s=specValues(state.detail?.specs||{});
