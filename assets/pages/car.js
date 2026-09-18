@@ -29,6 +29,12 @@ window.PulsCar = (() => {
     if(Array.isArray(raw.items))return Object.fromEntries(raw.items.filter(row=>row.parameter_key).map(row=>[row.parameter_key,row.actual_value ?? row.recommended_value ?? '']));
     return {...raw,...(raw.specs||{})};
   }
+  const wheelSpecLabels={wheel_rim_size:['Wheel / rim size','Размер диска'],tire_size:['Tire size','Размер шины'],tire_pressure:['Tire pressure','Давление в шинах'],tire_pressure_front:['Front tire pressure','Давление спереди'],tire_pressure_rear:['Rear tire pressure','Давление сзади']};
+  function specRows(raw={}){return Array.isArray(raw.items)?raw.items:[];}
+  function specValueList(rows,field){
+    const values=rows.filter(row=>wheelSpecLabels[row.parameter_key]&&row[field]!=null&&row[field]!=='').map(row=>[wheelSpecLabels[row.parameter_key][getLanguage()==='ru'?1:0],row[field]]);
+    return values.length?`<dl class="vehicle-data-list">${values.map(([k,v])=>`<dt>${esc(k)}</dt><dd>${esc(valueText(v))}</dd>`).join('')}</dl>`:notice('unavailable');
+  }
   async function api(path,options={}) {
     const headers=await backendAuthHeaders();
     if(!headers.Authorization) throw Error('Authentication required');
@@ -101,9 +107,9 @@ window.PulsCar = (() => {
     el('vehicleHistory').innerHTML=warning+logMarkup(rows.filter(matchesHistoryFilter));
     document.querySelectorAll('[data-car-filter]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.carFilter===filter)));
     if(state.errors.detail){el('vehicleData').innerHTML=errorBlock();return;}
-    const s=specValues(state.detail?.specs||{});
+    const rawSpecs=state.detail?.specs||{},s=specValues(rawSpecs),wheelRows=specRows(rawSpecs);
     const groups=[['mainSpecs',[['Make',v.brand],['Model',v.model],[text('generation'),v.generation],['Year',v.year],['VIN / chassis',v.vin],[text('mileage'),v.mileage?`${v.mileage} km`:'']]],['engineFluids',[['Engine',v.engine],['Transmission',v.transmission],['Drivetrain',v.drive],['Displacement',s.displacement],['Power',s.power],['Torque',s.torque],['Engine type',s.engine_type],['Cylinders',s.cylinders]]],['consumables',[]],['wheels',[]],['fuelCapacities',[['Fuel',v.fuel],['Tank',s.tank]]],['electrical',[]],['dimensions',[]],['service',[]],['environment',[['Emissions',s.emissions]]]];
-    el('vehicleData').innerHTML=groups.map(([key,entries],i)=>`<details class="vehicle-data-group" ${i===0?'open':''}><summary>${esc(text(key))}</summary>${entries.some(([,x])=>x!=null&&x!=='')?`<dl class="vehicle-data-list">${entries.filter(([,x])=>x!=null&&x!=='').map(([k,x])=>`<dt>${esc(k)}</dt><dd>${esc(valueText(x))}</dd>`).join('')}</dl>`:notice('unavailable')}${key==='consumables'?`<div class="vehicle-values"><div><h4>${esc(text('recommended'))}</h4>${notice('unavailable')}</div><div><h4>${esc(text('actual'))}</h4>${notice('unavailable')}</div></div>`:''}</details>`).join('');
+    el('vehicleData').innerHTML=groups.map(([key,entries],i)=>`<details class="vehicle-data-group" ${i===0?'open':''}><summary>${esc(text(key))}</summary>${key==='wheels'?`<div class="vehicle-values"><div><h4>${esc(text('recommended'))}</h4>${specValueList(wheelRows,'recommended_value')}</div><div><h4>${esc(text('actual'))}</h4>${specValueList(wheelRows,'actual_value')}</div></div>`:entries.some(([,x])=>x!=null&&x!=='')?`<dl class="vehicle-data-list">${entries.filter(([,x])=>x!=null&&x!=='').map(([k,x])=>`<dt>${esc(k)}</dt><dd>${esc(valueText(x))}</dd>`).join('')}</dl>`:notice('unavailable')}${key==='consumables'?`<div class="vehicle-values"><div><h4>${esc(text('recommended'))}</h4>${notice('unavailable')}</div><div><h4>${esc(text('actual'))}</h4>${notice('unavailable')}</div></div>`:''}</details>`).join('');
   }
   function modal(content){el('vehicleDialogContent').innerHTML=content;if(!el('vehicleDialog').open)el('vehicleDialog').showModal();}
   function close(){el('vehicleDialog').close();selectedProblem=null;}

@@ -34,7 +34,7 @@ let browser;
       lastChat=request.postDataJSON();const now=new Date().toISOString();
       if(!lastChat.conversation_id)rows=[];
       rows.push({id:'u',role:'USER',content:lastChat.message,conversation_id:CONV,vehicle_id:lastChat.vehicle_id||null,problem_id:lastChat.problem_id||null,created_at:now},{id:'a',role:'ASSISTANT',content:'Check the intake safely.',conversation_id:CONV,vehicle_id:lastChat.vehicle_id||null,problem_id:lastChat.problem_id||null,created_at:now});
-      return json({conversation_id:CONV,vehicle_id:lastChat.vehicle_id||null,problem_id:lastChat.problem_id||null,answer:'Check the intake safely.',quota:{remaining:2,limit:5}});
+      return json({conversation_id:CONV,vehicle_id:lastChat.vehicle_id||null,problem_id:lastChat.problem_id||null,answer:'Check the intake safely.',links:[{title:'AL4 dipstick photograph',url:'https://images.example.test/al4-dipstick.jpg',source_url:'https://forum.example.test/al4-level-check',type:'image'}],quota:{remaining:2,limit:5}});
     }
     if(p===`/api/problems/${P}`)return json({problem,vehicle:vehicles.find(v=>v.id===A),sources:[{extracted_evidence:'Confirmed forum case',sources:{title:'Technical forum thread',url:'https://example.test/peugeot-thread',domain:'example.test'}}]});
     if(p==='/api/vehicles'&&request.method()==='GET')return json({vehicles:url.searchParams.has('include_trashed')?vehicles:vehicles.filter(v=>v.lifecycle_status==='ACTIVE')});
@@ -48,7 +48,7 @@ let browser;
     if(p.endsWith('/restore')){v.lifecycle_status='ACTIVE';return json({vehicle:v});}
     if(v&&request.method()==='DELETE'){v.lifecycle_status='TRASHED';v.restore_until=new Date(Date.now()+30*86400000).toISOString();return json({deleted:true});}
     if(v&&request.method()==='PUT'){Object.assign(v,request.postDataJSON());return json({vehicle:v});}
-    if(v)return json({vehicle:v,specs:{vehicle_id:id,items:[{parameter_key:'displacement',actual_value:'2.0 L'},{parameter_key:'power',actual_value:'206 kW'}]}});
+    if(v)return json({vehicle:v,specs:{vehicle_id:id,items:[{parameter_key:'displacement',actual_value:'2.0 L'},{parameter_key:'power',actual_value:'206 kW'},...(id===A?[{parameter_key:'wheel_rim_size',parameter_name:'Wheel / rim size',actual_value:'R16',source_type:'USER'},{parameter_key:'tire_pressure_front',parameter_name:'Front tire pressure',recommended_value:'2.2 bar',source_type:'MANUAL'},{parameter_key:'tire_pressure_rear',parameter_name:'Rear tire pressure',recommended_value:'2.0 bar',source_type:'MANUAL'}]:[])]}});
     return route.fulfill({status:404,body:'No fixture'});
   });
   const page=await context.newPage(),errors=[];
@@ -89,6 +89,11 @@ let browser;
   assert(!await page.locator('#carVehicle').innerText().then(s=>s.includes('Uneven idle')));
   await page.locator('[data-car-vehicle="'+A+'"]').click();
   await page.locator('[data-car-tab="data"]').click();
+  const wheelSection=page.locator('.vehicle-data-group').filter({hasText:'Wheels and pressure'});
+  await wheelSection.locator('summary').click();
+  const wheelText=await wheelSection.innerText();assert(wheelText.includes('R16'));assert(wheelText.includes('2.2 bar'));assert(wheelText.includes('2.0 bar'));
+  await page.locator('[data-car-tab="overview"]').click();
+  await page.locator('[data-car-tab="data"]').click();
   await page.waitForFunction(()=>document.querySelector('#vehicleData').textContent.includes('2.0 L'));
   await page.locator('.vehicle-actions summary').click();await page.locator('[data-car-action="edit"]').click();
   assert.equal(await page.locator('#specPower').inputValue(),'206 kW');
@@ -105,6 +110,8 @@ let browser;
   assert(await page.locator('#assistant').evaluate(n=>n.classList.contains('active')));
   await page.locator('#promptInput').fill('What should I inspect?');await page.locator('#sendBtn').click();
   await page.waitForFunction(()=>!window.PulsChat.sending&&document.querySelector('#messages').textContent.includes('Check the intake'));
+  const visual=page.locator('#messages .puls-search-visual img').last();await visual.waitFor();assert(!(await visual.getAttribute('src')).includes('puls-logo'));
+  assert.equal(await page.locator('#messages .puls-search-visual figcaption a').last().getAttribute('href'),'https://forum.example.test/al4-level-check');
   assert.equal(lastChat.vehicle_id,A);assert.equal(lastChat.problem_id,P);
   await page.locator('#promptInput').fill('The intake looks intact');await page.locator('#sendBtn').click();
   await page.waitForFunction(()=>!window.PulsChat.sending&&document.querySelectorAll('#messages .bubble').length===4);
@@ -149,7 +156,7 @@ let browser;
     return [0,0.5,5,12,13].map(h=>window.PulsChat.sessionRows([row(h)],now).length);
   });assert.deepEqual(ttl,[1,1,1,0,0]);
   rows=rows.map(r=>({...r,created_at:new Date(Date.now()-13*3600000).toISOString()}));
-  await page.reload();await page.locator('#pulsSplashHitArea').click();await page.locator('.chat-empty-state').waitFor();assert.equal(rows.length,4);
+  await page.reload();await page.locator('#pulsSplashHitArea').click();await page.waitForFunction(()=>document.querySelectorAll('#messages .bubble').length===0);assert.equal(rows.length,4);
   await page.locator('#promptInput').fill('New session');await page.locator('#sendBtn').click();
   await page.waitForFunction(()=>!window.PulsChat.sending&&document.querySelector('#messages').textContent.includes('Check the intake'));
   assert.equal(lastChat.conversation_id,undefined);

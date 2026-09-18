@@ -2407,8 +2407,14 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       return div;
     }
 
-    function assistantMessageMarkup(text, time) {
-      return `<img class="puls-message-avatar" src="assets/img/puls-logo.png" alt=""><div class="puls-message-body"><strong>PULS</strong><br>${linkifyText(text)} <small>${time}</small></div>`;
+    function assistantMessageMarkup(text, time, rawLinks = []) {
+      const links = normalizeResponseLinks(rawLinks);
+      const media = links.filter(item => item.isImage).map(item => `
+        <figure class="puls-search-visual">
+          <a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer"><img src="${escapeHtml(item.url)}" alt="${escapeHtml(item.title)}" loading="lazy"></a>
+          <figcaption>${escapeHtml(item.title)}${item.sourceUrl ? ` · <a href="${escapeHtml(item.sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(getLanguage()==='ru'?'Источник':'Source')}</a>` : ''}</figcaption>
+        </figure>`).join('');
+      return `<img class="puls-message-avatar" src="assets/img/puls-logo.png" alt=""><div class="puls-message-body"><strong>PULS</strong><br>${linkifyText(text)}${media} <small>${time}</small></div>`;
     }
 
     function scrollMessagesToBottom() {
@@ -2482,15 +2488,16 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         const url = cleanUrl(item.url || item.link || "");
         if (!url || links.some((existing) => existing.url === url)) continue;
         const linkType = String(item.type || "").toLowerCase();
-        const isVideo = /youtube\.com|youtu\.be|rutube\.ru|vimeo\.com/i.test(url) || linkType === "video";
-        const isImage = ["image", "photo", "picture"].includes(linkType) || /\.(?:png|jpe?g|webp|gif)(?:\?|$)/i.test(url);
+        const isVideo = Boolean(item.isVideo) || /youtube\.com|youtu\.be|rutube\.ru|vimeo\.com/i.test(url) || linkType === "video";
+        const isImage = Boolean(item.isImage) || ["image", "photo", "picture"].includes(linkType) || /\.(?:png|jpe?g|webp|gif)(?:\?|$)/i.test(url);
         links.push({
           title: String(item.title || item.forum || item.name || item.source || (isVideo ? t("request.relatedVideo") : t("request.relatedLink"))),
           url,
           source: String(item.source || item.forum || item.description || ""),
           description: String(item.description || item.key_info || ""),
           isVideo,
-          isImage
+          isImage,
+          sourceUrl: cleanUrl(item.sourceUrl || item.source_url || item.source_page_url || "")
         });
       }
       return links;
@@ -3038,7 +3045,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         if (chatOwner !== window.pulsCurrentUser?.id) return;
         const answer = data.answer || data.reply || data.message || data.output || rawAnswer || JSON.stringify(data, null, 2);
         const links = normalizeResponseLinks(data.links || []);
-        loading.innerHTML = assistantMessageMarkup(answer, new Date().toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" }));
+        loading.innerHTML = assistantMessageMarkup(answer, new Date().toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" }), links);
           updateQuota(data.quota);
           await window.PulsChat.afterSend(data, chatOwner);
           window.PulsCar.invalidate();
