@@ -415,10 +415,11 @@
           <span data-i18n="service.mileage">Пробег</span>
           <input id="serviceMileageInput" type="text" placeholder="98 500 км" required>
         </label>
-        <label class="service-wide" hidden>
-          <span data-i18n="service.photo">Фото / стикер</span>
-          <input id="servicePhotoInput" type="file" accept="image/*" disabled title="Attachments will be connected separately">
+        <label class="service-wide">
+          <span data-i18n="service.attachments">Attachments</span>
+          <input id="servicePhotoInput" type="file" accept="image/*,video/*,.pdf,.txt,.csv,.json,.doc,.docx,.xls,.xlsx" multiple>
         </label>
+        <div id="serviceAttachmentList" class="support-file-list service-wide"></div>
         <div class="service-preview service-wide" id="servicePreview">
           <span class="service-preview-icon" aria-hidden="true">🛠</span>
           <div>
@@ -478,7 +479,7 @@
   <script src="assets/js/auth.js?v=20260917-block41"></script>
   <script src="assets/js/config.js?v=20260706-01"></script>
   <script src="assets/js/chat-session.js?v=20260920-attachments1"></script>
-  <script src="assets/pages/car.js?v=20260920-events1"></script>
-  <script src="assets/js/app.js?v=20260920-events1"></script>
+  <script src="assets/pages/car.js?v=20260920-event-files1"></script>
+  <script src="assets/js/app.js?v=20260920-event-files1"></script>
 </body>
 </html>

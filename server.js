@@ -53,6 +53,24 @@ app.use("/api/vehicle-events", asyncRoute(async (req, res) => {
   res.status(response.status).type(contentType).send(text);
 }));
 
+app.use("/api/storage", asyncRoute(async (req, res) => {
+  const chunks = [];
+  if (!["GET", "HEAD"].includes(req.method)) {
+    for await (const chunk of req) chunks.push(chunk);
+  }
+  const { response, text, contentType } = await proxyBackend(req.originalUrl, {
+    method: req.method,
+    headers: {
+      ...(req.headers.authorization ? { Authorization: req.headers.authorization } : {}),
+      ...(!["GET", "HEAD"].includes(req.method) && req.headers["content-type"]
+        ? { "Content-Type": req.headers["content-type"] }
+        : {}),
+    },
+    ...(["GET", "HEAD"].includes(req.method) ? {} : { body: Buffer.concat(chunks) }),
+  });
+  res.status(response.status).type(contentType).send(text);
+}));
+
 app.get(["/api/history", "/api/quota", "/api/problems/:problemId", "/api/conversations/:conversationId/messages"], asyncRoute(async (req, res) => {
   const { response, text, contentType } = await proxyBackend(req.path, {
     headers: req.headers.authorization ? { Authorization: req.headers.authorization } : {},

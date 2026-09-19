@@ -1,5 +1,11 @@
 # Frontend Task Log
 
+## 2026-09-20 — Service/Repair attachments
+
+- Enabled photo/video/document selection in the persisted Service/Repair modal; files upload only after backend returns the real `vehicle_events.id`.
+- History loads attachment metadata per Service/Repair event and downloads through the authenticated backend. No Data URL or localStorage file persistence is used.
+- All remains an aggregate filter only; no Vehicle relation or duplicate binary is created.
+
 ## 2026-09-20 — Persisted My Car Service/Repair
 
 - Reused the existing Service modal for create/edit and switched new records from temporary `srv_*`/localStorage writes to authenticated `vehicle_events` POST/PUT responses.

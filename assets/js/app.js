@@ -184,6 +184,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "spec.tankValue": "Auto-filled after car selection",
         "service.title": "Record title",
         "service.type": "Record type",
+        "service.attachments": "Photo, video or document",
         "service.description": "Description",
         "service.date": "Date",
         "service.mileage": "Mileage",
@@ -455,6 +456,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "spec.tankValue": "Заполнится автоматически после выбора авто",
         "service.title": "Название записи",
         "service.type": "Тип записи",
+        "service.attachments": "Фото, видео или документ",
         "service.description": "Описание",
         "service.date": "Дата",
         "service.mileage": "Пробег",
@@ -2696,6 +2698,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       renderServiceRecords(active);
     }
 
+    let serviceModalFiles = [];
+
     function openServiceModal({ vehicleId = "", event = null } = {}) {
       const modal = $("#serviceModal");
       if (!modal) return;
@@ -2709,7 +2713,9 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       $("#serviceDescriptionInput").value = event?.description || "";
       $("#serviceMileageInput").value = event?.mileage ?? "";
       const photoInput = $("#servicePhotoInput");
-      if (photoInput) delete photoInput.dataset.previewUrl;
+      if (photoInput) photoInput.value = "";
+      serviceModalFiles = Array.isArray(event?.attachments) ? event.attachments : [];
+      renderServiceAttachments(serviceModalFiles);
       const now = new Date();
       const dateInput = $("#serviceDateInput");
       if (dateInput) dateInput.value = String(event?.event_date || event?.occurred_at || now.toISOString()).slice(0, 10);
@@ -2728,6 +2734,23 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       if (!modal) return;
       modal.classList.remove("show");
       modal.setAttribute("aria-hidden", "true");
+    }
+
+    function renderServiceAttachments(files = [], pending = []) {
+      const list = $("#serviceAttachmentList");
+      if (!list) return;
+      const saved = files.map((file) => `<div class="support-file-item">${escapeHtml(file.original_filename || "Attachment")}</div>`);
+      const selected = pending.map((file) => `<div class="support-file-item">${escapeHtml(file.name)} · ${getLanguage() === "en" ? "pending" : "ожидает загрузки"}</div>`);
+      list.innerHTML = [...saved, ...selected].join("") || `<div class="support-file-item">${getLanguage() === "en" ? "No attachments" : "Нет вложений"}</div>`;
+    }
+
+    async function loadVehicleEventFiles(eventId) {
+      const response = await fetch(`${API_BASE_URL}/api/storage/vehicle-events/${encodeURIComponent(eventId)}/files`, {
+        headers: await backendAuthHeaders()
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(String(data?.detail || "Could not load attachments."));
+      return Array.isArray(data.files) ? data.files : [];
     }
 
     async function fileToDataUrl(file) {
@@ -2785,6 +2808,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       const date = String($("#serviceDateInput")?.value || "").trim();
       const mileageText = String($("#serviceMileageInput")?.value || "").trim();
       const mileage = Number(mileageText.replace(/[^0-9]/g, ""));
+      const attachments = Array.from($("#servicePhotoInput")?.files || []);
 
       if (!vehicleId) {
         if (status) status.textContent = getLanguage() === "en" ? "Choose or create a car first." : "Сначала выберите или создайте автомобиль.";
@@ -2815,10 +2839,29 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok || !data.event?.id) throw new Error(String(data?.detail || "Vehicle event was not saved."));
-        window.PulsCar.eventSaved(data.event);
+        $("#serviceEventId").value = data.event.id;
+        window.PulsCar.eventSaved({...data.event, attachments: serviceModalFiles});
+        for (const file of attachments) {
+          const form = new FormData();
+          form.set("file", file);
+          const uploaded = await fetch(`${API_BASE_URL}/api/storage/vehicle-events/${encodeURIComponent(data.event.id)}/files`, {
+            method: "POST", headers: await backendAuthHeaders(), body: form
+          });
+          const uploadData = await uploaded.json().catch(() => ({}));
+          if (!uploaded.ok) throw new Error(String(uploadData?.detail || "Attachment upload failed."));
+          if (uploadData.file?.id) {
+            serviceModalFiles = [...serviceModalFiles, uploadData.file];
+            renderServiceAttachments(serviceModalFiles);
+            window.PulsCar.eventSaved({...data.event, attachments: serviceModalFiles});
+          }
+        }
+        try { serviceModalFiles = await loadVehicleEventFiles(data.event.id); } catch { /* Uploaded metadata is already available. */ }
+        window.PulsCar.eventSaved({...data.event, attachments: serviceModalFiles});
         if (status) status.textContent = t("service.saved");
         closeServiceModal();
       } catch (error) {
+        if ($("#servicePhotoInput")) $("#servicePhotoInput").value = "";
+        renderServiceAttachments(serviceModalFiles);
         if (status) status.textContent = String(error.message || t("service.saveError"));
       } finally {
         if (submit) submit.disabled = false;
@@ -3303,10 +3346,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         $(selector)?.addEventListener("input", () => updateServicePreview($("#servicePhotoInput")?.dataset.previewUrl || ""));
       });
       $("#servicePhotoInput")?.addEventListener("change", async (event) => {
-        const file = event.target.files?.[0] || null;
-        const photoUrl = file ? await fileToDataUrl(file) : "";
-        event.target.dataset.previewUrl = photoUrl;
-        updateServicePreview(photoUrl);
+        renderServiceAttachments(serviceModalFiles, Array.from(event.target.files || []));
       });
       $("#languageSelect")?.addEventListener("input", handleLanguageSelectChange);
       $("#languageSelect")?.addEventListener("change", handleLanguageSelectChange);

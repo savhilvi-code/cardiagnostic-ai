@@ -78,6 +78,12 @@ window.PulsCar = (() => {
       else if(key==='detail'){if(r.value.vehicle?.id!==id)state.errors[key]=true;else state.detail=r.value;}
       else state[key]=(r.value[key]||[]).filter(row=>row.vehicle_id===id);
     });
+    if(!state.errors.events){
+      const relevant=state.events.filter(row=>['SERVICE','REPAIR'].includes(String(row.event_type||'').toUpperCase()));
+      const attached=await Promise.allSettled(relevant.map(row=>api(`/api/storage/vehicle-events/${encodeURIComponent(row.id)}/files`)));
+      if(request!==version||owner!==window.pulsCurrentUser?.id||loadVehicleProfile().id!==id)return;
+      relevant.forEach((row,index)=>{if(attached[index].status==='fulfilled')row.attachments=attached[index].value.files||[];});
+    }
     if(state.detail){
       const detail=state.detail;
       saveVehicleProfile(vehicleFromApi({...detail.vehicle,...specValues(detail.specs||{}),id:detail.vehicle.id}));
@@ -97,7 +103,8 @@ window.PulsCar = (() => {
     if(filter==='problems')return row.recordKind==='problem'&&row.active;
     return row.recordKind==='event'&&row.category===filter;
   }
-  function logMarkup(rows){return rows.length?`<ol class="vehicle-log">${rows.map(e=>`<li><div class="log-meta">${esc(date(e.time))}${e.mileage!=null?` · ${esc(e.mileage)} km`:''}</div>${e.problem_id?`<button class="log-problem" type="button" data-car-problem="${esc(e.problem_id)}">${esc(e.title||e.event_type)}</button>`:`<strong>${esc(e.title||e.event_type)}</strong>`}${e.description?`<p>${esc(e.description)}</p>`:''}${Object.keys(e.event_data||{}).length?`<p>${esc(valueText(e.event_data))}</p>`:''}${e.recordKind==='event'&&['SERVICE','REPAIR'].includes(String(e.event_type||'').toUpperCase())?`<button class="btn" type="button" data-car-event-edit="${esc(e.id)}">${esc(text('editEntry'))}</button>`:''}</li>`).join('')}</ol>`:notice('noEvents');}
+  function attachmentMarkup(files=[]){return files.length?`<div class="vehicle-event-files">${files.map(file=>`<button class="btn" type="button" data-car-file-download="${esc(file.id)}" data-car-file-name="${esc(file.original_filename||'attachment')}">📎 ${esc(file.original_filename||'Attachment')}</button>`).join('')}</div>`:'';}
+  function logMarkup(rows){return rows.length?`<ol class="vehicle-log">${rows.map(e=>`<li><div class="log-meta">${esc(date(e.time))}${e.mileage!=null?` · ${esc(e.mileage)} km`:''}</div>${e.problem_id?`<button class="log-problem" type="button" data-car-problem="${esc(e.problem_id)}">${esc(e.title||e.event_type)}</button>`:`<strong>${esc(e.title||e.event_type)}</strong>`}${e.description?`<p>${esc(e.description)}</p>`:''}${Object.keys(e.event_data||{}).length?`<p>${esc(valueText(e.event_data))}</p>`:''}${attachmentMarkup(e.attachments)}${e.recordKind==='event'&&['SERVICE','REPAIR'].includes(String(e.event_type||'').toUpperCase())?`<button class="btn" type="button" data-car-event-edit="${esc(e.id)}">${esc(text('editEntry'))}</button>`:''}</li>`).join('')}</ol>`:notice('noEvents');}
   function renderSections(v){
     if(state.loading){['vehicleProblems','vehicleRecentLog','vehicleHistory','vehicleData'].forEach(id=>el(id).innerHTML=notice('loading'));return;}
     const active=state.problems.filter(p=>['OPEN','IN_PROGRESS'].includes(p.status));
@@ -151,6 +158,7 @@ window.PulsCar = (() => {
   function closeNavigation(){document.body.classList.remove('navigation-open');el('mobileNavToggle')?.setAttribute('aria-expanded','false');if(el('mobileNavBackdrop'))el('mobileNavBackdrop').hidden=true;}
   function invalidate(){++version;state.id='';}
   function eventSaved(saved){if(!saved?.id||String(saved.vehicle_id)!==String(state.id))return;const index=state.events.findIndex(row=>String(row.id)===String(saved.id));if(index>=0)state.events[index]=saved;else state.events.unshift(saved);renderSections(loadVehicleProfile());}
+  async function downloadFile(id,name){try{const response=await fetch(`${API_BASE_URL}/api/storage/files/${encodeURIComponent(id)}/download`,{headers:await backendAuthHeaders()});if(!response.ok)throw Error(`HTTP ${response.status}`);const url=URL.createObjectURL(await response.blob()),link=document.createElement('a');link.href=url;link.download=name||'attachment';document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}catch{toast(text('loadError'));}}
   function authChanged(){const next=window.pulsCurrentUser?.id||'';if(next===authOwner)return;authOwner=next;++version;state={id:'',owner:'',loading:false,detail:null,problems:[],events:[],errors:{}};editing=false;selectedProblem=null;serverVehicleStore=null;++vehicleLookupRequestId;if(el('vehicleDialog')?.open)close();render();}
   function init(){
     if(initialized)return;initialized=true;authOwner=window.pulsCurrentUser?.id||'';
@@ -162,10 +170,11 @@ window.PulsCar = (() => {
     el('mobileNavBackdrop').addEventListener('click',closeNavigation);
     document.addEventListener('keydown',event=>{if(event.key==='Escape')closeNavigation();if(event.target.matches('[data-car-tab]')&&['ArrowLeft','ArrowRight','Home','End'].includes(event.key)){event.preventDefault();const tabs=['overview','data','history'],index=event.key==='Home'?0:event.key==='End'?2:(tabs.indexOf(tab)+(event.key==='ArrowRight'?1:2))%3;setTab(tabs[index]);el(`tab-${tabs[index]}`).focus();}});
     document.addEventListener('click',async event=>{
-      const b=event.target.closest('[data-car-action],[data-car-tab],[data-car-filter],[data-car-problem],[data-car-event-edit],[data-car-vehicle],[data-car-restore]');if(!b||b.disabled||busy)return;const d=b.dataset;
+      const b=event.target.closest('[data-car-action],[data-car-tab],[data-car-filter],[data-car-problem],[data-car-event-edit],[data-car-file-download],[data-car-vehicle],[data-car-restore]');if(!b||b.disabled||busy)return;const d=b.dataset;
       if(d.carTab)return setTab(d.carTab);
       if(d.carFilter){filter=d.carFilter;renderSections(loadVehicleProfile());return;}
       if(d.carProblem)return problem(d.carProblem);
+      if(d.carFileDownload){await downloadFile(d.carFileDownload,d.carFileName);return;}
       if(d.carEventEdit){const row=state.events.find(item=>item.id===d.carEventEdit);if(row)window.PulsService.open({vehicleId:state.id,event:row});return;}
       if(d.carVehicle){editing=false;++vehicleLookupRequestId;fillVehicleForm(setActiveVehicleProfile(d.carVehicle));tab='overview';filter='all';render();return;}
       if(d.carRestore){b.disabled=true;try{await api(`/api/vehicles/${encodeURIComponent(d.carRestore)}/restore`,{method:'POST'});close();await syncVehicleStoreFromBackend();invalidate();render();}catch{b.disabled=false;toast(text('loadError'));}return;}
