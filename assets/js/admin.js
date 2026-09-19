@@ -1973,7 +1973,7 @@ function initializeSidebar() {
 
 const liveFlowState = {
   traces: [], trace: null, events: [], index: -1, timer: null,
-  speed: 1, streamAbort: null, streamCursor: 0
+  speed: 1, streamAbort: null, streamCursor: 0, mode: "trace"
 };
 
 
@@ -2028,14 +2028,14 @@ function selectFlowEvent(index) {
   liveFlowState.index = Math.max(-1, Math.min(Number(index), maximum));
   if (adminEl("flowScrubber")) adminEl("flowScrubber").value = String(Math.max(0, liveFlowState.index));
   if (adminEl("flowClock")) adminEl("flowClock").textContent = `${Math.max(0, liveFlowState.index + 1)} / ${liveFlowState.events.length}`;
-  renderFlowGraph();
+  renderFlowVisualization();
   renderFlowTimeline();
   const event = liveFlowState.events[liveFlowState.index];
   if (event) adminEl("flowInspector").textContent = JSON.stringify(event, null, 2);
 }
 
 
-function renderFlowGraph() {
+function renderFlowTrace() {
   const graph = adminEl("flowGraph");
   if (!graph) return;
   const applied = liveFlowState.events.slice(0, liveFlowState.index + 1);
@@ -2051,6 +2051,117 @@ function renderFlowGraph() {
     const isActive = active && (active.from_node === name || active.to_node === name);
     return `<button type="button" class="flow-node ${isDb ? "is-db" : ""} ${isActive ? "is-active" : ""}" data-flow-node="${escapeAdminHtml(name)}">${isDb ? "▰ " : ""}${escapeAdminHtml(name)}</button>`;
   }).join("")}</div><div class="flow-edge-list">${applied.map((event, index) => `<button type="button" class="flow-edge ${index === applied.length - 1 ? "is-active" : ""}" data-flow-event="${index}"><span>${escapeAdminHtml(event.from_node || "Event")}</span><i><b></b>${escapeAdminHtml(flowEventLabel(event))}</i><span>${escapeAdminHtml(event.to_node || event.table_name || "Result")}</span></button>`).join("")}</div>`;
+}
+
+
+function flowGraphNodeType(name, events) {
+  if (events.some((event) => event.table_name === name)) return "db";
+  if (/^stage\s+\d+/i.test(name)) return "stage";
+  if (events.some((event) => event.source_group === name)) return "source-group";
+  if (events.some((event) => event.provider === name || event.model === name)) return "provider";
+  if (/knowledge/i.test(name)) return "knowledge";
+  if (/classifier/i.test(name)) return "classifier";
+  if (/context|vehicle fact|conversation|problem/i.test(name)) return "context";
+  if (/user/i.test(name)) return "user";
+  if (/answer/i.test(name)) return "answer";
+  return "process";
+}
+
+
+function flowGraphStatusClass(status = "") {
+  const value = String(status).toUpperCase();
+  if (value === "FAILED") return "is-failed";
+  if (value === "WARNING") return "is-warning";
+  if (value === "SKIPPED") return "is-skipped";
+  return "";
+}
+
+
+function renderFlowArchitectureGraph() {
+  const graph = adminEl("flowGraph");
+  if (!graph) return;
+  const events = liveFlowState.events;
+  if (!events.length) { graph.innerHTML = '<div class="admin-empty">Select a request.</div>'; return; }
+
+  const nodeNames = [];
+  const nodeSeen = new Set();
+  events.forEach((event) => {
+    [event.from_node, event.to_node, event.table_name].filter(Boolean).forEach((name) => {
+      if (!nodeSeen.has(name)) { nodeSeen.add(name); nodeNames.push(name); }
+    });
+  });
+  const lanes = { user: 90, process: 250, context: 410, classifier: 250, knowledge: 410, stage: 410, "source-group": 570, provider: 730, db: 730, answer: 250 };
+  const laneRows = new Map();
+  const positions = new Map();
+  nodeNames.forEach((name) => {
+    const type = flowGraphNodeType(name, events);
+    const x = lanes[type] ?? lanes.process;
+    const row = laneRows.get(x) || 0;
+    laneRows.set(x, row + 1);
+    positions.set(name, { x, y: 70 + row * 106, type });
+  });
+  const height = Math.max(460, ...[...positions.values()].map((position) => position.y + 80));
+  const activeEvent = events[liveFlowState.index];
+  const edges = events.map((event, index) => ({
+    event, index, from: event.from_node, to: event.to_node || event.table_name,
+  })).filter((edge) => edge.from && edge.to && positions.has(edge.from) && positions.has(edge.to));
+
+  const edgeMarkup = edges.map(({ event, index, from, to }) => {
+    const a = positions.get(from), b = positions.get(to);
+    const startX = a.x + 66, startY = a.y + 25, endX = b.x - 66, endY = b.y + 25;
+    const sameLane = Math.abs(a.x - b.x) < 10;
+    const path = sameLane
+      ? `M ${a.x} ${a.y + 51} C ${a.x + 80} ${a.y + 72}, ${b.x + 80} ${b.y - 22}, ${b.x} ${b.y}`
+      : `M ${startX} ${startY} C ${(startX + endX) / 2} ${startY}, ${(startX + endX) / 2} ${endY}, ${endX} ${endY}`;
+    const phase = index === liveFlowState.index ? "is-active" : index < liveFlowState.index ? "is-passed" : "is-future";
+    const statusClass = index <= liveFlowState.index ? flowGraphStatusClass(event.status) : "";
+    const labelX = sameLane ? a.x + 64 : (startX + endX) / 2;
+    const labelY = sameLane ? (a.y + b.y) / 2 : (startY + endY) / 2 - 7;
+    return `<g class="architecture-edge ${phase} ${statusClass}" data-flow-event="${index}" role="button" tabindex="0">
+      <path id="flowGraphEdge${index}" class="architecture-edge-path" d="${path}" marker-end="url(#flowArrow)"></path>
+      <path class="architecture-edge-hit" d="${path}"></path>
+      <text x="${labelX}" y="${labelY}">${escapeAdminHtml(flowEventLabel(event))}</text>
+      ${index === liveFlowState.index ? `<circle class="architecture-pulse" r="6"><animateMotion dur="1.1s" repeatCount="indefinite"><mpath href="#flowGraphEdge${index}"></mpath></animateMotion></circle>` : ""}
+    </g>`;
+  }).join("");
+
+  const nodeMarkup = nodeNames.map((name) => {
+    const position = positions.get(name);
+    const related = events.map((event, index) => ({ event, index })).filter(({ event }) => event.from_node === name || event.to_node === name || event.table_name === name);
+    const passed = related.filter(({ index }) => index <= liveFlowState.index);
+    const nodeEvent = passed.at(-1)?.event;
+    const active = activeEvent && (activeEvent.from_node === name || activeEvent.to_node === name || activeEvent.table_name === name);
+    const phase = active ? "is-active" : passed.length ? "is-passed" : "is-future";
+    const statusClass = nodeEvent ? flowGraphStatusClass(nodeEvent.status) : "";
+    const label = String(name).length > 23 ? `${String(name).slice(0, 21)}…` : String(name);
+    return `<g class="architecture-node is-${position.type} ${phase} ${statusClass}" transform="translate(${position.x - 66} ${position.y})" data-flow-node="${escapeAdminHtml(name)}" role="button" tabindex="0">
+      <rect width="132" height="52" rx="${position.type === "db" ? 22 : 12}"></rect>
+      <text x="66" y="31">${position.type === "db" ? "▰ " : ""}${escapeAdminHtml(label)}</text>
+      ${related.length > 1 ? `<text class="architecture-node-count" x="122" y="12">${related.length}</text>` : ""}
+    </g>`;
+  }).join("");
+
+  graph.innerHTML = `<svg class="architecture-graph" viewBox="0 0 820 ${height}" role="img" aria-label="Dynamic request architecture graph">
+    <defs><marker id="flowArrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#496578"></path></marker></defs>
+    ${edgeMarkup}${nodeMarkup}
+  </svg>`;
+}
+
+
+function renderFlowVisualization() {
+  if (liveFlowState.mode === "graph") renderFlowArchitectureGraph();
+  else renderFlowTrace();
+}
+
+
+function setFlowMode(mode) {
+  liveFlowState.mode = mode === "graph" ? "graph" : "trace";
+  document.querySelectorAll("[data-flow-mode]").forEach((button) => {
+    const selected = button.dataset.flowMode === liveFlowState.mode;
+    button.classList.toggle("is-active", selected);
+    button.setAttribute("aria-selected", String(selected));
+  });
+  renderFlowVisualization();
 }
 
 
@@ -2202,6 +2313,8 @@ document.addEventListener(
     }, true);
 
     document.addEventListener("click", async (event) => {
+      const flowMode = event.target.closest?.("[data-flow-mode]");
+      if (flowMode) { setFlowMode(flowMode.dataset.flowMode); return; }
       const flowTrace = event.target.closest?.("[data-flow-trace]");
       if (flowTrace) { await selectFlowTrace(flowTrace.dataset.flowTrace); return; }
       const flowEvent = event.target.closest?.("[data-flow-event]");
@@ -2209,8 +2322,17 @@ document.addEventListener(
       const flowNode = event.target.closest?.("[data-flow-node]");
       if (flowNode) {
         const name = flowNode.dataset.flowNode;
-        const index = liveFlowState.events.findLastIndex((item) => item.from_node === name || item.to_node === name || item.table_name === name);
-        if (index >= 0) selectFlowEvent(index);
+        const related = liveFlowState.events.map((item, index) => ({ item, index })).filter(({ item }) => item.from_node === name || item.to_node === name || item.table_name === name);
+        const atOrBefore = related.filter(({ index }) => index <= liveFlowState.index);
+        const selected = (atOrBefore.at(-1) || related[0]);
+        if (selected) {
+          selectFlowEvent(selected.index);
+          adminEl("flowInspector").textContent = JSON.stringify({
+            node: name,
+            selected_sequence: selected.item.sequence,
+            related_events: related.map(({ item }) => item),
+          }, null, 2);
+        }
         return;
       }
       const adminJump = event.target.closest?.("[data-admin-jump]");

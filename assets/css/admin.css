@@ -1220,6 +1220,9 @@ button.inspector-stat-card:hover {
 .flow-layout { display: grid; grid-template-columns: minmax(240px, 310px) minmax(0, 1fr); gap: 18px; }
 .flow-recent-panel, .flow-stage-panel, .flow-bottom-grid > section { border: 1px solid #203444; border-radius: 18px; background: #091722; padding: 16px; }
 .flow-filters { display: grid; grid-template-columns: 1fr; }
+.flow-view-switch { display: inline-flex; gap: 4px; margin-bottom: 12px; padding: 4px; border: 1px solid #263b4b; border-radius: 12px; background: #07131d; }
+.flow-view-button { min-width: 86px; border: 0; border-radius: 9px; background: transparent; color: #86a6bd; padding: 8px 14px; cursor: pointer; }
+.flow-view-button.is-active { color: white; background: #0c4263; box-shadow: inset 0 0 0 1px #18b7ff; }
 .flow-trace-list, .flow-timeline, .flow-media { display: grid; gap: 8px; max-height: 620px; overflow: auto; }
 .flow-trace, .flow-timeline-event, .flow-media-item { display: grid; gap: 4px; width: 100%; border: 1px solid #263b4b; border-radius: 12px; background: #0d1d29; color: #ddebfa; padding: 11px; text-align: left; cursor: pointer; }
 .flow-trace:hover, .flow-trace.is-selected, .flow-timeline-event.is-active { border-color: #10a9ff; background: #0c2940; }
@@ -1238,6 +1241,33 @@ button.inspector-stat-card:hover {
 .flow-edge.is-active i { border-color: #20d9ff; }
 .flow-edge.is-active i b { display: block; }
 @keyframes flowPulse { from { left: 0; } to { left: calc(100% - 10px); } }
+.architecture-graph { display: block; width: 100%; min-width: 780px; height: auto; overflow: visible; }
+.architecture-node, .architecture-edge { cursor: pointer; outline: none; }
+.architecture-node rect { fill: #102330; stroke: #446278; stroke-width: 1.5; transition: .2s ease; }
+.architecture-node text { fill: #d9eeff; font: 600 12px system-ui, sans-serif; text-anchor: middle; pointer-events: none; }
+.architecture-node.is-db rect { fill: #18152b; stroke: #8768e8; stroke-width: 2; }
+.architecture-node.is-stage rect, .architecture-node.is-source-group rect { fill: #10283a; stroke: #2c8ec6; }
+.architecture-node.is-provider rect { fill: #1e1b31; stroke: #ad78ef; }
+.architecture-node.is-knowledge rect { fill: #102d2c; stroke: #33a98d; }
+.architecture-node.is-future { opacity: .27; }
+.architecture-node.is-passed { opacity: .72; }
+.architecture-node.is-active { opacity: 1; }
+.architecture-node.is-active rect { stroke: #20d9ff; stroke-width: 3; filter: drop-shadow(0 0 9px rgba(32,217,255,.8)); }
+.architecture-node.is-failed rect { stroke: #ff5d6c; }
+.architecture-node.is-warning rect { stroke: #ffd15c; }
+.architecture-node.is-skipped { opacity: .32; }
+.architecture-node-count { fill: #65cfff !important; font-size: 9px !important; }
+.architecture-edge-path { fill: none; stroke: #496578; stroke-width: 2; }
+.architecture-edge-hit { fill: none; stroke: transparent; stroke-width: 16; }
+.architecture-edge text { fill: #83aeca; font: 10px system-ui, sans-serif; text-anchor: middle; paint-order: stroke; stroke: #07131d; stroke-width: 4px; stroke-linejoin: round; }
+.architecture-edge.is-future { opacity: .18; }
+.architecture-edge.is-passed { opacity: .58; }
+.architecture-edge.is-active { opacity: 1; }
+.architecture-edge.is-active .architecture-edge-path { stroke: #20d9ff; stroke-width: 3; filter: drop-shadow(0 0 5px #20d9ff); }
+.architecture-edge.is-failed .architecture-edge-path { stroke: #ff5d6c; }
+.architecture-edge.is-warning .architecture-edge-path { stroke: #ffd15c; }
+.architecture-edge.is-skipped .architecture-edge-path { stroke: #6e7981; stroke-dasharray: 6 5; }
+.architecture-pulse { fill: #e8fdff; filter: drop-shadow(0 0 7px #20d9ff); pointer-events: none; }
 .flow-bottom-grid { display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 12px; margin-top: 12px; }
 .flow-bottom-grid h2, .flow-recent-panel h2 { margin: 0 0 10px; font-size: 15px; }
 .flow-inspector { min-height: 260px; max-height: 440px; overflow: auto; white-space: pre-wrap; word-break: break-word; color: #bce5ff; background: #050e15; border-radius: 12px; padding: 12px; }
