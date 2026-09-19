@@ -77,7 +77,7 @@ async function adminFetch(path, options = {}) {
   }
 
   const headers = {
-    ...(options.body
+    ...(options.body && !(options.body instanceof FormData)
       ? { "Content-Type": "application/json" }
       : {}),
     ...(options.headers || {}),
@@ -2071,7 +2071,9 @@ async function selectKnowledgeModel(make, model) {
 function setKnowledgeMaterialMode(mode) {
   document.querySelectorAll("[data-material-mode]").forEach((button) => button.classList.toggle("is-active", button.dataset.materialMode === mode));
   document.querySelectorAll("[data-material-url-field]").forEach((field) => { field.hidden = mode !== "url"; });
+  document.querySelectorAll("[data-material-file-field]").forEach((field) => { field.hidden = mode !== "file"; });
   adminEl("materialUrl").required = mode === "url";
+  adminEl("materialFile").required = mode === "file";
 }
 
 
@@ -2106,6 +2108,7 @@ function linesFromInput(id) { return String(adminEl(id)?.value || "").split("\n"
 async function saveKnowledgeMaterial(event) {
   event.preventDefault();
   const editId = adminEl("knowledgeEditId").value;
+  const mode = document.querySelector("[data-material-mode].is-active")?.dataset.materialMode || "note";
   const general = knowledgeLibraryState.scope === "general";
   const payload = {
     title: adminEl("materialTitle").value.trim(), knowledge_type: adminEl("materialType").value,
@@ -2121,7 +2124,14 @@ async function saveKnowledgeMaterial(event) {
   };
   adminEl("knowledgeMaterialSave").disabled = true; adminEl("knowledgeMaterialStatus").textContent = "Saving…";
   try {
-    await adminFetch(editId ? `/admin/knowledge/library/items/${encodeURIComponent(editId)}` : "/admin/knowledge/library/items", { method: editId ? "PATCH" : "POST", body: JSON.stringify(payload) });
+    const saved = await adminFetch(editId ? `/admin/knowledge/library/items/${encodeURIComponent(editId)}` : "/admin/knowledge/library/items", { method: editId ? "PATCH" : "POST", body: JSON.stringify(payload) });
+    const itemId = editId || saved.id;
+    setKnowledgeField("knowledgeEditId", itemId);
+    if (mode === "file") {
+      const form = new FormData();
+      form.append("file", adminEl("materialFile").files[0]);
+      await adminFetch(`/admin/knowledge/library/items/${encodeURIComponent(itemId)}/files`, { method: "POST", body: form });
+    }
     closeKnowledgeMaterialModal(); await loadKnowledgeMaterials();
   } catch (error) { adminEl("knowledgeMaterialStatus").textContent = error.message; adminEl("knowledgeMaterialStatus").className = "admin-status knowledge-form-wide error"; }
   finally { adminEl("knowledgeMaterialSave").disabled = false; }

@@ -1,5 +1,10 @@
 # Frontend Task Log
 
+## 2026-09-20 — Admin Knowledge private-file upload
+
+- Enabled the existing Upload File mode in the Knowledge material form and connected it to the admin-only backend multipart endpoint after the Knowledge Item is saved.
+- File upload uses authenticated `FormData`; applicability and URL/source provenance continue through their existing structured paths without binary duplication or frontend R2 access.
+
 ## 2026-09-17 — Admin Data Inspector Block 2
 
 - Replaced the sparse Overview with real metric cards, database-composition bars, Search pipeline, problem/event/source distributions, recent activity, and a canonical PULS Data Flow diagram. Missing metrics render as ERROR rather than zero.

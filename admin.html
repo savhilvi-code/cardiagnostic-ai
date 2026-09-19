@@ -355,9 +355,9 @@
             <div class="knowledge-add-modes">
               <button class="knowledge-add-mode is-active" type="button" data-material-mode="url">Add URL</button>
               <button class="knowledge-add-mode" type="button" data-material-mode="note">Create Note</button>
-              <button class="knowledge-add-mode" type="button" data-material-mode="file" disabled title="Requires an approved Supabase Storage bucket">Upload File</button>
+              <button class="knowledge-add-mode" type="button" data-material-mode="file">Upload File</button>
             </div>
-            <p id="knowledgeUploadNote" class="knowledge-upload-note">File upload needs an approved private Supabase Storage bucket and access policy. No parallel storage was created in this V1.</p>
+            <p id="knowledgeUploadNote" class="knowledge-upload-note">Uploaded files are stored privately and linked to this Knowledge Item.</p>
             <form id="knowledgeMaterialForm" class="knowledge-form">
               <input id="knowledgeEditId" type="hidden">
               <label>Title<input id="materialTitle" class="admin-search" required></label>
@@ -365,6 +365,7 @@
               <label class="knowledge-form-wide">Description / summary<textarea id="materialDescription" class="admin-search" rows="3"></textarea></label>
               <label data-material-url-field>URL<input id="materialUrl" class="admin-search" type="url" placeholder="https://..."></label>
               <label data-material-url-field>Source type<select id="materialSourceType" class="admin-select"></select></label>
+              <label class="knowledge-form-wide" data-material-file-field hidden>File<input id="materialFile" class="admin-search" type="file"></label>
               <label>Status<select id="materialStatus" class="admin-select"></select></label>
               <label>Page / section<input id="materialPageReference" class="admin-search"></label>
               <fieldset class="knowledge-applicability knowledge-form-wide"><legend>Vehicle applicability</legend>
@@ -568,6 +569,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/supabaseClient.js"></script>
   <script src="assets/js/config.js"></script>
-  <script src="assets/js/admin.js?v=20260919-05"></script>
+  <script src="assets/js/admin.js?v=20260920-01"></script>
 </body>
 </html>
