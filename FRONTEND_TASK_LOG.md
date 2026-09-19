@@ -1,5 +1,10 @@
 # Frontend Task Log
 
+## 2026-09-20 — Chat selected-file upload
+
+- Moved chat-session synchronization to the existing post-selection upload path, so `conversation_id` is restored before `uploadChatAttachment` decides whether it can POST; picker opening remains synchronous and unchanged.
+- Allowed the disabled code-diagnostics label to wrap inside the compact attachment popup.
+
 ## 2026-09-20 — Chat attachment picker and menu polish
 
 - Removed the premature conversation-ID gate from the trusted menu click, so the existing hidden input always opens for photo/video/document; the existing upload-time context guard remains unchanged.

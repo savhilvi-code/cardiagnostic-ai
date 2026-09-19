@@ -2439,6 +2439,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
     async function uploadChatAttachment(file) {
       if (!file) return;
+      await window.PulsChat.beforeSend();
       const context = window.PulsChat.requestContext();
       if (!context.conversation_id) {
         toast(t("composer.attachmentStartChat"));
