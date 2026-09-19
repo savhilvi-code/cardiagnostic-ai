@@ -2380,6 +2380,23 @@ function flowEventLabel(event) {
 }
 
 
+function flowTraceDataset() {
+  return liveFlowState.events.map((event, index) => {
+    const source = String(event.from_node || "").trim();
+    const target = String(event.to_node || "").trim();
+    const missing = [!source ? "from_node" : "", !target ? "to_node" : ""].filter(Boolean);
+    return {
+      ...event,
+      _trace_index: index,
+      _trace_source: source,
+      _trace_target: target,
+      _trace_mapped: missing.length === 0,
+      _trace_mapping_gap: missing.length ? `missing ${missing.join(" and ")}` : "",
+    };
+  });
+}
+
+
 const FLOW_EXPORT_SENSITIVE_KEY = /(^|_|-)(authorization|auth|cookie|password|secret|api_?key|token|access_?token|refresh_?token|jwt|credential|session|signature|sig)s?($|_|-)/i;
 
 
@@ -2437,7 +2454,7 @@ function flowCollectSourceUrls(value, urls = new Set(), key = "") {
 
 function buildFlowTraceExport() {
   const trace = flowExportTraceInfo();
-  const events = [...liveFlowState.events].sort((a, b) => Number(a.sequence || 0) - Number(b.sequence || 0));
+  const events = flowTraceDataset();
   const requestId = trace.request_id || trace.id || "—";
   const metadata = [
     ["Request ID", requestId],
@@ -2457,13 +2474,14 @@ function buildFlowTraceExport() {
   const technicalFields = ["module", "operation", "table_name", "record_id", "affected_rows", "stage_number", "source_group", "provider", "model", "duration_ms"];
   events.forEach((event, index) => {
     const number = String(event.sequence ?? index + 1).padStart(2, "0");
-    const from = event.from_node || "Event";
-    const to = event.to_node || event.table_name || "Result";
-    lines.push(`${number} | +${Number(event.offset_ms || 0)} ms | ${from} → ${flowEventLabel(event)} → ${to} | ${event.status || "UNKNOWN"}`);
+    const from = event._trace_source || "—";
+    const to = event._trace_target || "—";
+    lines.push(`${number} | +${Number(event.offset_ms || 0)} ms | ${from} → ${flowEventLabel(event)} → ${to} | ${event.status || "UNKNOWN"}${event._trace_mapped ? "" : " | UNMAPPED"}`);
     technicalFields.forEach((field) => {
       const value = event[field];
       if (value !== null && value !== undefined && value !== "") lines.push(`  ${field}: ${flowValue(flowSanitizedExportData(value, field))}`);
     });
+    if (!event._trace_mapped) lines.push(`  visualization_mapping: UNMAPPED (${event._trace_mapping_gap})`);
     lines.push("");
   });
   const urls = new Set();
@@ -2539,19 +2557,19 @@ function selectFlowEvent(index) {
 function renderFlowTrace() {
   const graph = adminEl("flowGraph");
   if (!graph) return;
-  const applied = liveFlowState.events.slice(0, liveFlowState.index + 1);
+  const applied = flowTraceDataset().slice(0, liveFlowState.index + 1);
   if (!applied.length) { graph.innerHTML = '<div class="admin-empty">No events at this point in time.</div>'; return; }
   const nodes = [];
   const seen = new Set();
-  applied.forEach((event) => [event.from_node, event.to_node, event.table_name].filter(Boolean).forEach((name) => {
+  applied.forEach((event) => [event._trace_source, event._trace_target].filter(Boolean).forEach((name) => {
     if (!seen.has(name)) { seen.add(name); nodes.push(name); }
   }));
   const active = applied[applied.length - 1];
   graph.innerHTML = `<div class="flow-node-grid">${nodes.map((name) => {
     const isDb = applied.some((event) => event.table_name === name);
-    const isActive = active && (active.from_node === name || active.to_node === name);
+    const isActive = active && (active._trace_source === name || active._trace_target === name);
     return `<button type="button" class="flow-node ${isDb ? "is-db" : ""} ${isActive ? "is-active" : ""}" data-flow-node="${escapeAdminHtml(name)}">${isDb ? "▰ " : ""}${escapeAdminHtml(name)}</button>`;
-  }).join("")}</div><div class="flow-edge-list">${applied.map((event, index) => `<button type="button" class="flow-edge ${index === applied.length - 1 ? "is-active" : ""}" data-flow-event="${index}"><span>${escapeAdminHtml(event.from_node || "Event")}</span><i><b></b>${escapeAdminHtml(flowEventLabel(event))}</i><span>${escapeAdminHtml(event.to_node || event.table_name || "Result")}</span></button>`).join("")}</div>`;
+  }).join("")}</div><div class="flow-edge-list">${applied.map((event, index) => `<button type="button" class="flow-edge ${index === applied.length - 1 ? "is-active" : ""} ${event._trace_mapped ? "" : "is-unmapped"}" data-flow-event="${event._trace_index}"><span>${escapeAdminHtml(event._trace_source || "—")}</span><i><b></b>${escapeAdminHtml(flowEventLabel(event))}</i><span>${escapeAdminHtml(event._trace_target || "—")}</span>${event._trace_mapped ? "" : `<small>UNMAPPED · ${escapeAdminHtml(event._trace_mapping_gap)}</small>`}</button>`).join("")}</div>`;
 }
 
 
@@ -2581,13 +2599,13 @@ function flowGraphStatusClass(status = "") {
 function renderFlowArchitectureGraph() {
   const graph = adminEl("flowGraph");
   if (!graph) return;
-  const events = liveFlowState.events;
+  const events = flowTraceDataset();
   if (!events.length) { graph.innerHTML = '<div class="admin-empty">Select a request.</div>'; return; }
 
   const nodeNames = [];
   const nodeSeen = new Set();
   events.forEach((event) => {
-    [event.from_node, event.to_node, event.table_name].filter(Boolean).forEach((name) => {
+    [event._trace_source, event._trace_target].filter(Boolean).forEach((name) => {
       if (!nodeSeen.has(name)) { nodeSeen.add(name); nodeNames.push(name); }
     });
   });
@@ -2603,9 +2621,9 @@ function renderFlowArchitectureGraph() {
   });
   const height = Math.max(460, ...[...positions.values()].map((position) => position.y + 80));
   const activeEvent = events[liveFlowState.index];
-  const edges = events.map((event, index) => ({
-    event, index, from: event.from_node, to: event.to_node || event.table_name,
-  })).filter((edge) => edge.from && edge.to && positions.has(edge.from) && positions.has(edge.to));
+  const edges = events.filter((event) => event._trace_mapped).map((event) => ({
+    event, index: event._trace_index, from: event._trace_source, to: event._trace_target,
+  })).filter((edge) => positions.has(edge.from) && positions.has(edge.to));
 
   const edgeLayers = edges.map(({ event, index, from, to }) => {
     const a = positions.get(from), b = positions.get(to);
@@ -2649,10 +2667,10 @@ function renderFlowArchitectureGraph() {
 
   const nodeMarkup = nodeNames.map((name) => {
     const position = positions.get(name);
-    const related = events.map((event, index) => ({ event, index })).filter(({ event }) => event.from_node === name || event.to_node === name || event.table_name === name);
+    const related = events.map((event) => ({ event, index: event._trace_index })).filter(({ event }) => event._trace_source === name || event._trace_target === name);
     const passed = related.filter(({ index }) => index <= liveFlowState.index);
     const nodeEvent = passed.at(-1)?.event;
-    const active = activeEvent && (activeEvent.from_node === name || activeEvent.to_node === name || activeEvent.table_name === name);
+    const active = activeEvent && (activeEvent._trace_source === name || activeEvent._trace_target === name);
     const phase = active ? "is-active" : passed.length ? "is-passed" : "is-future";
     const statusClass = nodeEvent ? flowGraphStatusClass(nodeEvent.status) : "";
     const label = String(name).length > 23 ? `${String(name).slice(0, 21)}…` : String(name);
@@ -2663,13 +2681,14 @@ function renderFlowArchitectureGraph() {
     </g>`;
   }).join("");
 
+  const unmappedMarkup = events.filter((event) => !event._trace_mapped).map((event) => `<button type="button" class="flow-unmapped-event ${event._trace_index === liveFlowState.index ? "is-active" : ""}" data-flow-event="${event._trace_index}"><b>${escapeAdminHtml(event.sequence)}</b><span>${escapeAdminHtml(flowEventLabel(event))}</span><small>UNMAPPED · ${escapeAdminHtml(event._trace_mapping_gap)}</small></button>`).join("");
   graph.innerHTML = `<svg class="architecture-graph" viewBox="0 0 820 ${height}" role="img" aria-label="Dynamic request architecture graph">
     <defs><marker id="flowArrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#496578"></path></marker></defs>
     <g class="architecture-lines-layer">${edgeLayers.map((edge) => edge.line).join("")}</g>
     <g class="architecture-nodes-layer">${nodeMarkup}</g>
     <g class="architecture-labels-layer">${edgeLayers.map((edge) => edge.label).join("")}</g>
     <g class="architecture-pulse-layer">${edgeLayers.map((edge) => edge.pulse).join("")}</g>
-  </svg>`;
+  </svg>${unmappedMarkup ? `<div class="flow-unmapped-list"><strong>Unmapped trace events</strong>${unmappedMarkup}</div>` : ""}`;
 }
 
 
@@ -2693,7 +2712,7 @@ function setFlowMode(mode) {
 function renderFlowTimeline() {
   const node = adminEl("flowTimeline");
   if (!node) return;
-  node.innerHTML = liveFlowState.events.map((event, index) => `<button type="button" class="flow-timeline-event ${index === liveFlowState.index ? "is-active" : ""}" data-flow-event="${index}"><b>${event.sequence}</b><span>${escapeAdminHtml(flowEventLabel(event))}</span><small>+${Number(event.offset_ms || 0)} ms</small></button>`).join("");
+  node.innerHTML = flowTraceDataset().map((event) => `<button type="button" class="flow-timeline-event ${event._trace_index === liveFlowState.index ? "is-active" : ""} ${event._trace_mapped ? "" : "is-unmapped"}" data-flow-event="${event._trace_index}"><b>${event.sequence}</b><span>${escapeAdminHtml(flowEventLabel(event))}</span><small>+${Number(event.offset_ms || 0)} ms${event._trace_mapped ? "" : ` · UNMAPPED (${escapeAdminHtml(event._trace_mapping_gap)})`}</small></button>`).join("");
 }
 
 
@@ -2887,7 +2906,7 @@ document.addEventListener(
       const flowNode = event.target.closest?.("[data-flow-node]");
       if (flowNode) {
         const name = flowNode.dataset.flowNode;
-        const related = liveFlowState.events.map((item, index) => ({ item, index })).filter(({ item }) => item.from_node === name || item.to_node === name || item.table_name === name);
+        const related = flowTraceDataset().map((item) => ({ item, index: item._trace_index })).filter(({ item }) => item._trace_source === name || item._trace_target === name);
         const atOrBefore = related.filter(({ index }) => index <= liveFlowState.index);
         const selected = (atOrBefore.at(-1) || related[0]);
         if (selected) {
@@ -2895,7 +2914,7 @@ document.addEventListener(
           adminEl("flowInspector").textContent = JSON.stringify({
             node: name,
             selected_sequence: selected.item.sequence,
-            related_events: related.map(({ item }) => item),
+            related_events: related.map(({ index }) => liveFlowState.events[index]),
           }, null, 2);
         }
         return;

@@ -1316,6 +1316,13 @@ button.inspector-stat-card:hover {
 .flow-edge i b { display: none; position: absolute; top: -6px; width: 10px; height: 10px; border-radius: 50%; background: #20d9ff; box-shadow: 0 0 14px #20d9ff; animation: flowPulse 1.2s linear infinite; }
 .flow-edge.is-active i { border-color: #20d9ff; }
 .flow-edge.is-active i b { display: block; }
+.flow-edge.is-unmapped { grid-template-columns: minmax(80px,1fr) minmax(130px,2fr) minmax(80px,1fr) auto; opacity: .78; }
+.flow-edge.is-unmapped i { border-top-style: dashed; }
+.flow-edge.is-unmapped small { color: #efb36b; }
+.flow-unmapped-list { display: grid; gap: 7px; margin-top: 14px; padding: 12px; border: 1px dashed #8b663e; border-radius: 12px; background: rgba(83,52,21,.18); }
+.flow-unmapped-event { display: grid; grid-template-columns: auto minmax(0,1fr) auto; gap: 10px; align-items: center; width: 100%; border: 1px solid #624c35; border-radius: 9px; background: #181714; color: #ddebfa; padding: 8px 10px; text-align: left; cursor: pointer; }
+.flow-unmapped-event small, .flow-timeline-event.is-unmapped small { color: #efb36b; }
+.flow-unmapped-event.is-active { border-color: #ffb55c; box-shadow: 0 0 14px rgba(255,181,92,.22); }
 @keyframes flowPulse { from { left: 0; } to { left: calc(100% - 10px); } }
 .architecture-graph { display: block; width: 100%; min-width: 780px; height: auto; overflow: visible; }
 .architecture-node, .architecture-edge, .architecture-edge-label { cursor: pointer; outline: none; }

@@ -1,5 +1,11 @@
 # Frontend Task Log
 
+## 2026-09-20 — Live Flow trace-driven mapping
+
+- Unified Trace, Graph, Replay, Copy Trace and Export TXT on one ordered projection of the selected request's saved `trace_events`.
+- Removed invented `Event`/`Result`/`table_name` routes; events without real endpoints remain selectable and exportable as `UNMAPPED` instrumentation gaps.
+- Graph activation now follows only saved `from_node` → `to_node` events in their real sequence.
+
 ## 2026-09-20 — Chat attachment final execution-path fix
 
 - Kept the existing picker/change/upload implementation, made its file input visually hidden instead of `display:none`, and added a visible picker error fallback.
