@@ -298,6 +298,10 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "composer.attachmentSaved": "Attachment saved.",
         "composer.attachmentError": "Could not upload the attachment.",
         "composer.attachmentPickerError": "Could not open the file picker. Please try again.",
+        "composer.attachmentUploaded": "Uploaded",
+        "composer.attachmentFailed": "Upload failed",
+        "composer.attachmentPreviewError": "Could not load the image preview.",
+        "composer.attachmentPreviewClose": "Close image preview",
         "composer.dtc": "Code diagnostics",
         "profile.guest": "Guest",
         "profile.signIn": "Sign in to your account",
@@ -571,6 +575,10 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "composer.attachmentSaved": "Вложение сохранено.",
         "composer.attachmentError": "Не удалось загрузить вложение.",
         "composer.attachmentPickerError": "Не удалось открыть выбор файла. Попробуйте ещё раз.",
+        "composer.attachmentUploaded": "Загружено",
+        "composer.attachmentFailed": "Ошибка загрузки",
+        "composer.attachmentPreviewError": "Не удалось загрузить изображение.",
+        "composer.attachmentPreviewClose": "Закрыть просмотр изображения",
         "composer.dtc": "Диагностика по коду",
         "profile.guest": "Гость",
         "profile.signIn": "Войдите в аккаунт",
@@ -2431,6 +2439,158 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       "attach-document": ".pdf,.txt,.csv,.json,.doc,.docx,.xls,.xlsx,application/pdf,text/plain,text/csv,application/json"
     };
 
+    const CHAT_ATTACHMENT_STORAGE_PREFIX = "puls_chat_attachments_v1:";
+    const chatAttachmentObjectUrls = new Map();
+    const chatAttachmentUrlPromises = new Map();
+
+    function chatAttachmentStorageKey() {
+      return `${CHAT_ATTACHMENT_STORAGE_PREFIX}${window.pulsCurrentUser?.id || "guest"}`;
+    }
+
+    function readChatAttachmentRecords() {
+      try {
+        const value = JSON.parse(localStorage.getItem(chatAttachmentStorageKey()) || "{}");
+        return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+      } catch {
+        return {};
+      }
+    }
+
+    function rememberChatAttachment(messageId, file) {
+      if (!messageId || !file?.id) return;
+      const records = readChatAttachmentRecords();
+      records[String(messageId)] = {
+        message_id: String(messageId),
+        file: {
+          id: String(file.id),
+          original_filename: String(file.original_filename || "attachment"),
+          mime_type: String(file.mime_type || "application/octet-stream"),
+          size_bytes: Number(file.size_bytes || 0),
+        },
+        saved_at: new Date().toISOString(),
+      };
+      const trimmed = Object.fromEntries(Object.entries(records).slice(-200));
+      try { localStorage.setItem(chatAttachmentStorageKey(), JSON.stringify(trimmed)); } catch { /* IDs are recoverable from the upload response. */ }
+    }
+
+    function chatAttachmentForMessage(messageId) {
+      return messageId ? readChatAttachmentRecords()[String(messageId)] || null : null;
+    }
+
+    function isChatImage(file) {
+      return String(file?.mime_type || file?.type || "").toLowerCase().startsWith("image/");
+    }
+
+    function chatAttachmentBodyMarkup(file, { state = "saved", time = "", previewUrl = "" } = {}) {
+      const image = isChatImage(file);
+      const filename = String(file?.original_filename || file?.name || "attachment");
+      const fileId = state === "saved" ? String(file?.id || "") : "";
+      const preview = image ? `${fileId ? `<button class="chat-attachment-thumb" type="button" data-chat-image-open="${escapeHtml(fileId)}" data-chat-image-name="${escapeHtml(filename)}" aria-label="${escapeHtml(filename)}">` : '<span class="chat-attachment-thumb is-temporary">'}<img ${previewUrl ? `src="${escapeHtml(previewUrl)}"` : ""} data-chat-image-file="${escapeHtml(fileId)}" alt="${escapeHtml(filename)}">${fileId ? "</button>" : "</span>"}` : '<span class="chat-attachment-file-icon" aria-hidden="true">▤</span>';
+      const status = state === "uploading" ? t("composer.attachmentUploading") : state === "failed" ? t("composer.attachmentFailed") : t("composer.attachmentUploaded");
+      return `<div class="chat-attachment-card is-${state}">${preview}<div class="chat-attachment-meta"><strong>${escapeHtml(filename)}</strong><span class="chat-attachment-status">${state === "uploading" ? '<i class="chat-attachment-spinner" aria-hidden="true"></i>' : ""}${escapeHtml(status)}</span></div></div><small>${escapeHtml(time)}</small>`;
+    }
+
+    function appendChatAttachmentUpload(file) {
+      const bubble = appendMessage("", true);
+      const previewUrl = isChatImage(file) ? URL.createObjectURL(file) : "";
+      const time = new Date().toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" });
+      bubble.classList.add("chat-attachment-message");
+      bubble.innerHTML = chatAttachmentBodyMarkup(file, { state: "uploading", time, previewUrl });
+      return { bubble, previewUrl, time };
+    }
+
+    function ensureChatAttachmentStateVisible(uploadState) {
+      if (uploadState.bubble.isConnected) return;
+      const messagesBox = $("#messages");
+      if (!messagesBox) return;
+      messagesBox.querySelector(".chat-empty-state")?.remove();
+      messagesBox.appendChild(uploadState.bubble);
+      document.body.classList.add("chat-active");
+      scrollMessagesToBottom();
+    }
+
+    async function authenticatedChatAttachmentUrl(fileId) {
+      const key = String(fileId || "");
+      if (!key) throw new Error(t("composer.attachmentPreviewError"));
+      if (chatAttachmentObjectUrls.has(key)) return chatAttachmentObjectUrls.get(key);
+      if (chatAttachmentUrlPromises.has(key)) return chatAttachmentUrlPromises.get(key);
+      const pending = (async () => {
+        const response = await fetch(`${API_BASE_URL}/api/storage/files/${encodeURIComponent(key)}/download`, { headers: await backendAuthHeaders() });
+        if (!response.ok) throw new Error(t("composer.attachmentPreviewError"));
+        const url = URL.createObjectURL(await response.blob());
+        chatAttachmentObjectUrls.set(key, url);
+        return url;
+      })();
+      chatAttachmentUrlPromises.set(key, pending);
+      try {
+        return await pending;
+      } finally {
+        chatAttachmentUrlPromises.delete(key);
+      }
+    }
+
+    async function hydrateChatAttachmentImages(root = document) {
+      const images = Array.from(root.querySelectorAll("img[data-chat-image-file]"));
+      await Promise.all(images.map(async (image) => {
+        const fileId = image.dataset.chatImageFile;
+        if (!fileId || image.dataset.loaded === "true") return;
+        try {
+          image.src = await authenticatedChatAttachmentUrl(fileId);
+          image.dataset.loaded = "true";
+        } catch (error) {
+          const card = image.closest(".chat-attachment-card");
+          card?.classList.add("has-preview-error");
+          const status = card?.querySelector(".chat-attachment-status");
+          if (status) status.textContent = t("composer.attachmentPreviewError");
+          image.alt = t("composer.attachmentPreviewError");
+        }
+      }));
+    }
+
+    function restoredChatAttachmentMarkup(row, time) {
+      const record = chatAttachmentForMessage(row?.id);
+      if (!record?.file?.id) return "";
+      return `<div class="bubble user chat-attachment-message" data-chat-message-id="${escapeHtml(record.message_id)}">${chatAttachmentBodyMarkup(record.file, { state: "saved", time })}</div>`;
+    }
+
+    async function openChatImagePreview(fileId, filename) {
+      const modal = $("#chatImagePreviewModal");
+      const image = $("#chatImagePreviewImage");
+      const status = $("#chatImagePreviewStatus");
+      if (!modal || !image || !status) return;
+      modal.classList.add("show");
+      modal.setAttribute("aria-hidden", "false");
+      image.hidden = true;
+      image.removeAttribute("src");
+      image.alt = filename || "";
+      status.textContent = t("composer.attachmentUploading");
+      try {
+        image.src = await authenticatedChatAttachmentUrl(fileId);
+        image.hidden = false;
+        status.textContent = filename || "";
+      } catch (error) {
+        status.textContent = t("composer.attachmentPreviewError");
+      }
+    }
+
+    function closeChatImagePreview() {
+      const modal = $("#chatImagePreviewModal");
+      if (!modal) return;
+      modal.classList.remove("show");
+      modal.setAttribute("aria-hidden", "true");
+    }
+
+    window.PulsChatAttachments = {
+      restoredMessageMarkup: restoredChatAttachmentMarkup,
+      hydrate: hydrateChatAttachmentImages,
+    };
+
+    window.addEventListener("beforeunload", () => {
+      chatAttachmentObjectUrls.forEach((url) => URL.revokeObjectURL(url));
+      chatAttachmentObjectUrls.clear();
+      chatAttachmentUrlPromises.clear();
+    });
+
     function chooseChatAttachment(action) {
       if (!requireSignedInForChat()) return;
       const input = $("#chatAttachmentInput");
@@ -2451,6 +2611,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     async function uploadChatAttachment(file) {
       if (!file) return;
       const owner = window.pulsCurrentUser?.id;
+      const uploadState = appendChatAttachmentUpload(file);
       try {
         await window.PulsChat.beforeSend();
         let context = window.PulsChat.requestContext();
@@ -2458,9 +2619,9 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           await window.PulsChat.restore();
           context = window.PulsChat.requestContext();
         }
+        ensureChatAttachmentStateVisible(uploadState);
         if (!context.conversation_id) {
-          toast(t("composer.attachmentStartChat"));
-          return;
+          throw new Error(t("composer.attachmentStartChat"));
         }
         const form = new FormData();
         form.set("conversation_id", context.conversation_id);
@@ -2473,12 +2634,22 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(String(data?.detail || t("composer.attachmentError")));
-        if (owner !== window.pulsCurrentUser?.id) return;
-        appendMessage(`📎 ${file.name}`, true);
+        if (owner !== window.pulsCurrentUser?.id) {
+          uploadState.bubble.remove();
+          if (uploadState.previewUrl) URL.revokeObjectURL(uploadState.previewUrl);
+          return;
+        }
+        rememberChatAttachment(data.message_id, data.file);
+        uploadState.bubble.dataset.chatMessageId = String(data.message_id || "");
+        uploadState.bubble.innerHTML = chatAttachmentBodyMarkup(data.file, { state: "saved", time: uploadState.time });
+        if (uploadState.previewUrl) URL.revokeObjectURL(uploadState.previewUrl);
+        void hydrateChatAttachmentImages(uploadState.bubble);
         window.PulsChat.afterAttachment(owner);
         toast(t("composer.attachmentSaved"));
       } catch (error) {
         console.error("Chat attachment upload failed:", error);
+        ensureChatAttachmentStateVisible(uploadState);
+        uploadState.bubble.innerHTML = chatAttachmentBodyMarkup(file, { state: "failed", time: uploadState.time, previewUrl: uploadState.previewUrl });
         toast(String(error.message || t("composer.attachmentError")));
       }
     }
@@ -3385,6 +3556,17 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       syncSplashLayout();
       syncComposerVisibility("assistant");
       document.addEventListener("click", (event) => {
+        const chatImageOpen = event.target.closest("[data-chat-image-open]");
+        if (chatImageOpen) {
+          void openChatImagePreview(chatImageOpen.dataset.chatImageOpen, chatImageOpen.dataset.chatImageName || "");
+          return;
+        }
+
+        if (event.target.closest("#chatImagePreviewClose") || event.target.id === "chatImagePreviewModal") {
+          closeChatImagePreview();
+          return;
+        }
+
         if (event.target.closest("#systemPill")) {
           if (!isSignedIn()) window.openAuthModal?.();
           return;
@@ -3498,6 +3680,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         if (event.key === "Escape") {
           closeRequestModal();
           closeSupportModal();
+          closeChatImagePreview();
         }
 
         const requestRow = event.target.closest("[data-request-kind][data-request-index]");

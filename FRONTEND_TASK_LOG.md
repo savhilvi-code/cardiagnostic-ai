@@ -1,5 +1,11 @@
 # Frontend Task Log
 
+## 2026-09-20 — Chat image upload state and preview
+
+- Added an immediate indeterminate uploading card for selected Chat files, with a local image thumbnail used only while the request is pending and an explicit failed state on errors.
+- Persisted only safe `message_id`/`file_id` metadata from the existing upload response; restored image thumbnails and the larger preview fetch private bytes through the authenticated backend download endpoint.
+- Added a compact image preview modal with close button, backdrop close and Escape support; no public R2 URL or binary is stored locally.
+
 ## 2026-09-20 — Live Flow trace-driven mapping
 
 - Unified Trace, Graph, Replay, Copy Trace and Export TXT on one ordered projection of the selected request's saved `trace_events`.
