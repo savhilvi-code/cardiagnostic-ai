@@ -3,6 +3,7 @@ const { chromium } = require('playwright');
 const { spawn } = require('node:child_process');
 const assert = require('node:assert/strict');
 const path = require('node:path');
+const fs = require('node:fs/promises');
 
 const root = path.resolve(__dirname, '..');
 const port = 4191;
@@ -29,12 +30,15 @@ const rawSearchEvents = [
 ];
 const searchEvents = rawSearchEvents.map(([event_type,operation,status,from_node,to_node,edge_label],index) => ({
   sequence:index+1,offset_ms:index*110,event_type,operation,status,from_node,to_node,edge_label,
+  module:event_type.toLowerCase(),duration_ms:40+index,
   ...(to_node==='vehicles'||from_node==='vehicles'?{table_name:'vehicles'}:{}),
   ...(['search_episodes','search_runs','sources','problem_sources','messages'].includes(to_node)?{table_name:to_node}:{}),
-  ...(event_type==='SOURCE'?{output_data:{title:'YouTube AL4 level check',url:'https://youtube.example.test/al4',retained:true}}:{}),
+  ...(event_type==='SOURCE'?{output_data:{title:'YouTube AL4 level check',url:'https://youtube.example.test/al4',retained:true},related_ids:{source_id:'source-1'}}:{}),
   ...(edge_label==='BRANDING_ASSET'?{output_data:{title:'PULS logo',reason:'branding_asset'}}:{}),
+  ...(operation==='READ'?{record_id:`record-${index+1}`,affected_rows:1}:{}),
   ...(to_node==='Stage 1'?{stage_number:1,source_group:'video'}:{}),
-  ...(to_node==='Claude'?{provider:'Claude'}:{}),
+  ...(to_node==='Claude'?{provider:'Claude',model:'claude-fixture',telemetry:{input_tokens:120,output_tokens:30}}:{}),
+  ...(index===0?{input_data:{query:'saved trace only',authorization:'Bearer fixture-super-secret-token'}}:{}),
 }));
 const fastEvents = [
   {sequence:1,offset_ms:0,event_type:'REQUEST',operation:'CONTEXT',status:'STARTED',from_node:'USER',to_node:'API',edge_label:'REQUEST'},
@@ -50,6 +54,7 @@ const fastEvents = [
   for (let i = 0; i < 40; i += 1) { try { if ((await fetch(base)).ok) break; } catch {} await new Promise((r) => setTimeout(r, 100)); }
   browser = await chromium.launch({ headless: true, ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}) });
   const context = await browser.newContext({ viewport: { width: 1440, height: 960 } });
+  await context.grantPermissions(['clipboard-read','clipboard-write'], { origin: base });
   const calls = [];
   await context.route('**/*', async (route) => {
     const request = route.request(); const url = new URL(request.url()); const pathname = url.pathname;
@@ -62,14 +67,43 @@ const fastEvents = [
       { id: 'trace-search', status: 'COMPLETED', intent: 'HOWTO', user_label: 'owner@test.local', vehicle_id: 'v1', message_excerpt: 'YouTube manual', started_at: '2026-09-19T12:00:00Z', duration_ms: 3410 },
       { id: 'trace-fast', status: 'COMPLETED', intent: 'GENERAL_CHAT', user_label: 'owner@test.local', vehicle_id: 'v1', message_excerpt: 'Hello', started_at: '2026-09-19T11:00:00Z', duration_ms: 500 },
     ] });
-    if (pathname === '/admin/knowledge/live-flow/traces/trace-search') return json({ id: 'trace-search', status: 'COMPLETED', events:searchEvents });
-    if (pathname === '/admin/knowledge/live-flow/traces/trace-fast') return json({ id: 'trace-fast', status: 'COMPLETED', events:fastEvents });
+    if (pathname === '/admin/knowledge/live-flow/traces/trace-search') return json({ id: 'trace-search', request_id:'req-search-32', status:'COMPLETED', intent:'HOWTO', user_label:'owner@test.local', user_id:'user-1', vehicle_id:'v1', conversation_id:'conversation-1', problem_id:'problem-1', started_at:'2026-09-19T12:00:00Z', duration_ms:3410, events:searchEvents });
+    if (pathname === '/admin/knowledge/live-flow/traces/trace-fast') return json({ id: 'trace-fast', request_id:'req-fast-7', status:'COMPLETED', intent:'GENERAL_CHAT', user_label:'owner@test.local', vehicle_id:'v1', started_at:'2026-09-19T11:00:00Z', duration_ms:500, events:fastEvents });
     return json({});
   });
   const page = await context.newPage();
   await page.goto(`${base}/admin.html#live-flow`);
   await page.locator('[data-flow-trace="trace-search"]').click();
   await page.waitForFunction(() => Number(document.querySelector('#flowScrubber')?.max || 0) === 31);
+  assert.equal(await page.locator('#flowCopyTrace').isEnabled(),true);
+  assert.equal(await page.locator('#flowExportTrace').isEnabled(),true);
+  const callsBeforeExport=calls.length;
+  await page.locator('#flowCopyTrace').click();
+  await page.locator('#flowCopyTrace').getByText('Copied ✓').waitFor();
+  const copied=await page.evaluate(()=>navigator.clipboard.readText());
+  assert.match(copied,/^PULS REQUEST TRACE/);
+  assert.match(copied,/Request ID: req-search-32/);
+  assert.match(copied,/Conversation ID: conversation-1/);
+  assert.match(copied,/Problem ID: problem-1/);
+  assert.match(copied,/Event count: 32/);
+  assert.match(copied,/01 \| \+0 ms \| USER → REQUEST → API \| STARTED/);
+  assert.ok(copied.indexOf('01 |')<copied.indexOf('32 |'),'Events must export in sequence order');
+  assert.match(copied,/module: database/);
+  assert.match(copied,/table_name: vehicles/);
+  assert.match(copied,/provider: Claude/);
+  assert.match(copied,/SOURCES[\s\S]*https:\/\/youtube\.example\.test\/al4/);
+  assert.match(copied,/TRACE DATA[\s\S]*input_data/);
+  assert.doesNotMatch(copied,/fixture-super-secret-token/);
+  assert.match(copied,/authorization[\s\S]*\[redacted\]/);
+  const downloadPromise=page.waitForEvent('download');
+  await page.locator('#flowExportTrace').click();
+  const download=await downloadPromise;
+  assert.equal(download.suggestedFilename(),'puls-trace-2026-09-19-req-search-32.txt');
+  const downloaded=await fs.readFile(await download.path(),'utf8');
+  assert.equal(downloaded.replace(/\r\n/g,'\n'),copied.replace(/\r\n/g,'\n'));
+  assert.equal(calls.length,callsBeforeExport,'Copy/Export must not make network requests');
+  await page.waitForTimeout(1600);
+  assert.equal(await page.locator('#flowCopyTrace').textContent(),'Copy Trace');
   await page.locator('#flowScrubber').fill('3');
   await page.locator('#flowGraph [data-flow-node="Classifier"]').waitFor();
   assert.equal(await page.locator('.flow-edge').count(), 4);
@@ -88,7 +122,22 @@ const fastEvents = [
   assert.equal(await page.locator('.architecture-node[data-flow-node="Stage 1"]').count(),1);
   assert.equal(await page.locator('.architecture-node.is-db[data-flow-node="vehicles"]').count(),1);
   assert.ok(await page.locator('.architecture-edge.is-future').count()>0);
-  assert.equal(await page.locator('.architecture-edge.is-active animateMotion').count(),1);
+  assert.equal(await page.locator('.architecture-pulse-layer animateMotion').count(),1);
+  assert.equal(await page.locator('.architecture-edge-label').count(),await page.locator('.architecture-edge').count());
+  assert.equal(await page.locator('.architecture-edge-label.is-active').count(),1);
+  const layerOrder=await page.locator('.architecture-graph > g').evaluateAll((nodes)=>nodes.map((node)=>node.getAttribute('class')));
+  assert.deepEqual(layerOrder,['architecture-lines-layer','architecture-nodes-layer','architecture-labels-layer','architecture-pulse-layer']);
+  const activeLabelStyle=await page.locator('.architecture-edge-label.is-active rect').evaluate((node)=>getComputedStyle(node));
+  assert.notEqual(activeLabelStyle.fill,'none');
+  const activeLabelOverlapsNode=await page.evaluate(()=>{
+    const label=document.querySelector('.architecture-edge-label.is-active rect')?.getBoundingClientRect();
+    if (!label) return true;
+    return [...document.querySelectorAll('.architecture-node rect')].some((node)=>{
+      const card=node.getBoundingClientRect();
+      return label.left<card.right&&label.right>card.left&&label.top<card.bottom&&label.bottom>card.top;
+    });
+  });
+  assert.equal(activeLabelOverlapsNode,false,'Active edge label must remain outside node cards');
   await page.locator('#flowPlay').click();await page.waitForTimeout(160);await page.locator('#flowPause').click();
   assert.ok(Number(await page.locator('#flowScrubber').inputValue())>16);
   await page.locator('#flowScrubber').fill('21');assert.equal(await page.locator('.architecture-edge.is-skipped').count(),1);

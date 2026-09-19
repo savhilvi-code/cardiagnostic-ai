@@ -1242,7 +1242,10 @@ button.inspector-stat-card:hover {
 .flow-edge.is-active i b { display: block; }
 @keyframes flowPulse { from { left: 0; } to { left: calc(100% - 10px); } }
 .architecture-graph { display: block; width: 100%; min-width: 780px; height: auto; overflow: visible; }
-.architecture-node, .architecture-edge { cursor: pointer; outline: none; }
+.architecture-node, .architecture-edge, .architecture-edge-label { cursor: pointer; outline: none; }
+.architecture-lines-layer { pointer-events: auto; }
+.architecture-nodes-layer, .architecture-labels-layer { pointer-events: auto; }
+.architecture-pulse-layer { pointer-events: none; }
 .architecture-node rect { fill: #102330; stroke: #446278; stroke-width: 1.5; transition: .2s ease; }
 .architecture-node text { fill: #d9eeff; font: 600 12px system-ui, sans-serif; text-anchor: middle; pointer-events: none; }
 .architecture-node.is-db rect { fill: #18152b; stroke: #8768e8; stroke-width: 2; }
@@ -1259,14 +1262,23 @@ button.inspector-stat-card:hover {
 .architecture-node-count { fill: #65cfff !important; font-size: 9px !important; }
 .architecture-edge-path { fill: none; stroke: #496578; stroke-width: 2; }
 .architecture-edge-hit { fill: none; stroke: transparent; stroke-width: 16; }
-.architecture-edge text { fill: #83aeca; font: 10px system-ui, sans-serif; text-anchor: middle; paint-order: stroke; stroke: #07131d; stroke-width: 4px; stroke-linejoin: round; }
+.architecture-edge-label rect { fill: rgba(5, 13, 20, .96); stroke: #294457; stroke-width: 1; }
+.architecture-edge-label text { fill: #8db8d4; font: 600 10px system-ui, sans-serif; text-anchor: middle; dominant-baseline: middle; pointer-events: none; }
 .architecture-edge.is-future { opacity: .18; }
 .architecture-edge.is-passed { opacity: .58; }
 .architecture-edge.is-active { opacity: 1; }
+.architecture-edge-label.is-future { opacity: .24; }
+.architecture-edge-label.is-passed { opacity: .78; }
+.architecture-edge-label.is-active { opacity: 1; }
+.architecture-edge-label.is-active rect { fill: rgba(6, 29, 41, .98); stroke: #20d9ff; filter: drop-shadow(0 0 5px rgba(32,217,255,.7)); }
+.architecture-edge-label.is-active text { fill: #e8fdff; }
 .architecture-edge.is-active .architecture-edge-path { stroke: #20d9ff; stroke-width: 3; filter: drop-shadow(0 0 5px #20d9ff); }
 .architecture-edge.is-failed .architecture-edge-path { stroke: #ff5d6c; }
 .architecture-edge.is-warning .architecture-edge-path { stroke: #ffd15c; }
 .architecture-edge.is-skipped .architecture-edge-path { stroke: #6e7981; stroke-dasharray: 6 5; }
+.architecture-edge-label.is-failed rect { stroke: #ff5d6c; }
+.architecture-edge-label.is-warning rect { stroke: #ffd15c; }
+.architecture-edge-label.is-skipped { opacity: .46; }
 .architecture-pulse { fill: #e8fdff; filter: drop-shadow(0 0 7px #20d9ff); pointer-events: none; }
 .flow-bottom-grid { display: grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 12px; margin-top: 12px; }
 .flow-bottom-grid h2, .flow-recent-panel h2 { margin: 0 0 10px; font-size: 15px; }

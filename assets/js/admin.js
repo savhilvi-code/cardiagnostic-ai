@@ -1973,7 +1973,7 @@ function initializeSidebar() {
 
 const liveFlowState = {
   traces: [], trace: null, events: [], index: -1, timer: null,
-  speed: 1, streamAbort: null, streamCursor: 0, mode: "trace"
+  speed: 1, streamAbort: null, streamCursor: 0, mode: "trace", copyTimer: null
 };
 
 
@@ -2020,6 +2020,150 @@ async function loadFlowTraces() {
 
 function flowEventLabel(event) {
   return event.edge_label || event.operation || event.event_type || `Event ${event.sequence}`;
+}
+
+
+const FLOW_EXPORT_SENSITIVE_KEY = /(^|_|-)(authorization|auth|cookie|password|secret|api_?key|token|access_?token|refresh_?token|jwt|credential|session|signature|sig)s?($|_|-)/i;
+
+
+function flowSanitizedExportData(value, key = "", seen = new WeakSet()) {
+  if (FLOW_EXPORT_SENSITIVE_KEY.test(key)) return "[redacted]";
+  if (typeof value === "string") {
+    return value
+      .replace(/Bearer\s+[A-Za-z0-9._~+\/-]+=*/gi, "Bearer [redacted]")
+      .replace(/\b(?:sk|sb_secret)_[A-Za-z0-9_-]{12,}\b/gi, "[redacted]");
+  }
+  if (value === null || value === undefined || typeof value !== "object") return value;
+  if (seen.has(value)) return "[circular]";
+  seen.add(value);
+  if (Array.isArray(value)) return value.map((item) => flowSanitizedExportData(item, key, seen));
+  return Object.fromEntries(Object.entries(value).map(([childKey, childValue]) => [
+    childKey,
+    flowSanitizedExportData(childValue, childKey, seen),
+  ]));
+}
+
+
+function flowExportJson(value) {
+  return JSON.stringify(flowSanitizedExportData(value), null, 2);
+}
+
+
+function flowExportTraceInfo() {
+  const detail = liveFlowState.trace || {};
+  const summary = liveFlowState.traces.find((item) => item.id === detail.id) || {};
+  return { ...summary, ...detail };
+}
+
+
+function flowCollectSourceUrls(value, urls = new Set(), key = "") {
+  if (value === null || value === undefined) return urls;
+  if (typeof value === "string") {
+    if ((/url|href/i.test(key) || /^https?:\/\//i.test(value)) && /^https?:\/\//i.test(value)) {
+      try {
+        const url = new URL(value);
+        if (url.username) url.username = "redacted";
+        if (url.password) url.password = "redacted";
+        [...url.searchParams.keys()].forEach((name) => {
+          if (FLOW_EXPORT_SENSITIVE_KEY.test(name)) url.searchParams.set(name, "[redacted]");
+        });
+        urls.add(url.toString());
+      } catch { /* Ignore malformed saved URLs. */ }
+    }
+    return urls;
+  }
+  if (Array.isArray(value)) value.forEach((item) => flowCollectSourceUrls(item, urls, key));
+  else if (typeof value === "object") Object.entries(value).forEach(([childKey, childValue]) => flowCollectSourceUrls(childValue, urls, childKey));
+  return urls;
+}
+
+
+function buildFlowTraceExport() {
+  const trace = flowExportTraceInfo();
+  const events = [...liveFlowState.events].sort((a, b) => Number(a.sequence || 0) - Number(b.sequence || 0));
+  const requestId = trace.request_id || trace.id || "—";
+  const metadata = [
+    ["Request ID", requestId],
+    ["Date/time", trace.started_at || trace.created_at],
+    ["User", trace.user_label || trace.user_id],
+    ["Vehicle ID", trace.vehicle_id],
+    ["Conversation ID", trace.conversation_id],
+    ["Problem ID", trace.problem_id],
+    ["Intent", trace.intent],
+    ["Status", trace.status],
+    ["Duration", trace.duration_ms === null || trace.duration_ms === undefined ? null : `${trace.duration_ms} ms`],
+    ["Event count", events.length],
+  ];
+  const lines = ["PULS REQUEST TRACE", ""];
+  metadata.forEach(([label, value]) => lines.push(`${label}: ${value === null || value === undefined || value === "" ? "—" : value}`));
+  lines.push("", "EVENTS", "");
+  const technicalFields = ["module", "operation", "table_name", "record_id", "affected_rows", "stage_number", "source_group", "provider", "model", "duration_ms"];
+  events.forEach((event, index) => {
+    const number = String(event.sequence ?? index + 1).padStart(2, "0");
+    const from = event.from_node || "Event";
+    const to = event.to_node || event.table_name || "Result";
+    lines.push(`${number} | +${Number(event.offset_ms || 0)} ms | ${from} → ${flowEventLabel(event)} → ${to} | ${event.status || "UNKNOWN"}`);
+    technicalFields.forEach((field) => {
+      const value = event[field];
+      if (value !== null && value !== undefined && value !== "") lines.push(`  ${field}: ${flowValue(flowSanitizedExportData(value, field))}`);
+    });
+    lines.push("");
+  });
+  const urls = new Set();
+  events.forEach((event) => {
+    flowCollectSourceUrls(event.input_data, urls);
+    flowCollectSourceUrls(event.output_data, urls);
+    flowCollectSourceUrls(event.telemetry, urls);
+  });
+  lines.push("SOURCES", "");
+  if (urls.size) [...urls].forEach((url) => lines.push(`- ${url}`));
+  else lines.push("No saved source URLs.");
+  lines.push("", "TRACE DATA", "");
+  let hasTraceData = false;
+  events.forEach((event, index) => {
+    const fields = ["input_data", "output_data", "telemetry", "related_ids"].filter((field) => {
+      const value = event[field];
+      return value !== null && value !== undefined && value !== "" && (!Array.isArray(value) || value.length) && (typeof value !== "object" || Array.isArray(value) || Object.keys(value).length);
+    });
+    if (!fields.length) return;
+    hasTraceData = true;
+    lines.push(`Event ${String(event.sequence ?? index + 1).padStart(2, "0")}`);
+    fields.forEach((field) => lines.push(`  ${field}: ${flowExportJson(event[field]).replace(/\n/g, "\n  ")}`));
+    lines.push("");
+  });
+  if (!hasTraceData) lines.push("No saved trace data.");
+  return `${lines.join("\n").trimEnd()}\n`;
+}
+
+
+async function copyFlowTrace() {
+  if (!liveFlowState.trace || !liveFlowState.events.length) return;
+  const text = buildFlowTraceExport();
+  try {
+    if (!navigator.clipboard?.writeText) throw new Error("Clipboard API unavailable");
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const field = document.createElement("textarea");
+    field.value = text; field.style.position = "fixed"; field.style.opacity = "0";
+    document.body.append(field); field.select(); document.execCommand("copy"); field.remove();
+  }
+  const button = adminEl("flowCopyTrace");
+  if (!button) return;
+  button.textContent = "Copied ✓";
+  clearTimeout(liveFlowState.copyTimer);
+  liveFlowState.copyTimer = setTimeout(() => { button.textContent = "Copy Trace"; }, 1500);
+}
+
+
+function exportFlowTrace() {
+  if (!liveFlowState.trace || !liveFlowState.events.length) return;
+  const trace = flowExportTraceInfo();
+  const date = String(trace.started_at || trace.created_at || new Date().toISOString()).slice(0, 10);
+  const requestId = String(trace.request_id || trace.id || "request").replace(/[^A-Za-z0-9._-]+/g, "-");
+  const url = URL.createObjectURL(new Blob([buildFlowTraceExport()], { type: "text/plain;charset=utf-8" }));
+  const link = document.createElement("a");
+  link.href = url; link.download = `puls-trace-${date}-${requestId}.txt`; document.body.append(link); link.click(); link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 
@@ -2106,24 +2250,45 @@ function renderFlowArchitectureGraph() {
     event, index, from: event.from_node, to: event.to_node || event.table_name,
   })).filter((edge) => edge.from && edge.to && positions.has(edge.from) && positions.has(edge.to));
 
-  const edgeMarkup = edges.map(({ event, index, from, to }) => {
+  const edgeLayers = edges.map(({ event, index, from, to }) => {
     const a = positions.get(from), b = positions.get(to);
-    const startX = a.x + 66, startY = a.y + 25, endX = b.x - 66, endY = b.y + 25;
     const sameLane = Math.abs(a.x - b.x) < 10;
-    const path = sameLane
-      ? `M ${a.x} ${a.y + 51} C ${a.x + 80} ${a.y + 72}, ${b.x + 80} ${b.y - 22}, ${b.x} ${b.y}`
-      : `M ${startX} ${startY} C ${(startX + endX) / 2} ${startY}, ${(startX + endX) / 2} ${endY}, ${endX} ${endY}`;
+    let path, labelX, labelY;
+    if (sameLane) {
+      const downward = b.y >= a.y;
+      const startY = downward ? a.y + 54 : a.y - 2;
+      const endY = downward ? b.y - 2 : b.y + 54;
+      const outsideX = a.x + (a.x >= 730 ? -80 : 80) - ((index % 3) - 1) * 10;
+      path = `M ${a.x} ${startY} C ${outsideX} ${startY}, ${outsideX} ${endY}, ${b.x} ${endY}`;
+      labelX = outsideX;
+      labelY = (startY + endY) / 2;
+    } else {
+      const direction = b.x > a.x ? 1 : -1;
+      const startX = a.x + direction * 69;
+      const endX = b.x - direction * 69;
+      const startY = a.y + 26;
+      const endY = b.y + 26;
+      const corridorX = (startX + endX) / 2 + ((index % 3) - 1) * 10;
+      path = `M ${startX} ${startY} C ${corridorX} ${startY}, ${corridorX} ${endY}, ${endX} ${endY}`;
+      labelX = corridorX;
+      labelY = Math.abs(startY - endY) < 42 ? Math.min(startY, endY) - 38 : (startY + endY) / 2;
+    }
     const phase = index === liveFlowState.index ? "is-active" : index < liveFlowState.index ? "is-passed" : "is-future";
     const statusClass = index <= liveFlowState.index ? flowGraphStatusClass(event.status) : "";
-    const labelX = sameLane ? a.x + 64 : (startX + endX) / 2;
-    const labelY = sameLane ? (a.y + b.y) / 2 : (startY + endY) / 2 - 7;
-    return `<g class="architecture-edge ${phase} ${statusClass}" data-flow-event="${index}" role="button" tabindex="0">
+    const label = flowEventLabel(event);
+    const labelWidth = Math.min(190, Math.max(46, String(label).length * 6.2 + 18));
+    return {
+      line: `<g class="architecture-edge ${phase} ${statusClass}" data-flow-event="${index}" role="button" tabindex="0">
       <path id="flowGraphEdge${index}" class="architecture-edge-path" d="${path}" marker-end="url(#flowArrow)"></path>
       <path class="architecture-edge-hit" d="${path}"></path>
-      <text x="${labelX}" y="${labelY}">${escapeAdminHtml(flowEventLabel(event))}</text>
-      ${index === liveFlowState.index ? `<circle class="architecture-pulse" r="6"><animateMotion dur="1.1s" repeatCount="indefinite"><mpath href="#flowGraphEdge${index}"></mpath></animateMotion></circle>` : ""}
-    </g>`;
-  }).join("");
+      </g>`,
+      label: `<g class="architecture-edge-label ${phase} ${statusClass}" data-flow-event="${index}" role="button" tabindex="0">
+        <rect x="${labelX - labelWidth / 2}" y="${labelY - 13}" width="${labelWidth}" height="22" rx="7"></rect>
+        <text x="${labelX}" y="${labelY + 2}">${escapeAdminHtml(label)}</text>
+      </g>`,
+      pulse: index === liveFlowState.index ? `<circle class="architecture-pulse" r="6"><animateMotion dur="1.1s" repeatCount="indefinite"><mpath href="#flowGraphEdge${index}"></mpath></animateMotion></circle>` : "",
+    };
+  });
 
   const nodeMarkup = nodeNames.map((name) => {
     const position = positions.get(name);
@@ -2143,7 +2308,10 @@ function renderFlowArchitectureGraph() {
 
   graph.innerHTML = `<svg class="architecture-graph" viewBox="0 0 820 ${height}" role="img" aria-label="Dynamic request architecture graph">
     <defs><marker id="flowArrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#496578"></path></marker></defs>
-    ${edgeMarkup}${nodeMarkup}
+    <g class="architecture-lines-layer">${edgeLayers.map((edge) => edge.line).join("")}</g>
+    <g class="architecture-nodes-layer">${nodeMarkup}</g>
+    <g class="architecture-labels-layer">${edgeLayers.map((edge) => edge.label).join("")}</g>
+    <g class="architecture-pulse-layer">${edgeLayers.map((edge) => edge.pulse).join("")}</g>
   </svg>`;
 }
 
@@ -2242,6 +2410,8 @@ async function selectFlowTrace(traceId) {
   const trace = await adminFetch(`/admin/knowledge/live-flow/traces/${encodeURIComponent(traceId)}`);
   liveFlowState.trace = trace; liveFlowState.events = Array.isArray(trace.events) ? trace.events.sort((a, b) => a.sequence - b.sequence) : [];
   liveFlowState.streamCursor = liveFlowState.events.reduce((max, event) => Math.max(max, Number(event.sequence || 0)), 0);
+  adminEl("flowCopyTrace").disabled = !liveFlowState.events.length;
+  adminEl("flowExportTrace").disabled = !liveFlowState.events.length;
   adminEl("flowModeBadge").textContent = trace.status === "RUNNING" ? "LIVE" : "REPLAY · $0";
   adminEl("flowScrubber").max = String(Math.max(0, liveFlowState.events.length - 1));
   renderFlowTraces(); renderFlowMedia(); selectFlowEvent(trace.status === "RUNNING" ? liveFlowState.events.length - 1 : 0);
@@ -2295,6 +2465,8 @@ document.addEventListener(
 
     adminEl("inspectorRefreshBtn")?.addEventListener("click", () => loadInspectorTab(inspectorState.tab, true));
     adminEl("flowRefreshBtn")?.addEventListener("click", loadFlowTraces);
+    adminEl("flowCopyTrace")?.addEventListener("click", copyFlowTrace);
+    adminEl("flowExportTrace")?.addEventListener("click", exportFlowTrace);
     adminEl("flowStatus")?.addEventListener("change", loadFlowTraces);
     adminEl("flowUser")?.addEventListener("change", loadFlowTraces);
     adminEl("flowVehicle")?.addEventListener("change", loadFlowTraces);

@@ -8,7 +8,7 @@
   <meta name="robots" content="noindex, nofollow">
 
   <link rel="icon" type="image/png" href="assets/img/puls-logo.png">
-  <link rel="stylesheet" href="assets/css/admin.css?v=20260919-02">
+  <link rel="stylesheet" href="assets/css/admin.css?v=20260919-03">
 </head>
 
 <body>
@@ -304,7 +304,7 @@
         <div id="adminLiveFlowSection" class="admin-section" hidden>
           <div class="admin-page-heading">
             <div><div class="admin-eyebrow">Observability</div><h1>Live Request Flow</h1><p>Actual request paths, data movement and zero-cost replay.</p></div>
-            <div class="admin-heading-actions"><span id="flowModeBadge" class="admin-readonly-badge">REPLAY</span><button id="flowRefreshBtn" class="admin-button" type="button">Refresh</button></div>
+            <div class="admin-heading-actions"><span id="flowModeBadge" class="admin-readonly-badge">REPLAY</span><button id="flowCopyTrace" class="admin-button" type="button" disabled>Copy Trace</button><button id="flowExportTrace" class="admin-button" type="button" disabled>Export TXT</button><button id="flowRefreshBtn" class="admin-button" type="button">Refresh</button></div>
           </div>
           <div class="flow-layout">
             <aside class="flow-recent-panel">
@@ -459,6 +459,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/supabaseClient.js"></script>
   <script src="assets/js/config.js"></script>
-  <script src="assets/js/admin.js?v=20260919-02"></script>
+  <script src="assets/js/admin.js?v=20260919-03"></script>
 </body>
 </html>
