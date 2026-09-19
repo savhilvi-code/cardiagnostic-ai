@@ -1,5 +1,10 @@
 # Frontend Task Log
 
+## 2026-09-20 — Chat attachment picker and menu polish
+
+- Removed the premature conversation-ID gate from the trusted menu click, so the existing hidden input always opens for photo/video/document; the existing upload-time context guard remains unchanged.
+- Tightened the existing popup spacing/alignment and replaced the `+` glyph with a geometrically centered CSS-drawn plus while keeping code diagnostics disabled.
+
 ## 2026-09-20 — Chat attachment picker activation
 
 - Kept the existing hidden input and upload handler, but now opens the system picker synchronously from the trusted `+` menu click so browser user activation is preserved.

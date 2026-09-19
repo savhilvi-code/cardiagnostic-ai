@@ -2431,10 +2431,6 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
     function chooseChatAttachment(action) {
       if (!requireSignedInForChat()) return;
-      if (!window.PulsChat.requestContext().conversation_id) {
-        toast(t("composer.attachmentStartChat"));
-        return;
-      }
       const input = $("#chatAttachmentInput");
       input.value = "";
       input.accept = chatAttachmentAccept[action] || "";
