@@ -8,7 +8,7 @@
   <meta name="robots" content="noindex, nofollow">
 
   <link rel="icon" type="image/png" href="assets/img/puls-logo.png">
-  <link rel="stylesheet" href="assets/css/admin.css?v=20260919-04">
+  <link rel="stylesheet" href="assets/css/admin.css?v=20260919-05">
 </head>
 
 <body>
@@ -398,6 +398,18 @@
           </section>
         </div>
 
+        <div id="adminHardDeleteModal" class="admin-dialog-backdrop" hidden>
+          <section class="admin-dialog knowledge-dialog admin-dialog-danger" role="dialog" aria-modal="true" aria-labelledby="adminHardDeleteTitle">
+            <div class="admin-dialog-header"><div><div class="admin-eyebrow">Permanent admin operation</div><h2 id="adminHardDeleteTitle">Confirm deletion</h2></div><button class="admin-dialog-close" type="button" data-close-hard-delete aria-label="Close">×</button></div>
+            <p id="adminHardDeleteSummary">Loading related-record counts…</p>
+            <div id="adminHardDeleteCounts" class="hard-delete-counts"></div>
+            <div id="adminHardDeleteEffects" class="hard-delete-effects"></div>
+            <p class="hard-delete-warning">This is different from Archive and cannot be undone. Shared Sources and Storage objects are preserved.</p>
+            <div id="adminHardDeleteStatus" class="admin-status" role="status"></div>
+            <div class="admin-dialog-actions"><button class="admin-button" type="button" data-close-hard-delete>Cancel</button><button id="adminHardDeleteConfirm" class="admin-button admin-button-danger" type="button" disabled>Delete permanently</button></div>
+          </section>
+        </div>
+
         <div id="adminLiveFlowSection" class="admin-section" hidden>
           <div class="admin-page-heading">
             <div><div class="admin-eyebrow">Observability</div><h1>Live Request Flow</h1><p>Actual request paths, data movement and zero-cost replay.</p></div>
@@ -556,6 +568,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/supabaseClient.js"></script>
   <script src="assets/js/config.js"></script>
-  <script src="assets/js/admin.js?v=20260919-04"></script>
+  <script src="assets/js/admin.js?v=20260919-05"></script>
 </body>
 </html>

@@ -14,6 +14,8 @@ const materials = [
   { id:'specific-existing', title:'TU5JP4 2004 specification', knowledge_type:'SPECIFICATION', summary:'Specific engine data', validation_status:'VERIFIED', provenance_type:'MANUFACTURER', vehicle_configuration_id:'cfg-specific', applicability:{id:'cfg-specific',make:'Peugeot',model:'307',year_from:2004,year_to:2004,engine_code:'TU5JP4'}, metadata:{lifecycle_status:'ACTIVE'}, knowledge_sources:[] },
 ];
 let reviewed = false;
+let caseDeleted = false;
+let vehicleDeleted = false;
 const originalCase = { id:'fleet-1', symptoms:['No drive after warm-up'], cause:'Hydraulic pressure loss', action:'Valve body repair', result:'HELPED', origin_event_id:'event-1' };
 
 (async () => {
@@ -45,16 +47,25 @@ const originalCase = { id:'fleet-1', symptoms:['No drive after warm-up'], cause:
       const item={id:`created-${materials.length}`,title:body.title,knowledge_type:body.knowledge_type,summary:body.description,validation_status:body.validation_status,provenance_type:body.source_type==='MANUAL'?'MANUAL':'EXTERNAL_WEB',vehicle_configuration_id:vehicle?'cfg-new':null,applicability:vehicle?{id:'cfg-new',...body.applicability}:null,metadata:{lifecycle_status:'ACTIVE',notes:body.notes},knowledge_sources:body.url?[{source:{id:'source-new',title:body.title,url:body.url,source_type:body.source_type}}]:[]};
       materials.push(item); return json(item);
     }
+    const itemDeletePreview=pathname.match(/^\/admin\/knowledge\/library\/items\/([^/]+)\/delete-preview$/);
+    if (itemDeletePreview) return json({target_type:'KNOWLEDGE_MATERIAL',target_id:itemDeletePreview[1],target_label:'Material',counts:{knowledge_items:1,knowledge_sources:1,sources_preserved:1,shared_sources:1},effects:{delete:['knowledge_items','knowledge_sources'],preserve:['sources']}});
     const itemMatch=pathname.match(/^\/admin\/knowledge\/library\/items\/([^/]+)$/);
     if (itemMatch&&request.method()==='PATCH') { const item=materials.find((value)=>value.id===itemMatch[1]); Object.assign(item,request.postDataJSON()); return json(item); }
+    if (itemMatch&&request.method()==='DELETE') { const index=materials.findIndex((value)=>value.id===itemMatch[1]); if(index>=0)materials.splice(index,1); return json({deleted:true}); }
     const archiveMatch=pathname.match(/^\/admin\/knowledge\/library\/items\/([^/]+)\/archive$/);
     if (archiveMatch) { const item=materials.find((value)=>value.id===archiveMatch[1]); item.metadata.lifecycle_status='ARCHIVED'; return json(item); }
     if (pathname==='/admin/knowledge/library/problems') return json({items:[{id:'problem-1',title:'Transmission slips hot',status:'OPEN',symptoms:['No drive hot'],confirmed_facts:['RPM rises'],current_conclusion:null,vehicle:{make:'Peugeot',model:'307',year:2004,engine_code:'TU5JP4',transmission:'Automatic'}}],total:1,limit:25,offset:0});
     if (pathname==='/admin/knowledge/library/review-queue') {
-      if (reviewed) return json({items:[{candidate_type:'KNOWLEDGE',candidate:{id:'reviewed-1',title:'No drive after warm-up',validation_status:'VERIFIED',metadata:{original_case:originalCase,mechanic_review:{decision:'VERIFIED',technical_comment:'Confirmed'}}}}],total:1,limit:25,offset:0});
+      if (caseDeleted) return json({items:[],total:0,limit:25,offset:0});
+      if (reviewed) return json({items:[{candidate_type:'KNOWLEDGE',candidate:{id:'reviewed-1',title:'No drive after warm-up',validation_status:'VERIFIED',metadata:{origin_fleet_event_id:'fleet-1',original_case:originalCase,mechanic_review:{decision:'VERIFIED',technical_comment:'Confirmed'}}}}],total:1,limit:25,offset:0});
       return json({items:[{candidate_type:'SUCCESSFUL_CASE',candidate:originalCase}],total:1,limit:25,offset:0});
     }
     if (pathname==='/admin/knowledge/library/reviews'&&request.method()==='POST') { reviewed=true; return json({id:'reviewed-1'}); }
+    if (pathname==='/admin/knowledge/library/successful-cases/fleet-1/delete-preview') return json({target_type:'SUCCESSFUL_CASE',target_id:'fleet-1',target_label:'No drive after warm-up',counts:{fleet_events:1,promoted_knowledge_items:1,knowledge_sources:1,sources_preserved:1},effects:{delete:['fleet_events','promoted knowledge_items'],preserve:['sources','origin vehicle_event']}});
+    if (pathname==='/admin/knowledge/library/successful-cases/fleet-1'&&request.method()==='DELETE') { caseDeleted=true; return json({deleted:true}); }
+    if (pathname==='/admin/knowledge/vehicles') return json({items:vehicleDeleted?[]:[{id:'vehicle-1',make:'Peugeot',model:'307',year:2004,lifecycle_status:'ACTIVE',problem_count:1,event_count:1,spec_count:1,user:{email:'owner@test.local'}}],total:vehicleDeleted?0:1,limit:25,offset:0,warnings:[]});
+    if (pathname==='/admin/knowledge/library/vehicles/vehicle-1/delete-preview') return json({target_type:'VEHICLE',target_id:'vehicle-1',target_label:'Peugeot 307 2004',counts:{vehicles:1,vehicle_specs:1,problems:1,conversations:1,search_episodes:1,search_runs:1,matching_shared_vehicle_configurations:1},effects:{delete:['vehicles','vehicle_specs','problems'],detach:['conversations.vehicle_id'],preserve:['vehicle_configurations','sources','storage objects']}});
+    if (pathname==='/admin/knowledge/library/vehicles/vehicle-1'&&request.method()==='DELETE') { vehicleDeleted=true; return json({deleted:true}); }
     return json({});
   });
   const page=await context.newPage();
@@ -124,6 +135,32 @@ const originalCase = { id:'fleet-1', symptoms:['No drive after warm-up'], cause:
   const reviewedCard=await page.locator('.knowledge-review-card').textContent();
   assert.match(reviewedCard,/Original Case.*Valve body repair/s);
   assert.match(reviewedCard,/Mechanic Review.*VERIFIED/s);
+
+  // G. Every hard delete loads real counts before enabling confirmation.
+  await page.getByRole('button',{name:'Delete Case'}).click();
+  await page.getByText('promoted knowledge items').waitFor();
+  assert.equal(await page.locator('#adminHardDeleteConfirm').isEnabled(),true);
+  await page.locator('#adminHardDeleteConfirm').click();
+  await page.getByText('No candidates in this review state.').waitFor();
+  assert(calls.includes('DELETE /admin/knowledge/library/successful-cases/fleet-1'));
+
+  await page.locator('[data-inspector-tab="vehicles"]').click();
+  await page.getByText('Peugeot 307 2004').waitFor();
+  const vehicleRow=page.locator('[data-inspector-kind="vehicle"][data-inspector-id="vehicle-1"]');
+  await vehicleRow.locator('summary').click();
+  await vehicleRow.getByRole('button',{name:'Delete Vehicle'}).click();
+  await page.getByText('matching shared vehicle configurations').waitFor();
+  await page.locator('#adminHardDeleteConfirm').click();
+  await page.getByText('No canonical rows found.').waitFor();
+  assert(calls.includes('DELETE /admin/knowledge/library/vehicles/vehicle-1'));
+
+  await page.locator('[data-inspector-tab="library"]').click();
+  const generalCard=page.locator('.knowledge-material-card').filter({hasText:'Voltage drop fundamentals'});
+  await generalCard.getByRole('button',{name:'Delete Material'}).click();
+  await page.getByText('shared sources').waitFor();
+  await page.locator('#adminHardDeleteConfirm').click();
+  await generalCard.waitFor({state:'detached'});
+  assert(calls.some((call)=>call==='DELETE /admin/knowledge/library/items/created-4'));
 
   assert.equal(calls.some((call)=>/\/(chat|search|parser)(?:\?|$|\/)/i.test(call)),false);
   console.log('Admin Knowledge Library mocked regression passed.');

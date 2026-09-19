@@ -1032,6 +1032,14 @@ button.inspector-stat-card:hover {
 .admin-dialog-header h2 { margin-bottom: 0; }
 .knowledge-add-modes { margin: 10px 0; }
 .knowledge-upload-note { margin: 8px 0 13px !important; padding: 8px 10px; border-radius: 8px; background: rgba(255,209,92,.08); color: #d8be78 !important; font-size: 12px; }
+.hard-delete-counts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 14px 0; }
+.hard-delete-count { display: flex; justify-content: space-between; gap: 12px; padding: 9px 11px; border: 1px solid rgba(255,93,104,.24); border-radius: 9px; background: rgba(255,93,104,.06); }
+.hard-delete-count span { color: #9fb4c5; overflow-wrap: anywhere; }
+.hard-delete-count strong { color: #fff; }
+.hard-delete-effects { display: grid; gap: 7px; padding: 12px; border-radius: 10px; background: #0a1720; }
+.hard-delete-effects p { margin: 0 !important; font-size: 12px; color: #a9bed0 !important; }
+.hard-delete-effects strong { color: #e4eef7; }
+.hard-delete-warning { margin-top: 14px !important; color: #ffb1b7 !important; }
 .knowledge-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .knowledge-form label { display: grid; gap: 6px; color: var(--muted); font-size: 12px; }
 .knowledge-form textarea { resize: vertical; min-height: 68px; }

@@ -27,6 +27,7 @@ const knowledgeLibraryState = {
   scope: "vehicles", make: "", model: "", category: "overview", offset: 0,
   limit: 25, counts: {}, catalogLetter: "", items: new Map(), reviewOffset: 0,
 };
+let adminHardDeleteState = null;
 const SIDEBAR_STORAGE_KEY = "puls-admin-sidebar-collapsed";
 
 
@@ -1375,7 +1376,7 @@ function inspectorMeta(label, value) {
 }
 
 
-function inspectorRow({ id, kind, primary, secondary, meta = [], fields = [], body = "" }) {
+function inspectorRow({ id, kind, primary, secondary, meta = [], fields = [], body = "", actions = "" }) {
   return `
     <details class="inspector-row" data-inspector-kind="${escapeAdminHtml(kind)}" data-inspector-id="${escapeAdminHtml(id)}">
       <summary>
@@ -1385,6 +1386,7 @@ function inspectorRow({ id, kind, primary, secondary, meta = [], fields = [], bo
       <div class="inspector-detail">
         ${fields.length ? `<div class="inspector-detail-grid">${fields.map((item) => inspectorField(item.label, item.value)).join("")}</div>` : ""}
         ${body}
+        ${actions ? `<div class="admin-dialog-actions">${actions}</div>` : ""}
       </div>
     </details>`;
 }
@@ -1576,7 +1578,8 @@ async function loadInspectorVehicles() {
       { label: "Created", value: row.created_at },
       { label: "Updated", value: row.updated_at }
     ],
-    body: `<div class="inspector-specs" data-vehicle-specs="${escapeAdminHtml(row.id)}"><div class="admin-empty">Expand to load ${escapeAdminHtml(row.spec_count ?? "—")} specification rows.</div></div>`
+    body: `<div class="inspector-specs" data-vehicle-specs="${escapeAdminHtml(row.id)}"><div class="admin-empty">Expand to load ${escapeAdminHtml(row.spec_count ?? "—")} specification rows.</div></div>`,
+    actions: `<button class="admin-button admin-button-danger" type="button" data-hard-delete-type="vehicle" data-hard-delete-id="${escapeAdminHtml(row.id)}">Delete Vehicle</button>`
   })).join("");
   if (payload?.warnings?.length) adminEl("vehicleList").insertAdjacentHTML("afterbegin", inspectorWarnings(payload));
   renderInspectorPager(kind, payload, "vehiclePager");
@@ -1998,7 +2001,7 @@ function renderKnowledgeMaterials(payload) {
       <div class="knowledge-card-meta"><span>${escapeAdminHtml(item.knowledge_type || "OTHER")}</span><span>${escapeAdminHtml(item.component || "All components")}</span><span>${item.knowledge_sources?.length || 0} source(s)</span></div>
       ${sourceLinks ? `<div class="knowledge-source-links">${sourceLinks}</div>` : ""}
       <details><summary>View structured knowledge</summary><pre class="inspector-json">${escapeAdminHtml(inspectorJson({ symptoms: item.symptoms, conditions: item.conditions, causes: item.causes, checks: item.checks, solutions: item.solutions, notes: item.metadata?.notes, mechanic_review: item.metadata?.mechanic_review }))}</pre></details>
-      <footer><button class="admin-button" type="button" data-edit-knowledge="${escapeAdminHtml(item.id)}">Edit</button><button class="admin-button admin-danger-button" type="button" data-archive-knowledge="${escapeAdminHtml(item.id)}">Archive</button></footer>
+      <footer><button class="admin-button" type="button" data-edit-knowledge="${escapeAdminHtml(item.id)}">Edit</button><button class="admin-button admin-danger-button" type="button" data-archive-knowledge="${escapeAdminHtml(item.id)}">Archive</button><button class="admin-button admin-button-danger" type="button" data-hard-delete-type="knowledge" data-hard-delete-id="${escapeAdminHtml(item.id)}">Delete Material</button>${item.metadata?.origin_fleet_event_id ? `<button class="admin-button admin-button-danger" type="button" data-hard-delete-type="case" data-hard-delete-id="${escapeAdminHtml(item.metadata.origin_fleet_event_id)}">Delete Case</button>` : ""}</footer>
     </article>`;
   }).join("") : '<div class="admin-empty">No knowledge materials match these filters.</div>';
   renderKnowledgeLibraryPager(payload);
@@ -2132,6 +2135,76 @@ async function archiveKnowledgeMaterial(itemId) {
 }
 
 
+function hardDeleteEndpoints(type, id) {
+  const encoded = encodeURIComponent(id);
+  if (type === "vehicle") return { preview: `/admin/knowledge/library/vehicles/${encoded}/delete-preview`, remove: `/admin/knowledge/library/vehicles/${encoded}` };
+  if (type === "case") return { preview: `/admin/knowledge/library/successful-cases/${encoded}/delete-preview`, remove: `/admin/knowledge/library/successful-cases/${encoded}` };
+  return { preview: `/admin/knowledge/library/items/${encoded}/delete-preview`, remove: `/admin/knowledge/library/items/${encoded}` };
+}
+
+
+function closeAdminHardDeleteModal() {
+  adminEl("adminHardDeleteModal").hidden = true;
+  adminHardDeleteState = null;
+}
+
+
+function renderHardDeletePreview(preview) {
+  adminEl("adminHardDeleteTitle").textContent = `Delete ${String(preview.target_type || "record").replaceAll("_", " ")}`;
+  adminEl("adminHardDeleteSummary").textContent = `${preview.target_label || preview.target_id} — related records were counted immediately before confirmation.`;
+  adminEl("adminHardDeleteCounts").innerHTML = Object.entries(preview.counts || {}).map(([name, value]) => `<div class="hard-delete-count"><span>${escapeAdminHtml(name.replaceAll("_", " "))}</span><strong>${escapeAdminHtml(value)}</strong></div>`).join("");
+  adminEl("adminHardDeleteEffects").innerHTML = Object.entries(preview.effects || {}).map(([effect, values]) => `<p><strong>${escapeAdminHtml(effect.toUpperCase())}:</strong> ${escapeAdminHtml((values || []).join(", ") || "None")}</p>`).join("");
+}
+
+
+async function openAdminHardDeleteModal(type, id) {
+  const endpoints = hardDeleteEndpoints(type, id);
+  adminHardDeleteState = { type, id, endpoints, preview: null };
+  adminEl("adminHardDeleteModal").hidden = false;
+  adminEl("adminHardDeleteTitle").textContent = "Confirm deletion";
+  adminEl("adminHardDeleteSummary").textContent = "Loading current related-record counts…";
+  adminEl("adminHardDeleteCounts").innerHTML = "";
+  adminEl("adminHardDeleteEffects").innerHTML = "";
+  adminEl("adminHardDeleteStatus").textContent = "";
+  adminEl("adminHardDeleteConfirm").disabled = true;
+  try {
+    const preview = await adminFetch(endpoints.preview);
+    if (!adminHardDeleteState || adminHardDeleteState.id !== id || adminHardDeleteState.type !== type) return;
+    adminHardDeleteState.preview = preview;
+    renderHardDeletePreview(preview);
+    adminEl("adminHardDeleteConfirm").disabled = false;
+  } catch (error) {
+    adminEl("adminHardDeleteStatus").textContent = error.message;
+    adminEl("adminHardDeleteStatus").className = "admin-status error";
+  }
+}
+
+
+async function confirmAdminHardDelete() {
+  const pending = adminHardDeleteState;
+  if (!pending?.preview) return;
+  const button = adminEl("adminHardDeleteConfirm");
+  button.disabled = true;
+  adminEl("adminHardDeleteStatus").textContent = "Deleting and verifying…";
+  try {
+    await adminFetch(pending.endpoints.remove, { method: "DELETE" });
+    closeAdminHardDeleteModal();
+    if (pending.type === "vehicle") {
+      inspectorState.loaded.delete("vehicles");
+      await loadInspectorVehicles();
+    } else {
+      knowledgeLibraryState.offset = 0;
+      knowledgeLibraryState.reviewOffset = 0;
+      await Promise.all([loadKnowledgeMaterials(), loadKnowledgeReviewQueue()]);
+    }
+  } catch (error) {
+    adminEl("adminHardDeleteStatus").textContent = error.message;
+    adminEl("adminHardDeleteStatus").className = "admin-status error";
+    button.disabled = false;
+  }
+}
+
+
 function reviewCandidateBody(entry) {
   const item = entry.candidate || {};
   const symptomTitle = Array.isArray(item.symptoms) ? item.symptoms.find(Boolean) : "";
@@ -2140,7 +2213,9 @@ function reviewCandidateBody(entry) {
     causes: item.causes, checks: item.checks, action_or_repair: item.solutions,
     related_sources: (item.knowledge_sources || []).map((link) => link.source).filter(Boolean), original_case_reference: item.metadata?.original_case_reference,
   });
-  return `<article class="knowledge-review-card"><header><div><span class="knowledge-origin is-${entry.candidate_type === "SUCCESSFUL_CASE" ? "user-case" : "candidate"}">${escapeAdminHtml(entry.candidate_type.replaceAll("_", " "))}</span><h3>${escapeAdminHtml(item.title || symptomTitle || item.cause || `Candidate #${item.id}`)}</h3></div><span class="knowledge-review-status">${escapeAdminHtml(item.validation_status || "PENDING REVIEW")}</span></header><div class="knowledge-review-columns"><section><h4>Original Case</h4><pre class="inspector-json">${escapeAdminHtml(inspectorJson(original || { reference: item.id, symptoms: item.symptoms, cause: item.cause, action: item.action, result: item.result }))}</pre></section><section><h4>Mechanic Review</h4><pre class="inspector-json">${escapeAdminHtml(inspectorJson(item.metadata?.mechanic_review || { decision: "Pending" }))}</pre></section></div><footer><button class="admin-button admin-button-primary" type="button" data-review-candidate-type="${escapeAdminHtml(entry.candidate_type)}" data-review-candidate-id="${escapeAdminHtml(item.id)}">Mechanic Review</button></footer></article>`;
+  const caseId = entry.candidate_type === "SUCCESSFUL_CASE" ? item.id : item.metadata?.origin_fleet_event_id;
+  const caseDelete = caseId ? `<button class="admin-button admin-button-danger" type="button" data-hard-delete-type="case" data-hard-delete-id="${escapeAdminHtml(caseId)}">Delete Case</button>` : "";
+  return `<article class="knowledge-review-card"><header><div><span class="knowledge-origin is-${entry.candidate_type === "SUCCESSFUL_CASE" ? "user-case" : "candidate"}">${escapeAdminHtml(entry.candidate_type.replaceAll("_", " "))}</span><h3>${escapeAdminHtml(item.title || symptomTitle || item.cause || `Candidate #${item.id}`)}</h3></div><span class="knowledge-review-status">${escapeAdminHtml(item.validation_status || "PENDING REVIEW")}</span></header><div class="knowledge-review-columns"><section><h4>Original Case</h4><pre class="inspector-json">${escapeAdminHtml(inspectorJson(original || { reference: item.id, symptoms: item.symptoms, cause: item.cause, action: item.action, result: item.result }))}</pre></section><section><h4>Mechanic Review</h4><pre class="inspector-json">${escapeAdminHtml(inspectorJson(item.metadata?.mechanic_review || { decision: "Pending" }))}</pre></section></div><footer><button class="admin-button admin-button-primary" type="button" data-review-candidate-type="${escapeAdminHtml(entry.candidate_type)}" data-review-candidate-id="${escapeAdminHtml(item.id)}">Mechanic Review</button>${caseDelete}</footer></article>`;
 }
 
 
@@ -2743,6 +2818,7 @@ document.addEventListener(
     adminEl("reviewQueueRefresh")?.addEventListener("click", () => { knowledgeLibraryState.reviewOffset = 0; loadKnowledgeReviewQueue(); });
     adminEl("knowledgeMaterialForm")?.addEventListener("submit", saveKnowledgeMaterial);
     adminEl("knowledgeReviewForm")?.addEventListener("submit", saveKnowledgeReview);
+    adminEl("adminHardDeleteConfirm")?.addEventListener("click", confirmAdminHardDelete);
     adminEl("flowRefreshBtn")?.addEventListener("click", loadFlowTraces);
     adminEl("flowCopyTrace")?.addEventListener("click", copyFlowTrace);
     adminEl("flowExportTrace")?.addEventListener("click", exportFlowTrace);
@@ -2768,6 +2844,10 @@ document.addEventListener(
       if (closeKnowledge) { closeKnowledgeMaterialModal(); return; }
       const closeReview = event.target.closest?.("[data-close-review-modal]");
       if (closeReview) { adminEl("knowledgeReviewModal").hidden = true; return; }
+      const closeHardDelete = event.target.closest?.("[data-close-hard-delete]");
+      if (closeHardDelete) { closeAdminHardDeleteModal(); return; }
+      const hardDelete = event.target.closest?.("[data-hard-delete-type]");
+      if (hardDelete) { await openAdminHardDeleteModal(hardDelete.dataset.hardDeleteType, hardDelete.dataset.hardDeleteId); return; }
       const materialMode = event.target.closest?.("[data-material-mode]");
       if (materialMode && !materialMode.disabled) { setKnowledgeMaterialMode(materialMode.dataset.materialMode); return; }
       const knowledgeScope = event.target.closest?.("[data-knowledge-scope]");
