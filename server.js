@@ -60,6 +60,20 @@ app.post("/api/chat", asyncRoute(async (req, res) => {
   res.status(response.status).type(contentType).send(text);
 }));
 
+app.post("/api/chat/attachments", asyncRoute(async (req, res) => {
+  const chunks = [];
+  for await (const chunk of req) chunks.push(chunk);
+  const { response, text, contentType } = await proxyBackend("/api/chat/attachments", {
+    method: "POST",
+    headers: {
+      "Content-Type": req.headers["content-type"] || "application/octet-stream",
+      ...(req.headers.authorization ? { Authorization: req.headers.authorization } : {}),
+    },
+    body: Buffer.concat(chunks),
+  });
+  res.status(response.status).type(contentType).send(text);
+}));
+
 app.get("/", (req, res) => {
   res.sendFile(join(__dirname, "index.html"));
 });

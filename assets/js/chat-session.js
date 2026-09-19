@@ -82,13 +82,17 @@ window.PulsChat = (() => {
       marker.lastActivity=lastActivity;store();
     }catch{ /* Keep the response visible; recover authoritative activity on refresh. */ }
   }
+  function afterAttachment(user){
+    if(user!==window.pulsCurrentUser?.id||owner!==user||!marker?.conversationId)return;
+    lastActivity=Date.now();marker.lastActivity=lastActivity;store();
+  }
   function continueProblem(vehicle,problem){
     authChanged();++version;restoring=null;
     pendingProblemSelection=true;
     context={vehicle:{id:vehicle.id,label:getVehicleLabel(vehicle)},problem:structuredClone(problem)};
     marker={conversationId:null,vehicleId:vehicle.id,problemId:problem.id,lastActivity:0};lastActivity=0;store();empty();banner();
   }
-  const api={CHAT_SESSION_TTL_HOURS,sessionRows,restore,authChanged,beforeSend,requestContext,afterSend,continueProblem,sending:false};
+  const api={CHAT_SESSION_TTL_HOURS,sessionRows,restore,authChanged,beforeSend,requestContext,afterSend,afterAttachment,continueProblem,sending:false};
   document.addEventListener('visibilitychange',()=>{
     if(document.visibilityState==='visible'&&document.readyState==='complete'&&!api.sending)void restore();
   });

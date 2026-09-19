@@ -1,5 +1,11 @@
 # Frontend Task Log
 
+## 2026-09-20 — Chat attachment controls
+
+- Connected the existing Chat `+` menu photo/video/document controls to the authenticated Message attachment endpoint; binaries remain private behind the backend and no file data enters localStorage.
+- The UI requires an existing vehicle-scoped conversation because the approved backend flow attaches the binary to a persisted Message. Code diagnostics is visibly disabled as coming soon.
+- My Car Service/Repair attachment work remains blocked: its legacy form still writes `srv_*` records and photo Data URLs to localStorage, while My Car V2 has no persisted create/edit flow. Active Problem is currently read-only in My Car, so no false relation was introduced.
+
 ## 2026-09-20 — Admin Knowledge private-file upload
 
 - Enabled the existing Upload File mode in the Knowledge material form and connected it to the admin-only backend multipart endpoint after the Knowledge Item is saved.

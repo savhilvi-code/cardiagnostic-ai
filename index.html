@@ -310,10 +310,12 @@
               <div class="composer-menu-wrap">
                 <button class="composer-icon-btn" id="composerMenuBtn" type="button" aria-label="Открыть меню вложений" aria-expanded="false">+</button>
                 <div class="composer-menu" id="composerMenu" aria-label="Меню действий">
-                  <button type="button" data-action="demo"><span>▧</span><span data-i18n="composer.attachPhoto">Прикрепить фото</span></button>
-                  <button type="button" data-action="demo"><span>▣</span><span data-i18n="composer.sendVideo">Отправить видео</span></button>
-                  <button type="button" data-action="dtc"><span>⌁</span><span data-i18n="composer.dtc">Диагностика по коду</span></button>
+                  <button type="button" data-action="attach-photo"><span>▧</span><span data-i18n="composer.attachPhoto">Прикрепить фото</span></button>
+                  <button type="button" data-action="attach-video"><span>▣</span><span data-i18n="composer.sendVideo">Отправить видео</span></button>
+                  <button type="button" data-action="attach-document"><span>▤</span><span data-i18n="composer.attachDocument">Прикрепить документ</span></button>
+                  <button type="button" disabled aria-disabled="true" title="Coming soon"><span>⌁</span><span data-i18n="composer.dtcSoon">Диагностика по коду — скоро</span></button>
                 </div>
+                <input id="chatAttachmentInput" type="file" hidden>
               </div>
 
               <div class="composer-actions-spacer"></div>
@@ -469,8 +471,8 @@
   <script src="assets/js/supabaseClient.js?v=20260531-22"></script>
   <script src="assets/js/auth.js?v=20260917-block41"></script>
   <script src="assets/js/config.js?v=20260706-01"></script>
-  <script src="assets/js/chat-session.js?v=20260918-chat-ui2"></script>
+  <script src="assets/js/chat-session.js?v=20260920-attachments1"></script>
   <script src="assets/pages/car.js?v=20260918-problem-memory1"></script>
-  <script src="assets/js/app.js?v=20260919-visual-fallback1"></script>
+  <script src="assets/js/app.js?v=20260920-attachments1"></script>
 </body>
 </html>

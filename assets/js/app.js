@@ -289,6 +289,12 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "composer.placeholder": "Describe the problem.",
         "composer.attachPhoto": "Attach photo",
         "composer.sendVideo": "Send video",
+        "composer.attachDocument": "Attach document",
+        "composer.dtcSoon": "Diagnostics by code — coming soon",
+        "composer.attachmentStartChat": "Send a message first to start the vehicle conversation.",
+        "composer.attachmentUploading": "Uploading attachment…",
+        "composer.attachmentSaved": "Attachment saved.",
+        "composer.attachmentError": "Could not upload the attachment.",
         "composer.dtc": "Code diagnostics",
         "profile.guest": "Guest",
         "profile.signIn": "Sign in to your account",
@@ -553,6 +559,12 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "composer.placeholder": "Опишите проблему.",
         "composer.attachPhoto": "Прикрепить фото",
         "composer.sendVideo": "Отправить видео",
+        "composer.attachDocument": "Прикрепить документ",
+        "composer.dtcSoon": "Диагностика по коду — скоро",
+        "composer.attachmentStartChat": "Сначала отправьте сообщение, чтобы начать диалог об автомобиле.",
+        "composer.attachmentUploading": "Загрузка вложения…",
+        "composer.attachmentSaved": "Вложение сохранено.",
+        "composer.attachmentError": "Не удалось загрузить вложение.",
         "composer.dtc": "Диагностика по коду",
         "profile.guest": "Гость",
         "profile.signIn": "Войдите в аккаунт",
@@ -2407,6 +2419,55 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       return div;
     }
 
+    const chatAttachmentAccept = {
+      "attach-photo": "image/*",
+      "attach-video": "video/*",
+      "attach-document": ".pdf,.txt,.csv,.json,.doc,.docx,.xls,.xlsx,application/pdf,text/plain,text/csv,application/json"
+    };
+
+    async function chooseChatAttachment(action) {
+      if (!requireSignedInForChat()) return;
+      await window.PulsChat.beforeSend();
+      if (!window.PulsChat.requestContext().conversation_id) {
+        toast(t("composer.attachmentStartChat"));
+        return;
+      }
+      const input = $("#chatAttachmentInput");
+      input.value = "";
+      input.accept = chatAttachmentAccept[action] || "";
+      input.click();
+    }
+
+    async function uploadChatAttachment(file) {
+      if (!file) return;
+      const context = window.PulsChat.requestContext();
+      if (!context.conversation_id) {
+        toast(t("composer.attachmentStartChat"));
+        return;
+      }
+      const owner = window.pulsCurrentUser?.id;
+      const form = new FormData();
+      form.set("conversation_id", context.conversation_id);
+      form.set("caption", `📎 ${file.name}`);
+      form.set("language", getLanguage());
+      form.set("file", file);
+      toast(t("composer.attachmentUploading"));
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/chat/attachments`, {
+          method: "POST", headers: await backendAuthHeaders(), body: form
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(String(data?.detail || t("composer.attachmentError")));
+        if (owner !== window.pulsCurrentUser?.id) return;
+        appendMessage(`📎 ${file.name}`, true);
+        window.PulsChat.afterAttachment(owner);
+        toast(t("composer.attachmentSaved"));
+      } catch (error) {
+        console.error("Chat attachment upload failed:", error);
+        toast(String(error.message || t("composer.attachmentError")));
+      }
+    }
+
     function assistantMessageMarkup(text, time, rawLinks = []) {
       const links = normalizeResponseLinks(rawLinks);
       const media = links.filter(item => item.isImage).map(item => `
@@ -3182,6 +3243,9 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       await renderAssistantMessages();
 
       $("#sendBtn").addEventListener("click", sendPrompt);
+      $("#chatAttachmentInput")?.addEventListener("change", (event) => {
+        void uploadChatAttachment(event.target.files?.[0] || null);
+      });
 
       const promptInput = $("#promptInput");
       promptInput.addEventListener("input", resizePromptInput);
@@ -3349,9 +3413,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           renderLists();
         } else if (action === "pay") {
           toast(t("toast.pay"));
-        } else if (action === "dtc") {
-          showView("dtc");
-          toast(t("toast.dtc"));
+        } else if (chatAttachmentAccept[action]) {
+          void chooseChatAttachment(action);
         } else if (action === "voice") {
           toast(t("toast.voice"));
         } else {

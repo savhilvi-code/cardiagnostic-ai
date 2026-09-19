@@ -83,6 +83,22 @@ createServer(async (req, res) => {
     return;
   }
 
+  if (req.method === "POST" && url.pathname === "/api/chat/attachments") {
+    const chunks = [];
+    for await (const chunk of req) chunks.push(chunk);
+    const proxied = await proxyBackend("/api/chat/attachments", {
+      method: "POST",
+      headers: {
+        "Content-Type": req.headers["content-type"] || "application/octet-stream",
+        ...(req.headers.authorization ? { Authorization: req.headers.authorization } : {}),
+      },
+      body: Buffer.concat(chunks),
+    });
+    res.writeHead(proxied.status, { "content-type": proxied.contentType });
+    res.end(proxied.body);
+    return;
+  }
+
   const requested = url.pathname === "/" ? "/index.html" : url.pathname;
   const filePath = normalize(join(root, requested));
 
