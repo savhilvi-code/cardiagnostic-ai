@@ -2414,7 +2414,9 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           <a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer"><img src="${escapeHtml(item.url)}" alt="${escapeHtml(item.title)}" loading="lazy"></a>
           <figcaption>${escapeHtml(item.title)}${item.sourceUrl ? ` · <a href="${escapeHtml(item.sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(getLanguage()==='ru'?'Источник':'Source')}</a>` : ''}</figcaption>
         </figure>`).join('');
-      return `<img class="puls-message-avatar" src="assets/img/puls-logo.png" alt=""><div class="puls-message-body"><strong>PULS</strong><br>${linkifyText(text)}${media} <small>${time}</small></div>`;
+      const sources = links.filter(item => !item.isImage).map(item => `
+        <a class="puls-search-source" href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.title || item.url)}</a>`).join('');
+      return `<img class="puls-message-avatar" src="assets/img/puls-logo.png" alt=""><div class="puls-message-body"><strong>PULS</strong><br>${linkifyText(text)}${media}${sources ? `<div class="puls-search-sources">${sources}</div>` : ''} <small>${time}</small></div>`;
     }
 
     function scrollMessagesToBottom() {

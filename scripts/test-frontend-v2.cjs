@@ -34,6 +34,7 @@ let browser;
       lastChat=request.postDataJSON();const now=new Date().toISOString();
       if(!lastChat.conversation_id)rows=[];
       rows.push({id:'u',role:'USER',content:lastChat.message,conversation_id:CONV,vehicle_id:lastChat.vehicle_id||null,problem_id:lastChat.problem_id||null,created_at:now},{id:'a',role:'ASSISTANT',content:'Check the intake safely.',conversation_id:CONV,vehicle_id:lastChat.vehicle_id||null,problem_id:lastChat.problem_id||null,created_at:now});
+      if(lastChat.message==='source-only visual')return json({conversation_id:CONV,vehicle_id:lastChat.vehicle_id||null,problem_id:lastChat.problem_id||null,answer:'Direct image unavailable. Source page:',links:[{title:'AL4 source page',url:'https://forum.example.test/al4-level-check',type:'link'}],quota:{remaining:2,limit:5}});
       return json({conversation_id:CONV,vehicle_id:lastChat.vehicle_id||null,problem_id:lastChat.problem_id||null,answer:'Check the intake safely.',links:[{title:'AL4 dipstick photograph',url:'https://images.example.test/al4-dipstick.jpg',source_url:'https://forum.example.test/al4-level-check',type:'image'}],quota:{remaining:2,limit:5}});
     }
     if(p===`/api/problems/${P}`)return json({problem,vehicle:vehicles.find(v=>v.id===A),sources:[{extracted_evidence:'Confirmed forum case',sources:{title:'Technical forum thread',url:'https://example.test/peugeot-thread',domain:'example.test'}}]});
@@ -160,6 +161,9 @@ let browser;
   await page.locator('#promptInput').fill('New session');await page.locator('#sendBtn').click();
   await page.waitForFunction(()=>!window.PulsChat.sending&&document.querySelector('#messages').textContent.includes('Check the intake'));
   assert.equal(lastChat.conversation_id,undefined);
+  await page.locator('#promptInput').fill('source-only visual');await page.locator('#sendBtn').click();
+  await page.waitForFunction(()=>!window.PulsChat.sending&&document.querySelector('#messages .puls-search-source'));
+  assert.equal(await page.locator('#messages .puls-search-source').last().getAttribute('href'),'https://forum.example.test/al4-level-check');
   await clickNav('car');await page.locator('.vehicle-actions summary').click();await page.locator('[data-car-action="trash"]').click();
   assert.equal(vehicles[0].lifecycle_status,'ACTIVE');await page.locator('[data-car-action="confirm-trash"]').click();await page.waitForFunction(()=>!document.querySelector('#vehicleDialog').open);
   assert.equal(vehicles[0].lifecycle_status,'TRASHED');await page.locator('#carTrash').click();await page.locator('[data-car-restore]').click();await page.waitForFunction(()=>!document.querySelector('#vehicleDialog').open);
