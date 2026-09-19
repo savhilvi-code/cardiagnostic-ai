@@ -297,6 +297,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "composer.attachmentUploading": "Uploading attachment…",
         "composer.attachmentSaved": "Attachment saved.",
         "composer.attachmentError": "Could not upload the attachment.",
+        "composer.attachmentPickerError": "Could not open the file picker. Please try again.",
         "composer.dtc": "Code diagnostics",
         "profile.guest": "Guest",
         "profile.signIn": "Sign in to your account",
@@ -569,6 +570,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "composer.attachmentUploading": "Загрузка вложения…",
         "composer.attachmentSaved": "Вложение сохранено.",
         "composer.attachmentError": "Не удалось загрузить вложение.",
+        "composer.attachmentPickerError": "Не удалось открыть выбор файла. Попробуйте ещё раз.",
         "composer.dtc": "Диагностика по коду",
         "profile.guest": "Гость",
         "profile.signIn": "Войдите в аккаунт",
@@ -2432,27 +2434,40 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     function chooseChatAttachment(action) {
       if (!requireSignedInForChat()) return;
       const input = $("#chatAttachmentInput");
+      if (!input) {
+        toast(t("composer.attachmentPickerError"));
+        return;
+      }
       input.value = "";
       input.accept = chatAttachmentAccept[action] || "";
-      input.click();
+      try {
+        input.click();
+      } catch (error) {
+        console.error("Chat attachment picker failed:", error);
+        toast(t("composer.attachmentPickerError"));
+      }
     }
 
     async function uploadChatAttachment(file) {
       if (!file) return;
-      await window.PulsChat.beforeSend();
-      const context = window.PulsChat.requestContext();
-      if (!context.conversation_id) {
-        toast(t("composer.attachmentStartChat"));
-        return;
-      }
       const owner = window.pulsCurrentUser?.id;
-      const form = new FormData();
-      form.set("conversation_id", context.conversation_id);
-      form.set("caption", `📎 ${file.name}`);
-      form.set("language", getLanguage());
-      form.set("file", file);
-      toast(t("composer.attachmentUploading"));
       try {
+        await window.PulsChat.beforeSend();
+        let context = window.PulsChat.requestContext();
+        if (!context.conversation_id) {
+          await window.PulsChat.restore();
+          context = window.PulsChat.requestContext();
+        }
+        if (!context.conversation_id) {
+          toast(t("composer.attachmentStartChat"));
+          return;
+        }
+        const form = new FormData();
+        form.set("conversation_id", context.conversation_id);
+        form.set("caption", `📎 ${file.name}`);
+        form.set("language", getLanguage());
+        form.set("file", file);
+        toast(t("composer.attachmentUploading"));
         const response = await fetch(`${API_BASE_URL}/api/chat/attachments`, {
           method: "POST", headers: await backendAuthHeaders(), body: form
         });
@@ -3369,7 +3384,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       syncAssistantMessageHeight();
       syncSplashLayout();
       syncComposerVisibility("assistant");
-      document.addEventListener("click", async (event) => {
+      document.addEventListener("click", (event) => {
         if (event.target.closest("#systemPill")) {
           if (!isSignedIn()) window.openAuthModal?.();
           return;
@@ -3470,6 +3485,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         } else if (action === "pay") {
           toast(t("toast.pay"));
         } else if (chatAttachmentAccept[action]) {
+          event.preventDefault();
           chooseChatAttachment(action);
         } else if (action === "voice") {
           toast(t("toast.voice"));

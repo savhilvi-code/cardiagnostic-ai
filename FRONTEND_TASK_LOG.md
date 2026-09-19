@@ -1,5 +1,11 @@
 # Frontend Task Log
 
+## 2026-09-20 — Chat attachment final execution-path fix
+
+- Kept the existing picker/change/upload implementation, made its file input visually hidden instead of `display:none`, and added a visible picker error fallback.
+- The selected-file path now explicitly restores the existing chat session before its final `conversation_id` check, then uses the unchanged attachment POST; missing context and request failures remain visible through localized UI messages.
+- Constrained and wrapped the disabled DTC row fully inside the compact popup.
+
 ## 2026-09-20 — Chat selected-file upload
 
 - Moved chat-session synchronization to the existing post-selection upload path, so `conversation_id` is restored before `uploadChatAttachment` decides whether it can POST; picker opening remains synchronous and unchanged.
