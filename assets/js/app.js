@@ -2429,9 +2429,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       "attach-document": ".pdf,.txt,.csv,.json,.doc,.docx,.xls,.xlsx,application/pdf,text/plain,text/csv,application/json"
     };
 
-    async function chooseChatAttachment(action) {
+    function chooseChatAttachment(action) {
       if (!requireSignedInForChat()) return;
-      await window.PulsChat.beforeSend();
       if (!window.PulsChat.requestContext().conversation_id) {
         toast(t("composer.attachmentStartChat"));
         return;
@@ -3474,7 +3473,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         } else if (action === "pay") {
           toast(t("toast.pay"));
         } else if (chatAttachmentAccept[action]) {
-          void chooseChatAttachment(action);
+          chooseChatAttachment(action);
         } else if (action === "voice") {
           toast(t("toast.voice"));
         } else {

@@ -1,5 +1,9 @@
 # Frontend Task Log
 
+## 2026-09-20 — Chat attachment picker activation
+
+- Kept the existing hidden input and upload handler, but now opens the system picker synchronously from the trusted `+` menu click so browser user activation is preserved.
+
 ## 2026-09-20 — Service/Repair attachments
 
 - Enabled photo/video/document selection in the persisted Service/Repair modal; files upload only after backend returns the real `vehicle_events.id`.
