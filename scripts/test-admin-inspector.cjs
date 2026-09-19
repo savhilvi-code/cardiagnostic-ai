@@ -130,7 +130,7 @@ let browser;
     .map((value) => value.replace(/\s+/g, ' ').trim());
   assert.deepEqual(navigation, ['◎ Users', '▦ Knowledge Base', '⇄ Live Request Flow']);
   assert.equal(await page.locator('#inspectorStats .inspector-stat-card').count(), 10);
-  assert.equal(await page.locator('#adminKnowledgeSection .admin-readonly-badge').innerText(), 'READ ONLY');
+  assert.equal(await page.locator('#adminKnowledgeSection .admin-readonly-badge').innerText(), 'ADMIN ONLY');
   assert.equal(await page.locator('#inspectorDataFlow .data-flow-node').count(), 11);
   assert.equal(await page.locator('#inspectorSourceTypes .distribution-row').count(), 1);
   assert((await page.locator('#inspectorProblemStatus').innerText()).includes('ОТКРЫТА'));

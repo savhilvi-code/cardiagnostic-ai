@@ -8,7 +8,7 @@
   <meta name="robots" content="noindex, nofollow">
 
   <link rel="icon" type="image/png" href="assets/img/puls-logo.png">
-  <link rel="stylesheet" href="assets/css/admin.css?v=20260919-03">
+  <link rel="stylesheet" href="assets/css/admin.css?v=20260919-04">
 </head>
 
 <body>
@@ -164,17 +164,19 @@
           <div class="admin-page-heading">
             <div>
               <div class="admin-eyebrow">Knowledge Base</div>
-              <h1>Data Inspector</h1>
-              <p>Read-only observability for canonical PULS V2 data.</p>
+              <h1>Knowledge Base</h1>
+              <p>Curated vehicle knowledge, source provenance and expert review.</p>
             </div>
             <div class="admin-heading-actions">
-              <span class="admin-readonly-badge">Read only</span>
+              <span class="admin-readonly-badge">Admin only</span>
               <button id="inspectorRefreshBtn" class="admin-button" type="button">Refresh</button>
             </div>
           </div>
 
           <div class="inspector-tabs" role="tablist" aria-label="Data Inspector views">
-            <button class="inspector-tab is-active" type="button" data-inspector-tab="overview">Overview</button>
+            <button class="inspector-tab is-active" type="button" data-inspector-tab="library">Knowledge Library</button>
+            <button class="inspector-tab" type="button" data-inspector-tab="review">Review Queue</button>
+            <button class="inspector-tab" type="button" data-inspector-tab="overview">Data Inspector</button>
             <button class="inspector-tab" type="button" data-inspector-tab="vehicles">Vehicles</button>
             <button class="inspector-tab" type="button" data-inspector-tab="conversations">Conversations</button>
             <button class="inspector-tab" type="button" data-inspector-tab="problems">Problems</button>
@@ -184,7 +186,53 @@
             <button class="inspector-tab" type="button" data-inspector-tab="knowledge">Knowledge</button>
           </div>
 
-          <div id="inspectorOverview" class="inspector-panel">
+          <div id="inspectorLibrary" class="inspector-panel">
+            <div class="knowledge-scope-tabs" role="tablist" aria-label="Knowledge scope">
+              <button id="knowledgeVehiclesScope" class="knowledge-scope-button is-active" type="button" data-knowledge-scope="vehicles">Vehicles</button>
+              <button id="knowledgeGeneralScope" class="knowledge-scope-button" type="button" data-knowledge-scope="general">General Knowledge</button>
+            </div>
+            <div class="knowledge-library-toolbar">
+              <input id="libraryCatalogSearch" class="admin-search" type="search" placeholder="Search make or model..." autocomplete="off">
+              <button id="librarySearchButton" class="admin-button" type="button">Search</button>
+              <button id="knowledgeAddMaterial" class="admin-button admin-button-primary" type="button">+ Add Material</button>
+            </div>
+            <div id="knowledgeAlphabet" class="knowledge-alphabet" aria-label="Filter makes by first letter"></div>
+            <div class="knowledge-library-layout">
+              <aside id="knowledgeCatalog" class="knowledge-catalog"><div class="admin-empty">Loading vehicle catalog…</div></aside>
+              <section class="knowledge-library-main">
+                <header class="knowledge-model-heading">
+                  <div><span id="knowledgeModelEyebrow" class="admin-eyebrow">Vehicle knowledge</span><h2 id="knowledgeModelTitle">Select a make and model</h2><p id="knowledgeModelSubtitle">Choose a model from the catalog or search above.</p></div>
+                </header>
+                <div id="knowledgeCategories" class="knowledge-category-tabs"></div>
+                <div id="knowledgeFilters" class="knowledge-filters">
+                  <select id="libraryKnowledgeType" class="admin-select"><option value="">All knowledge types</option></select>
+                  <select id="librarySourceType" class="admin-select"><option value="">All source types</option></select>
+                  <select id="libraryReviewStatus" class="admin-select"><option value="">All review states</option></select>
+                  <input id="libraryYear" class="admin-search admin-search-short" type="number" min="1886" max="2100" placeholder="Year">
+                  <input id="libraryGeneration" class="admin-search admin-search-short" type="search" placeholder="Generation">
+                  <input id="libraryBody" class="admin-search admin-search-short" type="search" placeholder="Body / chassis">
+                  <input id="libraryEngine" class="admin-search admin-search-short" type="search" placeholder="Engine">
+                  <input id="libraryTransmission" class="admin-search admin-search-short" type="search" placeholder="Transmission">
+                  <input id="libraryItemSearch" class="admin-search" type="search" placeholder="Search materials...">
+                  <button id="libraryApplyFilters" class="admin-button" type="button">Apply</button>
+                </div>
+                <div id="knowledgeLibraryList" class="knowledge-material-list"><div class="admin-empty">Select a vehicle or General Knowledge.</div></div>
+                <div id="knowledgeLibraryPager" class="inspector-pager"></div>
+              </section>
+            </div>
+          </div>
+
+          <div id="inspectorReview" class="inspector-panel" hidden>
+            <div class="inspector-block-heading"><div><h2>Review Queue</h2><p>Knowledge candidates and successful cases awaiting expert review.</p></div></div>
+            <div class="inspector-toolbar">
+              <select id="reviewQueueStatus" class="admin-select"><option value="PENDING_REVIEW">Pending Review</option><option value="NEEDS_CLARIFICATION">Needs Clarification</option><option value="VERIFIED">Verified</option><option value="REJECTED">Rejected</option></select>
+              <button id="reviewQueueRefresh" class="admin-button" type="button">Apply</button>
+            </div>
+            <div id="reviewQueueList" class="knowledge-review-list"><div class="admin-empty">Loading review queue…</div></div>
+            <div id="reviewQueuePager" class="inspector-pager"></div>
+          </div>
+
+          <div id="inspectorOverview" class="inspector-panel" hidden>
             <div id="inspectorStats" class="inspector-stat-grid"></div>
             <div id="inspectorOverviewErrors"></div>
 
@@ -299,6 +347,55 @@
           </div>
 
           <div id="inspectorStatus" class="admin-status" role="status" aria-live="polite"></div>
+        </div>
+
+        <div id="knowledgeMaterialModal" class="admin-dialog-backdrop" hidden>
+          <section class="admin-dialog knowledge-dialog" role="dialog" aria-modal="true" aria-labelledby="knowledgeMaterialTitle">
+            <div class="admin-dialog-header"><div><div class="admin-eyebrow">Knowledge Library</div><h2 id="knowledgeMaterialTitle">Add Material</h2></div><button class="admin-dialog-close" type="button" data-close-knowledge-modal aria-label="Close">×</button></div>
+            <div class="knowledge-add-modes">
+              <button class="knowledge-add-mode is-active" type="button" data-material-mode="url">Add URL</button>
+              <button class="knowledge-add-mode" type="button" data-material-mode="note">Create Note</button>
+              <button class="knowledge-add-mode" type="button" data-material-mode="file" disabled title="Requires an approved Supabase Storage bucket">Upload File</button>
+            </div>
+            <p id="knowledgeUploadNote" class="knowledge-upload-note">File upload needs an approved private Supabase Storage bucket and access policy. No parallel storage was created in this V1.</p>
+            <form id="knowledgeMaterialForm" class="knowledge-form">
+              <input id="knowledgeEditId" type="hidden">
+              <label>Title<input id="materialTitle" class="admin-search" required></label>
+              <label>Knowledge type<select id="materialType" class="admin-select" required></select></label>
+              <label class="knowledge-form-wide">Description / summary<textarea id="materialDescription" class="admin-search" rows="3"></textarea></label>
+              <label data-material-url-field>URL<input id="materialUrl" class="admin-search" type="url" placeholder="https://..."></label>
+              <label data-material-url-field>Source type<select id="materialSourceType" class="admin-select"></select></label>
+              <label>Status<select id="materialStatus" class="admin-select"></select></label>
+              <label>Page / section<input id="materialPageReference" class="admin-search"></label>
+              <fieldset class="knowledge-applicability knowledge-form-wide"><legend>Vehicle applicability</legend>
+                <label>Make<input id="materialMake" class="admin-search"></label><label>Model<input id="materialModel" class="admin-search"></label>
+                <label>Generation<input id="materialGeneration" class="admin-search"></label><label>Year from<input id="materialYearFrom" class="admin-search" type="number"></label>
+                <label>Year to<input id="materialYearTo" class="admin-search" type="number"></label><label>Body / chassis<input id="materialBody" class="admin-search"></label>
+                <label>Engine<input id="materialEngine" class="admin-search"></label><label>Transmission<input id="materialTransmission" class="admin-search"></label>
+                <label>Drivetrain<input id="materialDrivetrain" class="admin-search"></label><label>Market / region<input id="materialMarket" class="admin-search"></label>
+              </fieldset>
+              <label class="knowledge-form-wide">Notes<textarea id="materialNotes" class="admin-search" rows="2"></textarea></label>
+              <div id="knowledgeMaterialStatus" class="admin-status knowledge-form-wide" role="status"></div>
+              <div class="admin-dialog-actions knowledge-form-wide"><button class="admin-button" type="button" data-close-knowledge-modal>Cancel</button><button id="knowledgeMaterialSave" class="admin-button admin-button-primary" type="submit">Save</button></div>
+            </form>
+          </section>
+        </div>
+
+        <div id="knowledgeReviewModal" class="admin-dialog-backdrop" hidden>
+          <section class="admin-dialog knowledge-dialog" role="dialog" aria-modal="true" aria-labelledby="knowledgeReviewTitle">
+            <div class="admin-dialog-header"><div><div class="admin-eyebrow">Mechanic Review</div><h2 id="knowledgeReviewTitle">Review candidate</h2></div><button class="admin-dialog-close" type="button" data-close-review-modal aria-label="Close">×</button></div>
+            <form id="knowledgeReviewForm" class="knowledge-form">
+              <input id="reviewCandidateType" type="hidden"><input id="reviewCandidateId" type="hidden">
+              <label>Decision<select id="reviewDecision" class="admin-select"><option value="VERIFIED">Verified</option><option value="NEEDS_CLARIFICATION">Needs Clarification</option><option value="REJECTED">Rejected</option><option value="PENDING_REVIEW">Pending Review</option></select></label>
+              <label class="knowledge-form-wide">Technical comment<textarea id="reviewComment" class="admin-search" rows="3"></textarea></label>
+              <label class="knowledge-form-wide">Normalized symptoms<textarea id="reviewSymptoms" class="admin-search" rows="2" placeholder="One symptom per line"></textarea></label>
+              <label>Confirmed cause<input id="reviewCause" class="admin-search"></label>
+              <label>Verification note<input id="reviewVerification" class="admin-search"></label>
+              <label class="knowledge-form-wide">Recommended checks<textarea id="reviewChecks" class="admin-search" rows="2" placeholder="One check per line"></textarea></label>
+              <div id="knowledgeReviewStatus" class="admin-status knowledge-form-wide" role="status"></div>
+              <div class="admin-dialog-actions knowledge-form-wide"><button class="admin-button" type="button" data-close-review-modal>Cancel</button><button class="admin-button admin-button-primary" type="submit">Save Review</button></div>
+            </form>
+          </section>
         </div>
 
         <div id="adminLiveFlowSection" class="admin-section" hidden>
@@ -459,6 +556,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/supabaseClient.js"></script>
   <script src="assets/js/config.js"></script>
-  <script src="assets/js/admin.js?v=20260919-03"></script>
+  <script src="assets/js/admin.js?v=20260919-04"></script>
 </body>
 </html>
