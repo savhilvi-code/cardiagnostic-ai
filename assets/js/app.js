@@ -183,6 +183,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "spec.tank": "Fuel tank:",
         "spec.tankValue": "Auto-filled after car selection",
         "service.title": "Record title",
+        "service.type": "Record type",
         "service.description": "Description",
         "service.date": "Date",
         "service.mileage": "Mileage",
@@ -453,6 +454,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "spec.tank": "Объем бака:",
         "spec.tankValue": "Заполнится автоматически после выбора авто",
         "service.title": "Название записи",
+        "service.type": "Тип записи",
         "service.description": "Описание",
         "service.date": "Дата",
         "service.mileage": "Пробег",
@@ -2694,20 +2696,29 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       renderServiceRecords(active);
     }
 
-    function openServiceModal() {
+    function openServiceModal({ vehicleId = "", event = null } = {}) {
       const modal = $("#serviceModal");
       if (!modal) return;
       closeServiceRecordMenus();
       const form = $("#serviceForm");
       if (form) form.reset();
+      $("#serviceEventId").value = event?.id || "";
+      $("#serviceVehicleId").value = vehicleId || event?.vehicle_id || "";
+      $("#serviceTypeInput").value = String(event?.event_type || "SERVICE").toUpperCase();
+      $("#serviceTitleInput").value = event?.title || "";
+      $("#serviceDescriptionInput").value = event?.description || "";
+      $("#serviceMileageInput").value = event?.mileage ?? "";
       const photoInput = $("#servicePhotoInput");
       if (photoInput) delete photoInput.dataset.previewUrl;
       const now = new Date();
       const dateInput = $("#serviceDateInput");
-      if (dateInput) dateInput.value = now.toISOString().slice(0, 10);
+      if (dateInput) dateInput.value = String(event?.event_date || event?.occurred_at || now.toISOString()).slice(0, 10);
       const status = $("#serviceFormStatus");
       if (status) status.textContent = "";
       updateServicePreview();
+      $("#serviceModalTitle").textContent = event
+        ? (getLanguage() === "en" ? "Edit service / repair" : "Изменить обслуживание / ремонт")
+        : (getLanguage() === "en" ? "Add service / repair" : "Добавить обслуживание / ремонт");
       modal.classList.add("show");
       modal.setAttribute("aria-hidden", "false");
     }
@@ -2758,54 +2769,63 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       if (textNode) {
         textNode.textContent = photoUrl
           ? (getLanguage() === "en" ? "Photo attached. The record will be saved with the picture." : "Фото прикреплено. Запись сохранится с изображением.")
-          : (getLanguage() === "en" ? "You can add a photo or leave the colored sticker." : "Можно добавить фото или оставить цветной стикер.");
+          : (getLanguage() === "en" ? "This record will be saved in the vehicle history." : "Запись будет сохранена в истории автомобиля.");
       }
     }
 
     async function saveServiceRecord(event) {
       event.preventDefault();
       if (!requireSignedInForEdit()) return;
-      const active = loadVehicleProfile();
+      const vehicleId = String($("#serviceVehicleId")?.value || "").trim();
+      const eventId = String($("#serviceEventId")?.value || "").trim();
       const status = $("#serviceFormStatus");
+      const eventType = String($("#serviceTypeInput")?.value || "SERVICE").toUpperCase();
       const title = String($("#serviceTitleInput")?.value || "").trim();
       const description = String($("#serviceDescriptionInput")?.value || "").trim();
       const date = String($("#serviceDateInput")?.value || "").trim();
-      const mileage = String($("#serviceMileageInput")?.value || "").trim();
-      const file = $("#servicePhotoInput")?.files?.[0] || null;
+      const mileageText = String($("#serviceMileageInput")?.value || "").trim();
+      const mileage = Number(mileageText.replace(/[^0-9]/g, ""));
 
-      if (!active?.id) {
+      if (!vehicleId) {
         if (status) status.textContent = getLanguage() === "en" ? "Choose or create a car first." : "Сначала выберите или создайте автомобиль.";
         return;
       }
-      if (!title || !date || !mileage) {
+      if (!title || !date || !mileageText || !Number.isFinite(mileage)) {
         if (status) status.textContent = getLanguage() === "en"
           ? "Please fill in title, date, and mileage."
           : "Заполните название, дату и пробег.";
         return;
       }
 
-      const photoUrl = file ? await fileToDataUrl(file) : "";
-      const { sticker, color } = guessServiceSticker(`${title} ${description}`);
-      const record = {
-        id: createServiceRecordId(),
-        vehicleId: active.id,
-        title,
-        description,
-        date,
-        mileage,
-        photoUrl,
-        sticker,
-        color,
-        status: t("status.completed")
+      const payload = {
+        event_type: eventType, title, description,
+        event_date: `${date}T00:00:00Z`, mileage, event_data: {}
       };
-
-      const records = loadServiceRecords();
-      records.unshift(record);
-      saveServiceRecords(records);
-      if (status) status.textContent = t("service.saved");
-      closeServiceModal();
-      renderServiceRecords(active);
+      const path = eventId
+        ? `/api/vehicle-events/${encodeURIComponent(eventId)}`
+        : `/api/vehicles/${encodeURIComponent(vehicleId)}/events`;
+      const submit = $("#serviceForm button[type='submit']");
+      if (submit) submit.disabled = true;
+      if (status) status.textContent = getLanguage() === "en" ? "Saving…" : "Сохранение…";
+      try {
+        const response = await fetch(`${API_BASE_URL}${path}`, {
+          method: eventId ? "PUT" : "POST",
+          headers: await backendJsonHeaders(),
+          body: JSON.stringify(payload)
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.event?.id) throw new Error(String(data?.detail || "Vehicle event was not saved."));
+        window.PulsCar.eventSaved(data.event);
+        if (status) status.textContent = t("service.saved");
+        closeServiceModal();
+      } catch (error) {
+        if (status) status.textContent = String(error.message || t("service.saveError"));
+      } finally {
+        if (submit) submit.disabled = false;
+      }
     }
+
+    window.PulsService = { open: openServiceModal };
 
     function renderVehicleSwitcher() {
       const box = $("#vehicleSwitcher");

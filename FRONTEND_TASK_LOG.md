@@ -1,5 +1,11 @@
 # Frontend Task Log
 
+## 2026-09-20 — Persisted My Car Service/Repair
+
+- Reused the existing Service modal for create/edit and switched new records from temporary `srv_*`/localStorage writes to authenticated `vehicle_events` POST/PUT responses.
+- My Car state immediately uses the returned persisted event row and real `vehicle_events.id`; History continues reading the backend timeline with unchanged All/Maintenance/Repairs/Problems semantics.
+- Legacy localStorage records remain untouched and are not migrated. The file control stays disabled because attachments are explicitly outside this block.
+
 ## 2026-09-20 — Chat attachment controls
 
 - Connected the existing Chat `+` menu photo/video/document controls to the authenticated Message attachment endpoint; binaries remain private behind the backend and no file data enters localStorage.

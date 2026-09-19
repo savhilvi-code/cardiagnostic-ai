@@ -41,6 +41,18 @@ app.use("/api/vehicles", asyncRoute(async (req, res) => {
   res.status(response.status).type(contentType).send(text);
 }));
 
+app.use("/api/vehicle-events", asyncRoute(async (req, res) => {
+  const headers = {
+    ...(req.headers.authorization ? { Authorization: req.headers.authorization } : {}),
+    ...(["POST", "PUT", "PATCH"].includes(req.method) ? { "Content-Type": "application/json" } : {}),
+  };
+  const { response, text, contentType } = await proxyBackend(req.originalUrl, {
+    method: req.method, headers,
+    ...(["GET", "HEAD"].includes(req.method) ? {} : { body: JSON.stringify(req.body || {}) }),
+  });
+  res.status(response.status).type(contentType).send(text);
+}));
+
 app.get(["/api/history", "/api/quota", "/api/problems/:problemId", "/api/conversations/:conversationId/messages"], asyncRoute(async (req, res) => {
   const { response, text, contentType } = await proxyBackend(req.path, {
     headers: req.headers.authorization ? { Authorization: req.headers.authorization } : {},

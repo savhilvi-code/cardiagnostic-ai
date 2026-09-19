@@ -58,6 +58,26 @@ createServer(async (req, res) => {
     return;
   }
 
+  if (url.pathname.startsWith("/api/vehicle-events")) {
+    const chunks = [];
+    if (!["GET", "HEAD"].includes(req.method || "GET")) {
+      for await (const chunk of req) chunks.push(chunk);
+    }
+    const proxied = await proxyBackend(`${url.pathname}${url.search}`, {
+      method: req.method,
+      headers: {
+        ...(req.headers.authorization ? { Authorization: req.headers.authorization } : {}),
+        ...(!["GET", "HEAD"].includes(req.method || "GET")
+          ? { "Content-Type": req.headers["content-type"] || "application/json" }
+          : {}),
+      },
+      ...(["GET", "HEAD"].includes(req.method || "GET") ? {} : { body: Buffer.concat(chunks) }),
+    });
+    res.writeHead(proxied.status, { "content-type": proxied.contentType });
+    res.end(proxied.body);
+    return;
+  }
+
   if (req.method === "GET" && (["/api/history", "/api/quota"].includes(url.pathname) || /^\/api\/problems\/[0-9a-f-]+$/.test(url.pathname) || /^\/api\/conversations\/[0-9a-f-]+\/messages$/.test(url.pathname))) {
     const proxied = await proxyBackend(url.pathname, {
       headers: req.headers.authorization ? { Authorization: req.headers.authorization } : {},

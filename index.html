@@ -393,6 +393,12 @@
         </div>
       </div>
       <form class="service-form" id="serviceForm">
+        <input id="serviceEventId" type="hidden">
+        <input id="serviceVehicleId" type="hidden">
+        <label>
+          <span data-i18n="service.type">Record type</span>
+          <select id="serviceTypeInput"><option value="SERVICE">Service</option><option value="REPAIR">Repair</option></select>
+        </label>
         <label>
           <span data-i18n="service.title">Название записи</span>
           <input id="serviceTitleInput" type="text" placeholder="Замена масла" required>
@@ -409,9 +415,9 @@
           <span data-i18n="service.mileage">Пробег</span>
           <input id="serviceMileageInput" type="text" placeholder="98 500 км" required>
         </label>
-        <label class="service-wide">
+        <label class="service-wide" hidden>
           <span data-i18n="service.photo">Фото / стикер</span>
-          <input id="servicePhotoInput" type="file" accept="image/*">
+          <input id="servicePhotoInput" type="file" accept="image/*" disabled title="Attachments will be connected separately">
         </label>
         <div class="service-preview service-wide" id="servicePreview">
           <span class="service-preview-icon" aria-hidden="true">🛠</span>
@@ -472,7 +478,7 @@
   <script src="assets/js/auth.js?v=20260917-block41"></script>
   <script src="assets/js/config.js?v=20260706-01"></script>
   <script src="assets/js/chat-session.js?v=20260920-attachments1"></script>
-  <script src="assets/pages/car.js?v=20260918-problem-memory1"></script>
-  <script src="assets/js/app.js?v=20260920-attachments1"></script>
+  <script src="assets/pages/car.js?v=20260920-events1"></script>
+  <script src="assets/js/app.js?v=20260920-events1"></script>
 </body>
 </html>
