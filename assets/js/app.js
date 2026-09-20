@@ -301,7 +301,9 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "composer.attachmentUploaded": "Uploaded",
         "composer.attachmentFailed": "Upload failed",
         "composer.attachmentPreviewError": "Could not load the image preview.",
-        "composer.attachmentPreviewClose": "Close image preview",
+        "composer.attachmentPreviewClose": "Close attachment preview",
+        "composer.attachmentViewerError": "Could not load the attachment preview.",
+        "composer.attachmentVideoUnsupported": "This video format or codec is not supported by your browser.",
         "composer.dtc": "Code diagnostics",
         "profile.guest": "Guest",
         "profile.signIn": "Sign in to your account",
@@ -578,7 +580,9 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "composer.attachmentUploaded": "Загружено",
         "composer.attachmentFailed": "Ошибка загрузки",
         "composer.attachmentPreviewError": "Не удалось загрузить изображение.",
-        "composer.attachmentPreviewClose": "Закрыть просмотр изображения",
+        "composer.attachmentPreviewClose": "Закрыть просмотр вложения",
+        "composer.attachmentViewerError": "Не удалось загрузить вложение для просмотра.",
+        "composer.attachmentVideoUnsupported": "Этот формат или кодек видео не поддерживается вашим браузером.",
         "composer.dtc": "Диагностика по коду",
         "profile.guest": "Гость",
         "profile.signIn": "Войдите в аккаунт",
@@ -2448,9 +2452,18 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
     function chatAttachmentBodyMarkup(file, { state = "saved", time = "", previewUrl = "" } = {}) {
       const image = isChatImage(file);
+      const mimeType = String(file?.mime_type || file?.type || "").toLowerCase();
+      const pdf = mimeType === "application/pdf";
+      const video = mimeType.startsWith("video/");
       const filename = String(file?.original_filename || file?.name || "attachment");
       const fileId = state === "saved" ? String(file?.id || "") : "";
-      const preview = image ? `${fileId ? `<button class="chat-attachment-thumb" type="button" data-chat-image-open="${escapeHtml(fileId)}" data-chat-image-name="${escapeHtml(filename)}" aria-label="${escapeHtml(filename)}">` : '<span class="chat-attachment-thumb is-temporary">'}<img ${previewUrl ? `src="${escapeHtml(previewUrl)}"` : ""} data-chat-image-file="${escapeHtml(fileId)}" alt="${escapeHtml(filename)}">${fileId ? "</button>" : "</span>"}` : '<span class="chat-attachment-file-icon" aria-hidden="true">▤</span>';
+      let preview = '<span class="chat-attachment-file-icon" aria-hidden="true">▤</span>';
+      if (image) {
+        preview = `${fileId ? `<button class="chat-attachment-thumb" type="button" data-chat-image-open="${escapeHtml(fileId)}" data-chat-image-name="${escapeHtml(filename)}" aria-label="${escapeHtml(filename)}">` : '<span class="chat-attachment-thumb is-temporary">'}<img ${previewUrl ? `src="${escapeHtml(previewUrl)}"` : ""} data-chat-image-file="${escapeHtml(fileId)}" alt="${escapeHtml(filename)}">${fileId ? "</button>" : "</span>"}`;
+      } else if (fileId && (pdf || video)) {
+        const kind = pdf ? "pdf" : "video";
+        preview = `<button class="chat-attachment-file-icon is-openable" type="button" data-chat-attachment-open="${escapeHtml(fileId)}" data-chat-attachment-kind="${kind}" data-chat-attachment-name="${escapeHtml(filename)}" aria-label="${escapeHtml(filename)}">${pdf ? "PDF" : "▶"}</button>`;
+      }
       const status = state === "uploading" ? t("composer.attachmentUploading") : state === "failed" ? t("composer.attachmentFailed") : t("composer.attachmentUploaded");
       return `<div class="chat-attachment-card is-${state}">${preview}<div class="chat-attachment-meta"><strong>${escapeHtml(filename)}</strong><span class="chat-attachment-status">${state === "uploading" ? '<i class="chat-attachment-spinner" aria-hidden="true"></i>' : ""}${escapeHtml(status)}</span></div></div>${time ? `<small>${escapeHtml(time)}</small>` : ""}`;
     }
@@ -2536,6 +2549,29 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           activateChatImagePreview(button);
         });
       });
+      root.querySelectorAll("[data-chat-attachment-open]").forEach((button) => {
+        if (button.dataset.chatPreviewBound === "true") return;
+        button.dataset.chatPreviewBound = "true";
+        let pointerOpenedAt = 0;
+        const activate = () => void openChatAttachmentPreview(
+          button.dataset.chatAttachmentOpen,
+          button.dataset.chatAttachmentName || "",
+          button.dataset.chatAttachmentKind || ""
+        );
+        button.addEventListener("pointerup", (event) => {
+          if (event.pointerType !== "touch" && event.pointerType !== "pen") return;
+          event.preventDefault();
+          event.stopPropagation();
+          pointerOpenedAt = Date.now();
+          activate();
+        });
+        button.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          if (Date.now() - pointerOpenedAt < 700) return;
+          activate();
+        });
+      });
     }
 
     function restoredChatAttachmentMarkup(row, time) {
@@ -2553,28 +2589,66 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     }
 
     async function openChatImagePreview(fileId, filename) {
+      return openChatAttachmentPreview(fileId, filename, "image");
+    }
+
+    async function openChatAttachmentPreview(fileId, filename, kind) {
       const modal = $("#chatImagePreviewModal");
       const image = $("#chatImagePreviewImage");
+      const pdf = $("#chatAttachmentPreviewPdf");
+      const video = $("#chatAttachmentPreviewVideo");
       const status = $("#chatImagePreviewStatus");
-      if (!modal || !image || !status) return;
+      if (!modal || !image || !pdf || !video || !status) return;
       modal.classList.add("show");
       modal.setAttribute("aria-hidden", "false");
       image.hidden = true;
       image.removeAttribute("src");
       image.alt = filename || "";
+      pdf.hidden = true;
+      pdf.removeAttribute("src");
+      video.onerror = null;
+      video.oncanplay = null;
+      video.pause();
+      video.hidden = true;
+      video.removeAttribute("src");
+      video.load();
       status.textContent = t("composer.attachmentUploading");
       try {
-        image.src = await authenticatedChatAttachmentUrl(fileId);
-        image.hidden = false;
+        const url = await authenticatedChatAttachmentUrl(fileId);
+        if (kind === "pdf") {
+          pdf.src = url;
+          pdf.title = filename || "PDF";
+          pdf.hidden = false;
+        } else if (kind === "video") {
+          video.onerror = () => {
+            video.hidden = true;
+            status.textContent = t("composer.attachmentVideoUnsupported");
+          };
+          video.oncanplay = () => { status.textContent = filename || ""; };
+          video.src = url;
+          video.hidden = false;
+          video.load();
+        } else {
+          image.src = url;
+          image.hidden = false;
+        }
         status.textContent = filename || "";
       } catch (error) {
-        status.textContent = t("composer.attachmentPreviewError");
+        status.textContent = kind === "image" ? t("composer.attachmentPreviewError") : t("composer.attachmentViewerError");
       }
     }
 
     function closeChatImagePreview() {
       const modal = $("#chatImagePreviewModal");
       if (!modal) return;
+      const video = $("#chatAttachmentPreviewVideo");
+      if (video) {
+        video.onerror = null;
+        video.oncanplay = null;
+        video.pause();
+        video.removeAttribute("src");
+        video.load();
+      }
       modal.classList.remove("show");
       modal.setAttribute("aria-hidden", "true");
     }

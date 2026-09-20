@@ -38,7 +38,7 @@
     "logo": "https://pulscar.co/assets/img/puls-logo.png"
   }
   </script>
-  <link rel="stylesheet" href="assets/css/style.css?v=20260920-chat-attachments-authoritative1">
+  <link rel="stylesheet" href="assets/css/style.css?v=20260920-chat-attachment-viewers1">
 </head>
 <body class="puls-splash-active">
   <div class="puls-splash-screen" id="pulsSplashScreen" aria-hidden="true">
@@ -474,9 +474,11 @@
   </div>
 
   <div class="chat-image-preview" id="chatImagePreviewModal" aria-hidden="true">
-    <div class="chat-image-preview-dialog" role="dialog" aria-modal="true" aria-label="Image preview">
-      <button class="chat-image-preview-close" id="chatImagePreviewClose" type="button" aria-label="Close image preview" data-i18n-aria-label="composer.attachmentPreviewClose">×</button>
+    <div class="chat-image-preview-dialog" role="dialog" aria-modal="true" aria-label="Attachment preview">
+      <button class="chat-image-preview-close" id="chatImagePreviewClose" type="button" aria-label="Close attachment preview" data-i18n-aria-label="composer.attachmentPreviewClose">×</button>
       <img id="chatImagePreviewImage" alt="" hidden>
+      <iframe id="chatAttachmentPreviewPdf" title="PDF preview" hidden></iframe>
+      <video id="chatAttachmentPreviewVideo" controls playsinline preload="metadata" hidden></video>
       <div class="chat-image-preview-status" id="chatImagePreviewStatus" role="status" aria-live="polite"></div>
     </div>
   </div>
@@ -488,6 +490,6 @@
   <script src="assets/js/config.js?v=20260706-01"></script>
   <script src="assets/js/chat-session.js?v=20260920-chat-image1"></script>
   <script src="assets/pages/car.js?v=20260920-event-files1"></script>
-  <script src="assets/js/app.js?v=20260920-chat-attachments-authoritative1"></script>
+  <script src="assets/js/app.js?v=20260920-chat-attachment-viewers1"></script>
 </body>
 </html>

@@ -1,5 +1,11 @@
 # Frontend Task Log
 
+## 2026-09-20 — Authenticated PDF and video attachment viewers
+
+- Made persisted PDF and video Chat cards openable on touch and desktop using the existing authenticated attachment Blob fetch and preview modal.
+- Added an embedded PDF viewer and native video player without public R2 URLs or backend changes; unsupported video codecs now show an explicit localized state.
+- Playback currently downloads the full authenticated response to a browser Blob before opening; range streaming remains a future large-video optimization.
+
 ## 2026-09-20 — Authoritative Chat attachment restoration
 
 - Restored persisted Chat attachments from each backend Message's `attachments` metadata and removed the browser localStorage attachment registry.
