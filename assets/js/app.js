@@ -2439,43 +2439,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       "attach-document": ".pdf,.txt,.csv,.json,.doc,.docx,.xls,.xlsx,application/pdf,text/plain,text/csv,application/json"
     };
 
-    const CHAT_ATTACHMENT_STORAGE_PREFIX = "puls_chat_attachments_v1:";
     const chatAttachmentObjectUrls = new Map();
     const chatAttachmentUrlPromises = new Map();
-
-    function chatAttachmentStorageKey() {
-      return `${CHAT_ATTACHMENT_STORAGE_PREFIX}${window.pulsCurrentUser?.id || "guest"}`;
-    }
-
-    function readChatAttachmentRecords() {
-      try {
-        const value = JSON.parse(localStorage.getItem(chatAttachmentStorageKey()) || "{}");
-        return value && typeof value === "object" && !Array.isArray(value) ? value : {};
-      } catch {
-        return {};
-      }
-    }
-
-    function rememberChatAttachment(messageId, file) {
-      if (!messageId || !file?.id) return;
-      const records = readChatAttachmentRecords();
-      records[String(messageId)] = {
-        message_id: String(messageId),
-        file: {
-          id: String(file.id),
-          original_filename: String(file.original_filename || "attachment"),
-          mime_type: String(file.mime_type || "application/octet-stream"),
-          size_bytes: Number(file.size_bytes || 0),
-        },
-        saved_at: new Date().toISOString(),
-      };
-      const trimmed = Object.fromEntries(Object.entries(records).slice(-200));
-      try { localStorage.setItem(chatAttachmentStorageKey(), JSON.stringify(trimmed)); } catch { /* IDs are recoverable from the upload response. */ }
-    }
-
-    function chatAttachmentForMessage(messageId) {
-      return messageId ? readChatAttachmentRecords()[String(messageId)] || null : null;
-    }
 
     function isChatImage(file) {
       return String(file?.mime_type || file?.type || "").toLowerCase().startsWith("image/");
@@ -2487,7 +2452,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       const fileId = state === "saved" ? String(file?.id || "") : "";
       const preview = image ? `${fileId ? `<button class="chat-attachment-thumb" type="button" data-chat-image-open="${escapeHtml(fileId)}" data-chat-image-name="${escapeHtml(filename)}" aria-label="${escapeHtml(filename)}">` : '<span class="chat-attachment-thumb is-temporary">'}<img ${previewUrl ? `src="${escapeHtml(previewUrl)}"` : ""} data-chat-image-file="${escapeHtml(fileId)}" alt="${escapeHtml(filename)}">${fileId ? "</button>" : "</span>"}` : '<span class="chat-attachment-file-icon" aria-hidden="true">▤</span>';
       const status = state === "uploading" ? t("composer.attachmentUploading") : state === "failed" ? t("composer.attachmentFailed") : t("composer.attachmentUploaded");
-      return `<div class="chat-attachment-card is-${state}">${preview}<div class="chat-attachment-meta"><strong>${escapeHtml(filename)}</strong><span class="chat-attachment-status">${state === "uploading" ? '<i class="chat-attachment-spinner" aria-hidden="true"></i>' : ""}${escapeHtml(status)}</span></div></div><small>${escapeHtml(time)}</small>`;
+      return `<div class="chat-attachment-card is-${state}">${preview}<div class="chat-attachment-meta"><strong>${escapeHtml(filename)}</strong><span class="chat-attachment-status">${state === "uploading" ? '<i class="chat-attachment-spinner" aria-hidden="true"></i>' : ""}${escapeHtml(status)}</span></div></div>${time ? `<small>${escapeHtml(time)}</small>` : ""}`;
     }
 
     function appendChatAttachmentUpload(file) {
@@ -2574,9 +2539,17 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     }
 
     function restoredChatAttachmentMarkup(row, time) {
-      const record = chatAttachmentForMessage(row?.id);
-      if (!record?.file?.id) return "";
-      return `<div class="bubble user chat-attachment-message" data-chat-message-id="${escapeHtml(record.message_id)}">${chatAttachmentBodyMarkup(record.file, { state: "saved", time })}</div>`;
+      const attachments = Array.isArray(row?.attachments) ? row.attachments : [];
+      const files = attachments
+        .filter((attachment) => attachment?.file_id)
+        .map((attachment) => ({
+          id: String(attachment.file_id),
+          mime_type: String(attachment.mime_type || "application/octet-stream"),
+          original_filename: String(attachment.original_filename || "attachment"),
+        }));
+      if (!files.length) return "";
+      const cards = files.map((file) => chatAttachmentBodyMarkup(file, { state: "saved" })).join("");
+      return `<div class="bubble user chat-attachment-message" data-chat-message-id="${escapeHtml(row?.id || "")}"><div class="chat-attachment-stack">${cards}</div><small>${escapeHtml(time)}</small></div>`;
     }
 
     async function openChatImagePreview(fileId, filename) {
@@ -2665,7 +2638,6 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           if (uploadState.previewUrl) URL.revokeObjectURL(uploadState.previewUrl);
           return;
         }
-        rememberChatAttachment(data.message_id, data.file);
         uploadState.bubble.dataset.chatMessageId = String(data.message_id || "");
         uploadState.bubble.innerHTML = chatAttachmentBodyMarkup(data.file, { state: "saved", time: uploadState.time });
         if (uploadState.previewUrl) URL.revokeObjectURL(uploadState.previewUrl);

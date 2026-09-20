@@ -3342,6 +3342,11 @@ body.assistant-mode .bubble.user.chat-attachment-message {
   min-width: 0;
 }
 
+.chat-attachment-stack {
+  display: grid;
+  gap: 8px;
+}
+
 .chat-attachment-thumb,
 .chat-attachment-file-icon {
   position: relative;

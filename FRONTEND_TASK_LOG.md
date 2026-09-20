@@ -1,5 +1,11 @@
 # Frontend Task Log
 
+## 2026-09-20 — Authoritative Chat attachment restoration
+
+- Restored persisted Chat attachments from each backend Message's `attachments` metadata and removed the browser localStorage attachment registry.
+- Preserved pending local previews, upload UX, authenticated thumbnails and desktop/mobile lightbox behavior; multiple attachments render in backend relation order.
+- Persisted file bytes still load only through the authenticated backend download endpoint.
+
 ## 2026-09-20 — Mobile Chat image preview activation
 
 - Bound the existing persisted thumbnail to a direct pointer/click activation path: touch/pen opens on `pointerup`, while desktop and keyboard retain click behavior without duplicate opening.
