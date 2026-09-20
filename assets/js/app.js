@@ -316,7 +316,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "composer.attachmentDeletedTitle": "File deleted",
         "composer.attachmentDeletedByUser": "Deleted by user",
         "composer.attachmentPending": "Ready to send",
-        "composer.attachmentUploadWait": "Wait for the image upload to finish.",
+        "composer.attachmentUploadWait": "Wait for the attachment upload to finish.",
+        "composer.pdfTooLarge": "PDF files must not exceed 10 MB.",
         "composer.attachmentRemoving": "Removing…",
         "composer.dtc": "Code diagnostics",
         "profile.guest": "Guest",
@@ -609,7 +610,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "composer.attachmentDeletedTitle": "Файл удалён",
         "composer.attachmentDeletedByUser": "Удалено пользователем",
         "composer.attachmentPending": "Готово к отправке",
-        "composer.attachmentUploadWait": "Дождитесь завершения загрузки изображения.",
+        "composer.attachmentUploadWait": "Дождитесь завершения загрузки вложения.",
+        "composer.pdfTooLarge": "Размер PDF-файла не должен превышать 10 МБ.",
         "composer.attachmentRemoving": "Удаление…",
         "composer.dtc": "Диагностика по коду",
         "profile.guest": "Гость",
@@ -2470,15 +2472,16 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       "attach-video": "video/*",
       "attach-document": ".pdf,.txt,.csv,.json,.doc,.docx,.xls,.xlsx,application/pdf,text/plain,text/csv,application/json"
     };
+    const CHAT_PDF_MAX_BYTES = 10 * 1024 * 1024;
 
     const chatAttachmentObjectUrls = new Map();
     const chatAttachmentUrlPromises = new Map();
     let chatAttachmentPreviewVersion = 0;
     let chatAttachmentVideoTimer = 0;
-    let pendingVisionAttachment = null;
+    let pendingChatAttachment = null;
 
-    function syncPendingVisionComposer() {
-      const pending = pendingVisionAttachment;
+    function syncPendingAttachmentComposer() {
+      const pending = pendingChatAttachment;
       const card = $("#composerPendingAttachment");
       const name = $("#composerPendingAttachmentName");
       const status = $("#composerPendingAttachmentStatus");
@@ -2499,26 +2502,26 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       resizePromptInput();
     }
 
-    function clearPendingVisionAttachment() {
-      pendingVisionAttachment = null;
-      syncPendingVisionComposer();
+    function clearPendingAttachment() {
+      pendingChatAttachment = null;
+      syncPendingAttachmentComposer();
     }
 
-    async function removePendingVisionAttachment() {
-      const pending = pendingVisionAttachment;
+    async function removePendingAttachment() {
+      const pending = pendingChatAttachment;
       if (!pending || window.PulsChat?.sending) return;
       if (pending.state === "uploading") {
         pending.cancelRequested = true;
         pending.state = "removing";
-        syncPendingVisionComposer();
+        syncPendingAttachmentComposer();
         return;
       }
       if (!pending.fileId || !pending.messageId) {
-        clearPendingVisionAttachment();
+        clearPendingAttachment();
         return;
       }
       pending.state = "removing";
-      syncPendingVisionComposer();
+      syncPendingAttachmentComposer();
       try {
         const response = await fetch(`${API_BASE_URL}/api/storage/files/${encodeURIComponent(pending.fileId)}/messages/${encodeURIComponent(pending.messageId)}`, {
           method: "DELETE",
@@ -2526,12 +2529,12 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         });
         if (!response.ok) throw new Error(t("composer.attachmentDeleteError"));
         pending.bubble?.remove();
-        clearPendingVisionAttachment();
+        clearPendingAttachment();
         await window.PulsChat.refresh();
       } catch (error) {
-        if (pendingVisionAttachment === pending) {
+        if (pendingChatAttachment === pending) {
           pending.state = "ready";
-          syncPendingVisionComposer();
+          syncPendingAttachmentComposer();
         }
         toast(String(error.message || t("composer.attachmentDeleteError")));
       }
@@ -2558,6 +2561,10 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
     function isChatImage(file) {
       return chatAttachmentMimeType(file).startsWith("image/");
+    }
+
+    function isChatPdf(file) {
+      return chatAttachmentMimeType(file) === "application/pdf";
     }
 
     function chatAttachmentBodyMarkup(file, { state = "saved", time = "", previewUrl = "", messageId = "" } = {}) {
@@ -2857,7 +2864,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           if (objectUrl) URL.revokeObjectURL(objectUrl);
           chatAttachmentObjectUrls.delete(item.fileId);
         }
-        if (selected.some((item) => item.messageId === pendingVisionAttachment?.messageId)) clearPendingVisionAttachment();
+        if (selected.some((item) => item.messageId === pendingChatAttachment?.messageId)) clearPendingAttachment();
         selected.forEach((item) => { item.input.checked = false; });
         if (bar) bar.hidden = true;
         await window.PulsChat.refresh();
@@ -2909,9 +2916,13 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
     async function uploadChatAttachment(file) {
       if (!file) return;
+      if (isChatPdf(file) && Number(file.size || 0) > CHAT_PDF_MAX_BYTES) {
+        toast(t("composer.pdfTooLarge"));
+        return;
+      }
       const owner = window.pulsCurrentUser?.id;
       const uploadState = appendChatAttachmentUpload(file);
-      const pendingCandidate = isChatImage(file) && !pendingVisionAttachment;
+      const pendingCandidate = (isChatImage(file) || isChatPdf(file)) && !pendingChatAttachment;
       const pending = pendingCandidate ? {
         filename: chatAttachmentFilename(file),
         state: "uploading",
@@ -2922,8 +2933,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       } : null;
       if (pending) {
         uploadState.bubble.hidden = true;
-        pendingVisionAttachment = pending;
-        syncPendingVisionComposer();
+        pendingChatAttachment = pending;
+        syncPendingAttachmentComposer();
       }
       try {
         await window.PulsChat.beforeSend();
@@ -2949,29 +2960,29 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         if (!response.ok) throw new Error(String(data?.detail || t("composer.attachmentError")));
         if (owner !== window.pulsCurrentUser?.id) {
           uploadState.bubble.remove();
-          if (pendingVisionAttachment === pending) clearPendingVisionAttachment();
+          if (pendingChatAttachment === pending) clearPendingAttachment();
           if (uploadState.previewUrl) URL.revokeObjectURL(uploadState.previewUrl);
           return;
         }
         uploadState.bubble.dataset.chatMessageId = String(data.message_id || "");
         uploadState.bubble.innerHTML = chatAttachmentBodyMarkup(data.file, { state: "saved", time: uploadState.time, messageId: data.message_id });
-        if (pendingVisionAttachment === pending) {
+        if (pendingChatAttachment === pending) {
           pending.messageId = String(data.message_id || "");
           pending.fileId = String(data.file?.id || "");
           pending.state = "ready";
-          syncPendingVisionComposer();
+          syncPendingAttachmentComposer();
         }
         if (uploadState.previewUrl) URL.revokeObjectURL(uploadState.previewUrl);
         void hydrateChatAttachmentImages(uploadState.bubble);
         window.PulsChat.afterAttachment(owner);
         toast(t("composer.attachmentSaved"));
-        if (pending?.cancelRequested && pendingVisionAttachment === pending) void removePendingVisionAttachment();
+        if (pending?.cancelRequested && pendingChatAttachment === pending) void removePendingAttachment();
       } catch (error) {
         console.error("Chat attachment upload failed:", error);
         ensureChatAttachmentStateVisible(uploadState);
         uploadState.bubble.hidden = false;
         uploadState.bubble.innerHTML = chatAttachmentBodyMarkup(file, { state: "failed", time: uploadState.time, previewUrl: uploadState.previewUrl });
-        if (pendingVisionAttachment === pending) clearPendingVisionAttachment();
+        if (pendingChatAttachment === pending) clearPendingAttachment();
         toast(String(error.message || t("composer.attachmentError")));
       }
     }
@@ -3622,7 +3633,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     async function sendPrompt() {
       const input = $("#promptInput");
       const prompt = input.value.trim();
-      let pending = pendingVisionAttachment;
+      let pending = pendingChatAttachment;
       if (!prompt && !pending?.messageId) return;
       if (pending && pending.state !== "ready") {
         toast(t("composer.attachmentUploadWait"));
@@ -3631,7 +3642,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       if (!requireSignedInForChat()) return;
       if (window.PulsChat.sending) return;
       await window.PulsChat.beforeSend();
-      pending = pendingVisionAttachment;
+      pending = pendingChatAttachment;
       if (!prompt && !pending?.messageId) return;
       if (pending && pending.state !== "ready") {
         toast(t("composer.attachmentUploadWait"));
@@ -3645,7 +3656,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         return;
       }
 
-      pending = pendingVisionAttachment;
+      pending = pendingChatAttachment;
       if (!prompt && !pending?.messageId) return;
       if (pending && pending.state !== "ready") {
         toast(t("composer.attachmentUploadWait"));
@@ -3656,8 +3667,9 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       window.PulsChat.sending = true;
       const chatOwner = window.pulsCurrentUser?.id;
       const attachmentMessageId = pending?.messageId || "";
-      let visionSendSucceeded = false;
-      syncPendingVisionComposer();
+      let attachmentSendSucceeded = false;
+      if (attachmentMessageId && pendingChatAttachment === pending) pendingChatAttachment = null;
+      syncPendingAttachmentComposer();
       if (!attachmentMessageId) appendMessage(prompt, true);
       input.value = "";
       resizePromptInput();
@@ -3695,10 +3707,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         if (chatOwner !== window.pulsCurrentUser?.id) return;
         const answer = data.answer || data.reply || data.message || data.output || rawAnswer || JSON.stringify(data, null, 2);
         const links = normalizeResponseLinks(data.links || []);
-        if (attachmentMessageId && pendingVisionAttachment === pending) {
-          clearPendingVisionAttachment();
-          visionSendSucceeded = true;
-        }
+        if (attachmentMessageId) attachmentSendSucceeded = true;
         loading.innerHTML = assistantMessageMarkup(answer, new Date().toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" }), links);
           updateQuota(data.quota);
           await window.PulsChat.afterSend(data, chatOwner);
@@ -3708,7 +3717,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           console.error("PULS /chat request failed:", error);
           if (chatOwner !== window.pulsCurrentUser?.id) return;
           const errorText = t("assistant.error");
-          if (attachmentMessageId) {
+          if (attachmentMessageId && !attachmentSendSucceeded) {
+            if (!pendingChatAttachment) pendingChatAttachment = pending;
             input.value = prompt;
             resizePromptInput();
           }
@@ -3717,8 +3727,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           scrollMessagesToBottom();
         } finally {
           window.PulsChat.sending = false;
-          syncPendingVisionComposer();
-          if (visionSendSucceeded) await window.PulsChat.refresh();
+          syncPendingAttachmentComposer();
+          if (attachmentSendSucceeded) await window.PulsChat.refresh();
         }
       }
 
@@ -3819,7 +3829,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         window.PulsChat.authChanged();
         window.PulsCar.authChanged();
         if (!event.detail?.user) {
-          clearPendingVisionAttachment();
+          clearPendingAttachment();
           clearPrivateUiCache();
           window.pulsAppUser = null;
           fillVehicleForm(loadVehicleProfile());
@@ -3846,7 +3856,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         files.forEach((file) => { void uploadChatAttachment(file); });
       });
       $("#chatAttachmentDeleteBtn")?.addEventListener("click", () => { void deleteSelectedChatAttachments(); });
-      $("#composerPendingAttachmentRemove")?.addEventListener("click", () => { void removePendingVisionAttachment(); });
+      $("#composerPendingAttachmentRemove")?.addEventListener("click", () => { void removePendingAttachment(); });
       document.addEventListener("change", (event) => {
         if (event.target.matches("[data-chat-attachment-select]")) updateChatAttachmentSelection();
       });
