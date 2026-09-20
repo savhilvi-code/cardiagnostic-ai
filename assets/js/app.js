@@ -4083,6 +4083,11 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           return;
         }
 
+        if (!event.target.closest("#composerMenu")) {
+          $("#composerMenu")?.classList.remove("show");
+          $("#composerMenuBtn")?.setAttribute("aria-expanded", "false");
+        }
+
         const viewButton = event.target.closest(".nav button[data-view]");
         if (viewButton) {
           showView(viewButton.dataset.view);
