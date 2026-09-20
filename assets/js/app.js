@@ -315,6 +315,9 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "composer.attachmentDeleted": "Selected attachments deleted.",
         "composer.attachmentDeletedTitle": "File deleted",
         "composer.attachmentDeletedByUser": "Deleted by user",
+        "composer.attachmentPending": "Ready to send",
+        "composer.attachmentUploadWait": "Wait for the image upload to finish.",
+        "composer.attachmentRemoving": "Removing…",
         "composer.dtc": "Code diagnostics",
         "profile.guest": "Guest",
         "profile.signIn": "Sign in to your account",
@@ -605,6 +608,9 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "composer.attachmentDeleted": "Выбранные вложения удалены.",
         "composer.attachmentDeletedTitle": "Файл удалён",
         "composer.attachmentDeletedByUser": "Удалено пользователем",
+        "composer.attachmentPending": "Готово к отправке",
+        "composer.attachmentUploadWait": "Дождитесь завершения загрузки изображения.",
+        "composer.attachmentRemoving": "Удаление…",
         "composer.dtc": "Диагностика по коду",
         "profile.guest": "Гость",
         "profile.signIn": "Войдите в аккаунт",
@@ -2469,7 +2475,67 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     const chatAttachmentUrlPromises = new Map();
     let chatAttachmentPreviewVersion = 0;
     let chatAttachmentVideoTimer = 0;
-    let pendingVisionMessageId = "";
+    let pendingVisionAttachment = null;
+
+    function syncPendingVisionComposer() {
+      const pending = pendingVisionAttachment;
+      const card = $("#composerPendingAttachment");
+      const name = $("#composerPendingAttachmentName");
+      const status = $("#composerPendingAttachmentStatus");
+      const remove = $("#composerPendingAttachmentRemove");
+      const shell = $("#promptInput")?.closest(".composer-shell");
+      if (!card || !name || !status || !remove || !shell) return;
+      card.hidden = !pending;
+      shell.classList.toggle("has-pending-attachment", Boolean(pending));
+      if (pending) {
+        name.textContent = pending.filename;
+        status.textContent = pending.state === "uploading"
+          ? t("composer.attachmentUploading")
+          : pending.state === "removing" ? t("composer.attachmentRemoving") : t("composer.attachmentPending");
+        remove.disabled = pending.state === "removing" || Boolean(window.PulsChat?.sending);
+      }
+      const send = $("#sendBtn");
+      if (send) send.disabled = Boolean(window.PulsChat?.sending || pending?.state === "uploading" || pending?.state === "removing");
+      resizePromptInput();
+    }
+
+    function clearPendingVisionAttachment() {
+      pendingVisionAttachment = null;
+      syncPendingVisionComposer();
+    }
+
+    async function removePendingVisionAttachment() {
+      const pending = pendingVisionAttachment;
+      if (!pending || window.PulsChat?.sending) return;
+      if (pending.state === "uploading") {
+        pending.cancelRequested = true;
+        pending.state = "removing";
+        syncPendingVisionComposer();
+        return;
+      }
+      if (!pending.fileId || !pending.messageId) {
+        clearPendingVisionAttachment();
+        return;
+      }
+      pending.state = "removing";
+      syncPendingVisionComposer();
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/storage/files/${encodeURIComponent(pending.fileId)}/messages/${encodeURIComponent(pending.messageId)}`, {
+          method: "DELETE",
+          headers: await backendAuthHeaders(),
+        });
+        if (!response.ok) throw new Error(t("composer.attachmentDeleteError"));
+        pending.bubble?.remove();
+        clearPendingVisionAttachment();
+        await window.PulsChat.refresh();
+      } catch (error) {
+        if (pendingVisionAttachment === pending) {
+          pending.state = "ready";
+          syncPendingVisionComposer();
+        }
+        toast(String(error.message || t("composer.attachmentDeleteError")));
+      }
+    }
 
     function chatAttachmentMimeType(file) {
       return String(file?.mime_type || file?.type || "").trim().toLowerCase();
@@ -2791,7 +2857,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           if (objectUrl) URL.revokeObjectURL(objectUrl);
           chatAttachmentObjectUrls.delete(item.fileId);
         }
-        if (selected.some((item) => item.messageId === pendingVisionMessageId)) pendingVisionMessageId = "";
+        if (selected.some((item) => item.messageId === pendingVisionAttachment?.messageId)) clearPendingVisionAttachment();
         selected.forEach((item) => { item.input.checked = false; });
         if (bar) bar.hidden = true;
         await window.PulsChat.refresh();
@@ -2845,6 +2911,20 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       if (!file) return;
       const owner = window.pulsCurrentUser?.id;
       const uploadState = appendChatAttachmentUpload(file);
+      const pendingCandidate = isChatImage(file) && !pendingVisionAttachment;
+      const pending = pendingCandidate ? {
+        filename: chatAttachmentFilename(file),
+        state: "uploading",
+        messageId: "",
+        fileId: "",
+        bubble: uploadState.bubble,
+        cancelRequested: false,
+      } : null;
+      if (pending) {
+        uploadState.bubble.hidden = true;
+        pendingVisionAttachment = pending;
+        syncPendingVisionComposer();
+      }
       try {
         await window.PulsChat.beforeSend();
         let context = window.PulsChat.requestContext();
@@ -2869,22 +2949,29 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         if (!response.ok) throw new Error(String(data?.detail || t("composer.attachmentError")));
         if (owner !== window.pulsCurrentUser?.id) {
           uploadState.bubble.remove();
+          if (pendingVisionAttachment === pending) clearPendingVisionAttachment();
           if (uploadState.previewUrl) URL.revokeObjectURL(uploadState.previewUrl);
           return;
         }
         uploadState.bubble.dataset.chatMessageId = String(data.message_id || "");
         uploadState.bubble.innerHTML = chatAttachmentBodyMarkup(data.file, { state: "saved", time: uploadState.time, messageId: data.message_id });
-        if (!pendingVisionMessageId && isChatImage(data.file) && data.message_id) {
-          pendingVisionMessageId = String(data.message_id);
+        if (pendingVisionAttachment === pending) {
+          pending.messageId = String(data.message_id || "");
+          pending.fileId = String(data.file?.id || "");
+          pending.state = "ready";
+          syncPendingVisionComposer();
         }
         if (uploadState.previewUrl) URL.revokeObjectURL(uploadState.previewUrl);
         void hydrateChatAttachmentImages(uploadState.bubble);
         window.PulsChat.afterAttachment(owner);
         toast(t("composer.attachmentSaved"));
+        if (pending?.cancelRequested && pendingVisionAttachment === pending) void removePendingVisionAttachment();
       } catch (error) {
         console.error("Chat attachment upload failed:", error);
         ensureChatAttachmentStateVisible(uploadState);
+        uploadState.bubble.hidden = false;
         uploadState.bubble.innerHTML = chatAttachmentBodyMarkup(file, { state: "failed", time: uploadState.time, previewUrl: uploadState.previewUrl });
+        if (pendingVisionAttachment === pending) clearPendingVisionAttachment();
         toast(String(error.message || t("composer.attachmentError")));
       }
     }
@@ -3510,7 +3597,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
       const compactScrollHeight = input.scrollHeight;
       const hasManualBreak = input.value.includes("\n");
-      const expanded = hasManualBreak || compactScrollHeight > compactHeight;
+      const expanded = shell?.classList.contains("has-pending-attachment") || hasManualBreak || compactScrollHeight > compactHeight;
 
       shell?.classList.toggle("is-expanded", expanded);
 
@@ -3535,10 +3622,21 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     async function sendPrompt() {
       const input = $("#promptInput");
       const prompt = input.value.trim();
-      if (!prompt) return;
+      let pending = pendingVisionAttachment;
+      if (!prompt && !pending?.messageId) return;
+      if (pending && pending.state !== "ready") {
+        toast(t("composer.attachmentUploadWait"));
+        return;
+      }
       if (!requireSignedInForChat()) return;
       if (window.PulsChat.sending) return;
       await window.PulsChat.beforeSend();
+      pending = pendingVisionAttachment;
+      if (!prompt && !pending?.messageId) return;
+      if (pending && pending.state !== "ready") {
+        toast(t("composer.attachmentUploadWait"));
+        return;
+      }
       showView("assistant");
 
       const chatUser = await getChatUserContext();
@@ -3547,13 +3645,20 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         return;
       }
 
+      pending = pendingVisionAttachment;
+      if (!prompt && !pending?.messageId) return;
+      if (pending && pending.state !== "ready") {
+        toast(t("composer.attachmentUploadWait"));
+        return;
+      }
       if (window.PulsChat.sending) return;
 
       window.PulsChat.sending = true;
       const chatOwner = window.pulsCurrentUser?.id;
-      const attachmentMessageId = pendingVisionMessageId;
-      $("#sendBtn").disabled = true;
-      appendMessage(prompt, true);
+      const attachmentMessageId = pending?.messageId || "";
+      let visionSendSucceeded = false;
+      syncPendingVisionComposer();
+      if (!attachmentMessageId) appendMessage(prompt, true);
       input.value = "";
       resizePromptInput();
 
@@ -3590,7 +3695,10 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         if (chatOwner !== window.pulsCurrentUser?.id) return;
         const answer = data.answer || data.reply || data.message || data.output || rawAnswer || JSON.stringify(data, null, 2);
         const links = normalizeResponseLinks(data.links || []);
-        if (attachmentMessageId && pendingVisionMessageId === attachmentMessageId) pendingVisionMessageId = "";
+        if (attachmentMessageId && pendingVisionAttachment === pending) {
+          clearPendingVisionAttachment();
+          visionSendSucceeded = true;
+        }
         loading.innerHTML = assistantMessageMarkup(answer, new Date().toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" }), links);
           updateQuota(data.quota);
           await window.PulsChat.afterSend(data, chatOwner);
@@ -3600,12 +3708,17 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           console.error("PULS /chat request failed:", error);
           if (chatOwner !== window.pulsCurrentUser?.id) return;
           const errorText = t("assistant.error");
+          if (attachmentMessageId) {
+            input.value = prompt;
+            resizePromptInput();
+          }
           loading.innerHTML = assistantMessageMarkup(errorText, new Date().toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" }));
 
           scrollMessagesToBottom();
         } finally {
           window.PulsChat.sending = false;
-          $("#sendBtn").disabled = false;
+          syncPendingVisionComposer();
+          if (visionSendSucceeded) await window.PulsChat.refresh();
         }
       }
 
@@ -3706,7 +3819,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         window.PulsChat.authChanged();
         window.PulsCar.authChanged();
         if (!event.detail?.user) {
-          pendingVisionMessageId = "";
+          clearPendingVisionAttachment();
           clearPrivateUiCache();
           window.pulsAppUser = null;
           fillVehicleForm(loadVehicleProfile());
@@ -3733,6 +3846,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         files.forEach((file) => { void uploadChatAttachment(file); });
       });
       $("#chatAttachmentDeleteBtn")?.addEventListener("click", () => { void deleteSelectedChatAttachments(); });
+      $("#composerPendingAttachmentRemove")?.addEventListener("click", () => { void removePendingVisionAttachment(); });
       document.addEventListener("change", (event) => {
         if (event.target.matches("[data-chat-attachment-select]")) updateChatAttachmentSelection();
       });

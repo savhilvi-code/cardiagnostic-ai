@@ -1,5 +1,11 @@
 # Frontend Task Log
 
+## 2026-09-20 — Chat Vision V1 pending composer attachment
+
+- Kept the first uploaded image as an explicit in-memory composer attachment until Send succeeds, showing its filename and upload/ready/removal state.
+- Image + text and image-only Send both submit the existing attachment Message ID; text-only Chat remains unchanged and no second user bubble is created for a Vision turn.
+- Blocked the upload race, wired the pending-card remove action through the existing authorized DELETE route, and cleared stale pending state on upload failure or logout.
+
 ## 2026-09-20 — Chat Vision V1 current-Message handoff
 
 - The first newly uploaded image Message is handed to the next prompt by its explicit Message ID, then cleared after a successful Chat response so later text-only turns cannot reuse it.

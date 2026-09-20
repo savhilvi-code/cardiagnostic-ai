@@ -38,7 +38,7 @@
     "logo": "https://pulscar.co/assets/img/puls-logo.png"
   }
   </script>
-  <link rel="stylesheet" href="assets/css/style.css?v=20260920-chat-video-portrait2">
+  <link rel="stylesheet" href="assets/css/style.css?v=20260920-chat-vision-composer1">
 </head>
 <body class="puls-splash-active">
   <div class="puls-splash-screen" id="pulsSplashScreen" aria-hidden="true">
@@ -308,6 +308,11 @@
 
         <section class="panel composer" aria-label="Запрос AI">
           <div class="composer-shell">
+            <div class="composer-pending-attachment" id="composerPendingAttachment" hidden>
+              <span class="composer-pending-attachment-icon" aria-hidden="true">▧</span>
+              <span class="composer-pending-attachment-copy"><strong id="composerPendingAttachmentName"></strong><small id="composerPendingAttachmentStatus"></small></span>
+              <button type="button" id="composerPendingAttachmentRemove" aria-label="Remove pending attachment">×</button>
+            </div>
             <textarea id="promptInput" rows="1" data-i18n-placeholder="composer.placeholder" placeholder="Опишите проблему." autocomplete="off" aria-label="Сообщение PULS"></textarea>
 
             <div class="composer-actions">
@@ -495,6 +500,6 @@
   <script src="assets/js/config.js?v=20260706-01"></script>
   <script src="assets/js/chat-session.js?v=20260920-chat-delete-finalize1"></script>
   <script src="assets/pages/car.js?v=20260920-event-files1"></script>
-  <script src="assets/js/app.js?v=20260920-chat-vision1"></script>
+  <script src="assets/js/app.js?v=20260920-chat-vision-composer1"></script>
 </body>
 </html>

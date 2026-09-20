@@ -3729,6 +3729,39 @@ body.assistant-mode .composer-shell:focus-within {
   box-shadow: none;
 }
 
+.composer-pending-attachment {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 30px;
+  gap: 8px;
+  align-items: center;
+  margin: 8px 10px 4px;
+  padding: 7px 8px;
+  border: 1px solid rgba(20, 184, 255, .42);
+  border-radius: 11px;
+  background: rgba(8, 37, 61, .88);
+  color: white;
+}
+
+.composer-pending-attachment[hidden] { display: none; }
+.composer-pending-attachment-icon { font-size: 20px; text-align: center; }
+.composer-pending-attachment-copy { min-width: 0; }
+.composer-pending-attachment-copy strong,
+.composer-pending-attachment-copy small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.composer-pending-attachment-copy small { margin-top: 2px; color: var(--soft); }
+.composer-pending-attachment button {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .08);
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.composer-pending-attachment button:disabled { opacity: .55; cursor: wait; }
+
 .composer textarea,
 body.assistant-mode .composer textarea {
   display: block;
