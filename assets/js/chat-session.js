@@ -61,6 +61,10 @@ window.PulsChat = (() => {
       }finally{if(request===version)restoring=null;}
     })();return restoring;
   }
+  function refresh(){
+    ++version;restoring=null;
+    return restore();
+  }
   async function beforeSend(){
     authChanged();if(restoring)await restoring;
     const activity=lastActivity||marker?.lastActivity;
@@ -93,7 +97,7 @@ window.PulsChat = (() => {
     context={vehicle:{id:vehicle.id,label:getVehicleLabel(vehicle)},problem:structuredClone(problem)};
     marker={conversationId:null,vehicleId:vehicle.id,problemId:problem.id,lastActivity:0};lastActivity=0;store();empty();banner();
   }
-  const api={CHAT_SESSION_TTL_HOURS,sessionRows,restore,authChanged,beforeSend,requestContext,afterSend,afterAttachment,continueProblem,sending:false};
+  const api={CHAT_SESSION_TTL_HOURS,sessionRows,restore,refresh,authChanged,beforeSend,requestContext,afterSend,afterAttachment,continueProblem,sending:false};
   document.addEventListener('visibilitychange',()=>{
     if(document.visibilityState==='visible'&&document.readyState==='complete'&&!api.sending)void restore();
   });

@@ -1,5 +1,10 @@
 # Frontend Task Log
 
+## 2026-09-20 — Chat attachment Delete feedback and reconciliation
+
+- Added immediate localized `Deleting…` state, disabled duplicate actions, and hid the selection bar only after every backend delete succeeds.
+- Added a forced no-store Chat refresh after success/failure; success clears selections before reconciliation, while failure restores authoritative cards, reselects surviving attachments and permits retry.
+
 ## 2026-09-20 — Authoritative Chat attachment reload
 
 - Forced Chat restore/history requests to bypass browser HTTP cache, so rendered attachments always match the current backend `Message.attachments[]` response.

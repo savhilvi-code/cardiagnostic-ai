@@ -3445,6 +3445,15 @@ button.chat-attachment-file-icon.is-openable {
   cursor: pointer;
 }
 
+.chat-attachment-selection-bar.is-deleting {
+  border-color: rgba(20, 184, 255, .75);
+}
+
+.chat-attachment-selection-bar.is-deleting button {
+  cursor: wait;
+  opacity: .78;
+}
+
 @media (max-width: 680px) {
   body.assistant-mode.chat-active .chat-attachment-selection-bar {
     position: fixed;

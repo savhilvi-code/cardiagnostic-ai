@@ -309,6 +309,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "composer.attachmentSelect": "Select attachment",
         "composer.attachmentSelected": "{count} selected",
         "composer.attachmentDelete": "Delete",
+        "composer.attachmentDeleting": "Deleting…",
         "composer.attachmentDeleteConfirm": "Delete the selected attachments from this chat?",
         "composer.attachmentDeleteError": "Could not delete the selected attachments.",
         "composer.attachmentDeleted": "Selected attachments deleted.",
@@ -596,6 +597,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "composer.attachmentSelect": "Выбрать вложение",
         "composer.attachmentSelected": "Выбрано: {count}",
         "composer.attachmentDelete": "Удалить",
+        "composer.attachmentDeleting": "Удаление…",
         "composer.attachmentDeleteConfirm": "Удалить выбранные вложения из этого чата?",
         "composer.attachmentDeleteError": "Не удалось удалить выбранные вложения.",
         "composer.attachmentDeleted": "Выбранные вложения удалены.",
@@ -2752,7 +2754,16 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       const selected = selectedChatAttachments();
       if (!selected.length || !window.confirm(t("composer.attachmentDeleteConfirm"))) return;
       const button = $("#chatAttachmentDeleteBtn");
-      if (button) button.disabled = true;
+      const bar = $("#chatAttachmentSelectionBar");
+      const count = $("#chatAttachmentSelectionCount");
+      const selectedKeys = new Set(selected.map((item) => `${item.fileId}:${item.messageId}`));
+      selected.forEach((item) => { item.input.disabled = true; });
+      if (bar) bar.classList.add("is-deleting");
+      if (count) count.textContent = t("composer.attachmentDeleting");
+      if (button) {
+        button.disabled = true;
+        button.textContent = t("composer.attachmentDeleting");
+      }
       try {
         for (const item of selected) {
           const response = await fetch(`${API_BASE_URL}/api/storage/files/${encodeURIComponent(item.fileId)}/messages/${encodeURIComponent(item.messageId)}`, {
@@ -2764,13 +2775,23 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           if (objectUrl) URL.revokeObjectURL(objectUrl);
           chatAttachmentObjectUrls.delete(item.fileId);
         }
-        await window.PulsChat.restore();
+        selected.forEach((item) => { item.input.checked = false; });
+        if (bar) bar.hidden = true;
+        await window.PulsChat.refresh();
         toast(t("composer.attachmentDeleted"));
       } catch (error) {
-        await window.PulsChat.restore().catch(() => {});
+        await window.PulsChat.refresh().catch(() => {});
+        document.querySelectorAll("[data-chat-attachment-select]").forEach((input) => {
+          const key = `${input.dataset.chatAttachmentSelect || ""}:${input.dataset.chatMessageId || ""}`;
+          if (selectedKeys.has(key)) input.checked = true;
+        });
         toast(String(error.message || t("composer.attachmentDeleteError")));
       } finally {
-        if (button) button.disabled = false;
+        if (bar) bar.classList.remove("is-deleting");
+        if (button) {
+          button.disabled = false;
+          button.textContent = t("composer.attachmentDelete");
+        }
         updateChatAttachmentSelection();
       }
     }
