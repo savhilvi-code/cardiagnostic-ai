@@ -313,6 +313,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "composer.attachmentDeleteConfirm": "Delete the selected attachments from this chat?",
         "composer.attachmentDeleteError": "Could not delete the selected attachments.",
         "composer.attachmentDeleted": "Selected attachments deleted.",
+        "composer.attachmentDeletedTitle": "File deleted",
+        "composer.attachmentDeletedByUser": "Deleted by user",
         "composer.dtc": "Code diagnostics",
         "profile.guest": "Guest",
         "profile.signIn": "Sign in to your account",
@@ -601,6 +603,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "composer.attachmentDeleteConfirm": "Удалить выбранные вложения из этого чата?",
         "composer.attachmentDeleteError": "Не удалось удалить выбранные вложения.",
         "composer.attachmentDeleted": "Выбранные вложения удалены.",
+        "composer.attachmentDeletedTitle": "Файл удалён",
+        "composer.attachmentDeletedByUser": "Удалено пользователем",
         "composer.dtc": "Диагностика по коду",
         "profile.guest": "Гость",
         "profile.signIn": "Войдите в аккаунт",
@@ -2622,6 +2626,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
     function restoredChatAttachmentMarkup(row, time) {
       const attachments = Array.isArray(row?.attachments) ? row.attachments : [];
+      const metadata = row?.metadata && typeof row.metadata === "object" ? row.metadata : {};
       const files = attachments
         .filter((attachment) => attachment?.file_id)
         .map((attachment) => ({
@@ -2629,9 +2634,16 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           mime_type: String(attachment.mime_type || "application/octet-stream"),
           original_filename: String(attachment.original_filename || "attachment"),
         }));
-      if (!files.length) return "";
+      const userText = metadata.had_attachments === true && metadata.attachment_only === false
+        ? String(row?.message_text || row?.content || "").trim()
+        : "";
+      const textMarkup = userText ? `<div class="chat-attachment-message-text">${linkifyText(userText)}</div>` : "";
+      if (!files.length) {
+        if (metadata.had_attachments !== true || metadata.attachments_deleted !== true) return "";
+        return `<div class="bubble user chat-attachment-message chat-attachment-tombstone" data-chat-message-id="${escapeHtml(row?.id || "")}">${textMarkup}<div class="chat-attachment-deleted-card" aria-disabled="true"><span class="chat-attachment-deleted-icon" aria-hidden="true">${iconMap.file}</span><span><strong>${escapeHtml(t("composer.attachmentDeletedTitle"))}</strong><small>${escapeHtml(t("composer.attachmentDeletedByUser"))}</small></span></div><small>${escapeHtml(time)}</small></div>`;
+      }
       const cards = files.map((file) => chatAttachmentBodyMarkup(file, { state: "saved", messageId: row?.id || "" })).join("");
-      return `<div class="bubble user chat-attachment-message" data-chat-message-id="${escapeHtml(row?.id || "")}"><div class="chat-attachment-stack">${cards}</div><small>${escapeHtml(time)}</small></div>`;
+      return `<div class="bubble user chat-attachment-message" data-chat-message-id="${escapeHtml(row?.id || "")}">${textMarkup}<div class="chat-attachment-stack">${cards}</div><small>${escapeHtml(time)}</small></div>`;
     }
 
     async function openChatImagePreview(fileId, filename) {
@@ -2841,7 +2853,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         }
         const form = new FormData();
         form.set("conversation_id", context.conversation_id);
-        form.set("caption", `📎 ${file.name}`);
+        form.set("caption", "");
         form.set("language", getLanguage());
         form.set("file", file);
         toast(t("composer.attachmentUploading"));

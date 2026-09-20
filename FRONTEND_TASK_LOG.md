@@ -1,5 +1,11 @@
 # Frontend Task Log
 
+## 2026-09-20 — Chat deleted-attachment placeholder
+
+- Added a localized, muted and noninteractive deleted-file placeholder driven only by authoritative Message metadata from History.
+- Attachment-only Messages hide their synthetic fallback text; real user-authored text remains visible beside the placeholder.
+- New picker uploads send an empty caption so the backend can authoritatively mark them as attachment-only.
+
 ## 2026-09-20 — Chat attachment Delete feedback and reconciliation
 
 - Added immediate localized `Deleting…` state, disabled duplicate actions, and hid the selection bar only after every backend delete succeeds.
