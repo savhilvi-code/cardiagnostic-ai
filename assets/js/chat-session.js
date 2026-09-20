@@ -26,7 +26,7 @@ window.PulsChat = (() => {
   }
   async function messages(path){
     const headers=await backendAuthHeaders();if(!headers.Authorization)throw Error('Authentication required');
-    const res=await fetch(`${API_BASE_URL}${path}`,{headers});if(!res.ok)throw Error(`Chat history returned ${res.status}`);
+    const res=await fetch(`${API_BASE_URL}${path}`,{headers,cache:'no-store'});if(!res.ok)throw Error(`Chat history returned ${res.status}`);
     const data=await res.json();return Array.isArray(data.items)?data.items:[];
   }
   // Visible session = the contiguous tail after the last 12-hour inactivity gap.

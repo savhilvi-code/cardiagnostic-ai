@@ -1,5 +1,10 @@
 # Frontend Task Log
 
+## 2026-09-20 — Authoritative Chat attachment reload
+
+- Forced Chat restore/history requests to bypass browser HTTP cache, so rendered attachments always match the current backend `Message.attachments[]` response.
+- Confirmed the old attachment localStorage registry is absent; only conversation marker IDs/timestamps remain local and they do not supply file metadata.
+
 ## 2026-09-20 — Mobile portrait attachment viewer containment
 
 - Constrained the existing attachment modal and native video element to the dynamic portrait viewport using border-box sizing and safe-area-aware `dvh` limits.
