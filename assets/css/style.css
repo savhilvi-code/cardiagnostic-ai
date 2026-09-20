@@ -3359,6 +3359,8 @@ body.assistant-mode .bubble.user.chat-attachment-message {
 button.chat-attachment-thumb {
   display: block;
   cursor: zoom-in;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .chat-attachment-thumb::before {

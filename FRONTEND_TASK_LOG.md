@@ -1,5 +1,11 @@
 # Frontend Task Log
 
+## 2026-09-20 — Mobile Chat image preview activation
+
+- Bound the existing persisted thumbnail to a direct pointer/click activation path: touch/pen opens on `pointerup`, while desktop and keyboard retain click behavior without duplicate opening.
+- Full preview still resolves the private image through the existing authenticated backend download function; no storage/upload behavior changed.
+- Cross-device restoration remains blocked by the current history contract, which does not return Message attachment metadata; the existing browser registry is not an authoritative backend source.
+
 ## 2026-09-20 — Chat image upload state and preview
 
 - Added an immediate indeterminate uploading card for selected Chat files, with a local image thumbnail used only while the request is pending and an explicit failed state on errors.

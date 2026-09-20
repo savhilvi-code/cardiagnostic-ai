@@ -2530,6 +2530,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     }
 
     async function hydrateChatAttachmentImages(root = document) {
+      bindChatImagePreviewActions(root);
       const images = Array.from(root.querySelectorAll("img[data-chat-image-file]"));
       await Promise.all(images.map(async (image) => {
         const fileId = image.dataset.chatImageFile;
@@ -2545,6 +2546,31 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           image.alt = t("composer.attachmentPreviewError");
         }
       }));
+    }
+
+    function activateChatImagePreview(button) {
+      void openChatImagePreview(button.dataset.chatImageOpen, button.dataset.chatImageName || "");
+    }
+
+    function bindChatImagePreviewActions(root = document) {
+      root.querySelectorAll("[data-chat-image-open]").forEach((button) => {
+        if (button.dataset.chatPreviewBound === "true") return;
+        button.dataset.chatPreviewBound = "true";
+        let pointerOpenedAt = 0;
+        button.addEventListener("pointerup", (event) => {
+          if (event.pointerType !== "touch" && event.pointerType !== "pen") return;
+          event.preventDefault();
+          event.stopPropagation();
+          pointerOpenedAt = Date.now();
+          activateChatImagePreview(button);
+        });
+        button.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          if (Date.now() - pointerOpenedAt < 700) return;
+          activateChatImagePreview(button);
+        });
+      });
     }
 
     function restoredChatAttachmentMarkup(row, time) {
@@ -3556,12 +3582,6 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       syncSplashLayout();
       syncComposerVisibility("assistant");
       document.addEventListener("click", (event) => {
-        const chatImageOpen = event.target.closest("[data-chat-image-open]");
-        if (chatImageOpen) {
-          void openChatImagePreview(chatImageOpen.dataset.chatImageOpen, chatImageOpen.dataset.chatImageName || "");
-          return;
-        }
-
         if (event.target.closest("#chatImagePreviewClose") || event.target.id === "chatImagePreviewModal") {
           closeChatImagePreview();
           return;
