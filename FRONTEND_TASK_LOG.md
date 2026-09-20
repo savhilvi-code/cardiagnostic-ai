@@ -1,5 +1,10 @@
 # Frontend Task Log
 
+## 2026-09-20 — Mobile portrait video viewer geometry
+
+- Replaced the previous portrait-only max-size workaround with a video-mode grid whose media row has definite space from the current dynamic viewport before video metadata loads.
+- The existing modal now sizes video against the available viewport at all narrow-screen orientations, retaining native controls, natural media containment, safe-area padding and desktop behavior.
+
 ## 2026-09-20 — Chat deleted-attachment placeholder
 
 - Added a localized, muted and noninteractive deleted-file placeholder driven only by authoritative Message metadata from History.

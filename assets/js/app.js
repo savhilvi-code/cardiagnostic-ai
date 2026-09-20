@@ -2652,14 +2652,16 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
     async function openChatAttachmentPreview(fileId, filename, kind) {
       const modal = $("#chatImagePreviewModal");
+      const dialog = modal?.querySelector(".chat-image-preview-dialog");
       const image = $("#chatImagePreviewImage");
       const pdf = $("#chatAttachmentPreviewPdf");
       const video = $("#chatAttachmentPreviewVideo");
       const openPdf = $("#chatAttachmentOpenPdf");
       const status = $("#chatImagePreviewStatus");
-      if (!modal || !image || !pdf || !video || !openPdf || !status) return;
+      if (!modal || !dialog || !image || !pdf || !video || !openPdf || !status) return;
       const previewVersion = ++chatAttachmentPreviewVersion;
       clearTimeout(chatAttachmentVideoTimer);
+      dialog.classList.toggle("is-video", kind === "video");
       modal.classList.add("show");
       modal.setAttribute("aria-hidden", "false");
       image.hidden = true;
@@ -2741,6 +2743,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         video.removeAttribute("src");
         video.load();
       }
+      modal.querySelector(".chat-image-preview-dialog")?.classList.remove("is-video");
       modal.classList.remove("show");
       modal.setAttribute("aria-hidden", "true");
     }
