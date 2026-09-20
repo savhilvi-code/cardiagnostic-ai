@@ -2464,16 +2464,35 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     let chatAttachmentPreviewVersion = 0;
     let chatAttachmentVideoTimer = 0;
 
+    function chatAttachmentMimeType(file) {
+      return String(file?.mime_type || file?.type || "").trim().toLowerCase();
+    }
+
+    function chatAttachmentFilename(file) {
+      return String(file?.original_filename || file?.name || "attachment");
+    }
+
+    function isGenericAttachmentMime(mimeType) {
+      return !mimeType || ["application/octet-stream", "binary/octet-stream", "application/unknown"].includes(mimeType);
+    }
+
+    function isChatVideo(file) {
+      const mimeType = chatAttachmentMimeType(file);
+      if (mimeType.startsWith("video/") || mimeType === "application/mp4") return true;
+      if (!isGenericAttachmentMime(mimeType)) return false;
+      return /\.(mp4|mov|webm|m4v)$/i.test(chatAttachmentFilename(file));
+    }
+
     function isChatImage(file) {
-      return String(file?.mime_type || file?.type || "").toLowerCase().startsWith("image/");
+      return chatAttachmentMimeType(file).startsWith("image/");
     }
 
     function chatAttachmentBodyMarkup(file, { state = "saved", time = "", previewUrl = "", messageId = "" } = {}) {
       const image = isChatImage(file);
-      const mimeType = String(file?.mime_type || file?.type || "").toLowerCase();
+      const mimeType = chatAttachmentMimeType(file);
       const pdf = mimeType === "application/pdf";
-      const video = mimeType.startsWith("video/");
-      const filename = String(file?.original_filename || file?.name || "attachment");
+      const video = isChatVideo(file);
+      const filename = chatAttachmentFilename(file);
       const fileId = state === "saved" ? String(file?.id || "") : "";
       let preview = '<span class="chat-attachment-file-icon" aria-hidden="true">▤</span>';
       if (image) {
@@ -2495,6 +2514,9 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       const time = new Date().toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" });
       bubble.classList.add("chat-attachment-message");
       bubble.innerHTML = chatAttachmentBodyMarkup(file, { state: "uploading", time, previewUrl });
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        bubble.scrollIntoView({ block: "end", inline: "nearest" });
+      }));
       return { bubble, previewUrl, time };
     }
 

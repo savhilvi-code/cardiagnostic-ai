@@ -1,5 +1,11 @@
 # Frontend Task Log
 
+## 2026-09-20 — Mobile Chat attachment visibility and video fallback
+
+- Kept the selected-attachment action bar inside the mobile portrait viewport above the fixed composer, without horizontal overflow.
+- Added an attachment-specific scroll target and bottom inset so every pending upload card becomes visible immediately in portrait.
+- Preserved authoritative MIME routing and added a filename-extension fallback only when MIME is absent/generic, covering MP4/MOV/WebM/M4V without changing stored metadata.
+
 ## 2026-09-20 — Chat attachment UX completion and safe delete UI
 
 - Added finite native-video loading states, explicit ready/playback-error outcomes, and an authenticated Blob-based Open PDF action for mobile browsers.
