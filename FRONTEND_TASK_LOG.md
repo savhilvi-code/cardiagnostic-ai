@@ -1,5 +1,11 @@
 # Frontend Task Log
 
+## 2026-09-20 — Chat attachment UX completion and safe delete UI
+
+- Added finite native-video loading states, explicit ready/playback-error outcomes, and an authenticated Blob-based Open PDF action for mobile browsers.
+- Multi-file selection now creates one immediate independently updating upload card per file.
+- Added owner attachment selection, confirmation and authenticated delete requests; failures reload authoritative Chat state and remain visible to the user.
+
 ## 2026-09-20 — Authenticated PDF and video attachment viewers
 
 - Made persisted PDF and video Chat cards openable on touch and desktop using the existing authenticated attachment Blob fetch and preview modal.

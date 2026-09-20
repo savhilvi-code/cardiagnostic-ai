@@ -3335,11 +3335,13 @@ body.assistant-mode .bubble.user.chat-attachment-message {
 }
 
 .chat-attachment-card {
+  position: relative;
   display: grid;
   grid-template-columns: 72px minmax(0, 1fr);
   gap: 10px;
   align-items: center;
   min-width: 0;
+  padding-right: 26px;
 }
 
 .chat-attachment-stack {
@@ -3402,6 +3404,44 @@ button.chat-attachment-file-icon.is-openable {
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+}
+
+.chat-attachment-select {
+  position: absolute;
+  top: 4px;
+  right: 2px;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: #14b8ff;
+  cursor: pointer;
+}
+
+.chat-attachment-selection-bar {
+  align-self: flex-end;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 12px 8px;
+  padding: 8px 10px;
+  border: 1px solid rgba(20, 184, 255, .5);
+  border-radius: 12px;
+  background: rgba(3, 16, 29, .96);
+  color: white;
+  z-index: 4;
+}
+
+.chat-attachment-selection-bar[hidden] {
+  display: none;
+}
+
+.chat-attachment-selection-bar button {
+  border: 1px solid rgba(255, 90, 105, .7);
+  border-radius: 9px;
+  padding: 6px 10px;
+  background: rgba(170, 24, 45, .3);
+  color: white;
+  cursor: pointer;
 }
 
 .chat-attachment-meta {
@@ -3483,6 +3523,20 @@ button.chat-attachment-file-icon.is-openable {
   height: min(78vh, 820px);
   border: 0;
   background: white;
+}
+
+.chat-attachment-open-pdf {
+  margin-top: 10px;
+  padding: 9px 14px;
+  border: 1px solid #168fe1;
+  border-radius: 9px;
+  color: white;
+  text-decoration: none;
+  background: #075ca1;
+}
+
+.chat-attachment-open-pdf[hidden] {
+  display: none;
 }
 
 .chat-image-preview-dialog video {

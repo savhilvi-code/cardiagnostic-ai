@@ -304,6 +304,14 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "composer.attachmentPreviewClose": "Close attachment preview",
         "composer.attachmentViewerError": "Could not load the attachment preview.",
         "composer.attachmentVideoUnsupported": "This video format or codec is not supported by your browser.",
+        "composer.attachmentVideoReady": "Ready",
+        "composer.attachmentOpenPdf": "Open PDF",
+        "composer.attachmentSelect": "Select attachment",
+        "composer.attachmentSelected": "{count} selected",
+        "composer.attachmentDelete": "Delete",
+        "composer.attachmentDeleteConfirm": "Delete the selected attachments from this chat?",
+        "composer.attachmentDeleteError": "Could not delete the selected attachments.",
+        "composer.attachmentDeleted": "Selected attachments deleted.",
         "composer.dtc": "Code diagnostics",
         "profile.guest": "Guest",
         "profile.signIn": "Sign in to your account",
@@ -583,6 +591,14 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "composer.attachmentPreviewClose": "Закрыть просмотр вложения",
         "composer.attachmentViewerError": "Не удалось загрузить вложение для просмотра.",
         "composer.attachmentVideoUnsupported": "Этот формат или кодек видео не поддерживается вашим браузером.",
+        "composer.attachmentVideoReady": "Готово",
+        "composer.attachmentOpenPdf": "Открыть PDF",
+        "composer.attachmentSelect": "Выбрать вложение",
+        "composer.attachmentSelected": "Выбрано: {count}",
+        "composer.attachmentDelete": "Удалить",
+        "composer.attachmentDeleteConfirm": "Удалить выбранные вложения из этого чата?",
+        "composer.attachmentDeleteError": "Не удалось удалить выбранные вложения.",
+        "composer.attachmentDeleted": "Выбранные вложения удалены.",
         "composer.dtc": "Диагностика по коду",
         "profile.guest": "Гость",
         "profile.signIn": "Войдите в аккаунт",
@@ -2445,12 +2461,14 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
     const chatAttachmentObjectUrls = new Map();
     const chatAttachmentUrlPromises = new Map();
+    let chatAttachmentPreviewVersion = 0;
+    let chatAttachmentVideoTimer = 0;
 
     function isChatImage(file) {
       return String(file?.mime_type || file?.type || "").toLowerCase().startsWith("image/");
     }
 
-    function chatAttachmentBodyMarkup(file, { state = "saved", time = "", previewUrl = "" } = {}) {
+    function chatAttachmentBodyMarkup(file, { state = "saved", time = "", previewUrl = "", messageId = "" } = {}) {
       const image = isChatImage(file);
       const mimeType = String(file?.mime_type || file?.type || "").toLowerCase();
       const pdf = mimeType === "application/pdf";
@@ -2465,7 +2483,10 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         preview = `<button class="chat-attachment-file-icon is-openable" type="button" data-chat-attachment-open="${escapeHtml(fileId)}" data-chat-attachment-kind="${kind}" data-chat-attachment-name="${escapeHtml(filename)}" aria-label="${escapeHtml(filename)}">${pdf ? "PDF" : "▶"}</button>`;
       }
       const status = state === "uploading" ? t("composer.attachmentUploading") : state === "failed" ? t("composer.attachmentFailed") : t("composer.attachmentUploaded");
-      return `<div class="chat-attachment-card is-${state}">${preview}<div class="chat-attachment-meta"><strong>${escapeHtml(filename)}</strong><span class="chat-attachment-status">${state === "uploading" ? '<i class="chat-attachment-spinner" aria-hidden="true"></i>' : ""}${escapeHtml(status)}</span></div></div>${time ? `<small>${escapeHtml(time)}</small>` : ""}`;
+      const selection = fileId && messageId
+        ? `<input class="chat-attachment-select" type="checkbox" data-chat-attachment-select="${escapeHtml(fileId)}" data-chat-message-id="${escapeHtml(messageId)}" aria-label="${escapeHtml(t("composer.attachmentSelect"))}">`
+        : "";
+      return `<div class="chat-attachment-card is-${state}">${preview}<div class="chat-attachment-meta"><strong>${escapeHtml(filename)}</strong><span class="chat-attachment-status">${state === "uploading" ? '<i class="chat-attachment-spinner" aria-hidden="true"></i>' : ""}${escapeHtml(status)}</span></div>${selection}</div>${time ? `<small>${escapeHtml(time)}</small>` : ""}`;
     }
 
     function appendChatAttachmentUpload(file) {
@@ -2509,6 +2530,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
     async function hydrateChatAttachmentImages(root = document) {
       bindChatImagePreviewActions(root);
+      updateChatAttachmentSelection();
       const images = Array.from(root.querySelectorAll("img[data-chat-image-file]"));
       await Promise.all(images.map(async (image) => {
         const fileId = image.dataset.chatImageFile;
@@ -2584,7 +2606,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           original_filename: String(attachment.original_filename || "attachment"),
         }));
       if (!files.length) return "";
-      const cards = files.map((file) => chatAttachmentBodyMarkup(file, { state: "saved" })).join("");
+      const cards = files.map((file) => chatAttachmentBodyMarkup(file, { state: "saved", messageId: row?.id || "" })).join("");
       return `<div class="bubble user chat-attachment-message" data-chat-message-id="${escapeHtml(row?.id || "")}"><div class="chat-attachment-stack">${cards}</div><small>${escapeHtml(time)}</small></div>`;
     }
 
@@ -2597,8 +2619,11 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       const image = $("#chatImagePreviewImage");
       const pdf = $("#chatAttachmentPreviewPdf");
       const video = $("#chatAttachmentPreviewVideo");
+      const openPdf = $("#chatAttachmentOpenPdf");
       const status = $("#chatImagePreviewStatus");
-      if (!modal || !image || !pdf || !video || !status) return;
+      if (!modal || !image || !pdf || !video || !openPdf || !status) return;
+      const previewVersion = ++chatAttachmentPreviewVersion;
+      clearTimeout(chatAttachmentVideoTimer);
       modal.classList.add("show");
       modal.setAttribute("aria-hidden", "false");
       image.hidden = true;
@@ -2606,25 +2631,50 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       image.alt = filename || "";
       pdf.hidden = true;
       pdf.removeAttribute("src");
+      openPdf.hidden = true;
+      openPdf.removeAttribute("href");
       video.onerror = null;
       video.oncanplay = null;
+      video.onloadeddata = null;
       video.pause();
       video.hidden = true;
       video.removeAttribute("src");
       video.load();
       status.textContent = t("composer.attachmentUploading");
+      if (kind === "video") {
+        chatAttachmentVideoTimer = window.setTimeout(() => {
+          if (previewVersion !== chatAttachmentPreviewVersion) return;
+          chatAttachmentPreviewVersion += 1;
+          video.pause();
+          video.hidden = true;
+          video.removeAttribute("src");
+          video.load();
+          status.textContent = t("composer.attachmentVideoUnsupported");
+        }, 30000);
+      }
       try {
         const url = await authenticatedChatAttachmentUrl(fileId);
+        if (previewVersion !== chatAttachmentPreviewVersion) return;
         if (kind === "pdf") {
           pdf.src = url;
           pdf.title = filename || "PDF";
           pdf.hidden = false;
+          openPdf.href = url;
+          openPdf.hidden = false;
         } else if (kind === "video") {
+          const ready = () => {
+            if (previewVersion !== chatAttachmentPreviewVersion) return;
+            clearTimeout(chatAttachmentVideoTimer);
+            status.textContent = `${t("composer.attachmentVideoReady")}${filename ? ` · ${filename}` : ""}`;
+          };
           video.onerror = () => {
+            if (previewVersion !== chatAttachmentPreviewVersion) return;
+            clearTimeout(chatAttachmentVideoTimer);
             video.hidden = true;
             status.textContent = t("composer.attachmentVideoUnsupported");
           };
-          video.oncanplay = () => { status.textContent = filename || ""; };
+          video.oncanplay = ready;
+          video.onloadeddata = ready;
           video.src = url;
           video.hidden = false;
           video.load();
@@ -2632,25 +2682,75 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           image.src = url;
           image.hidden = false;
         }
-        status.textContent = filename || "";
+        if (kind !== "video") status.textContent = filename || "";
       } catch (error) {
-        status.textContent = kind === "image" ? t("composer.attachmentPreviewError") : t("composer.attachmentViewerError");
+        clearTimeout(chatAttachmentVideoTimer);
+        status.textContent = kind === "image"
+          ? t("composer.attachmentPreviewError")
+          : kind === "video" ? t("composer.attachmentVideoUnsupported") : t("composer.attachmentViewerError");
       }
     }
 
     function closeChatImagePreview() {
       const modal = $("#chatImagePreviewModal");
       if (!modal) return;
+      chatAttachmentPreviewVersion += 1;
+      clearTimeout(chatAttachmentVideoTimer);
       const video = $("#chatAttachmentPreviewVideo");
       if (video) {
         video.onerror = null;
         video.oncanplay = null;
+        video.onloadeddata = null;
         video.pause();
         video.removeAttribute("src");
         video.load();
       }
       modal.classList.remove("show");
       modal.setAttribute("aria-hidden", "true");
+    }
+
+    function selectedChatAttachments() {
+      return Array.from(document.querySelectorAll("[data-chat-attachment-select]:checked")).map((input) => ({
+        input,
+        fileId: input.dataset.chatAttachmentSelect || "",
+        messageId: input.dataset.chatMessageId || "",
+      })).filter((item) => item.fileId && item.messageId);
+    }
+
+    function updateChatAttachmentSelection() {
+      const bar = $("#chatAttachmentSelectionBar");
+      const count = $("#chatAttachmentSelectionCount");
+      const selected = selectedChatAttachments();
+      if (!bar || !count) return;
+      bar.hidden = selected.length === 0;
+      count.textContent = t("composer.attachmentSelected", { count: String(selected.length) });
+    }
+
+    async function deleteSelectedChatAttachments() {
+      const selected = selectedChatAttachments();
+      if (!selected.length || !window.confirm(t("composer.attachmentDeleteConfirm"))) return;
+      const button = $("#chatAttachmentDeleteBtn");
+      if (button) button.disabled = true;
+      try {
+        for (const item of selected) {
+          const response = await fetch(`${API_BASE_URL}/api/storage/files/${encodeURIComponent(item.fileId)}/messages/${encodeURIComponent(item.messageId)}`, {
+            method: "DELETE",
+            headers: await backendAuthHeaders(),
+          });
+          if (!response.ok) throw new Error(t("composer.attachmentDeleteError"));
+          const objectUrl = chatAttachmentObjectUrls.get(item.fileId);
+          if (objectUrl) URL.revokeObjectURL(objectUrl);
+          chatAttachmentObjectUrls.delete(item.fileId);
+        }
+        await window.PulsChat.restore();
+        toast(t("composer.attachmentDeleted"));
+      } catch (error) {
+        await window.PulsChat.restore().catch(() => {});
+        toast(String(error.message || t("composer.attachmentDeleteError")));
+      } finally {
+        if (button) button.disabled = false;
+        updateChatAttachmentSelection();
+      }
     }
 
     window.PulsChatAttachments = {
@@ -2713,7 +2813,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           return;
         }
         uploadState.bubble.dataset.chatMessageId = String(data.message_id || "");
-        uploadState.bubble.innerHTML = chatAttachmentBodyMarkup(data.file, { state: "saved", time: uploadState.time });
+        uploadState.bubble.innerHTML = chatAttachmentBodyMarkup(data.file, { state: "saved", time: uploadState.time, messageId: data.message_id });
         if (uploadState.previewUrl) URL.revokeObjectURL(uploadState.previewUrl);
         void hydrateChatAttachmentImages(uploadState.bubble);
         window.PulsChat.afterAttachment(owner);
@@ -3561,7 +3661,13 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
       $("#sendBtn").addEventListener("click", sendPrompt);
       $("#chatAttachmentInput")?.addEventListener("change", (event) => {
-        void uploadChatAttachment(event.target.files?.[0] || null);
+        const files = Array.from(event.target.files || []);
+        event.target.value = "";
+        files.forEach((file) => { void uploadChatAttachment(file); });
+      });
+      $("#chatAttachmentDeleteBtn")?.addEventListener("click", () => { void deleteSelectedChatAttachments(); });
+      document.addEventListener("change", (event) => {
+        if (event.target.matches("[data-chat-attachment-select]")) updateChatAttachmentSelection();
       });
 
       const promptInput = $("#promptInput");
