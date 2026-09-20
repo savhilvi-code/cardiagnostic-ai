@@ -1,5 +1,10 @@
 # Frontend Task Log
 
+## 2026-09-20 — Chat Vision V1 current-Message handoff
+
+- The first newly uploaded image Message is handed to the next prompt by its explicit Message ID, then cleared after a successful Chat response so later text-only turns cannot reuse it.
+- The handoff is memory-only and creates no browser attachment registry, new relation or duplicate binary; deletion/logout clears a pending handoff.
+
 ## 2026-09-20 — Mobile portrait video viewer geometry
 
 - Replaced the previous portrait-only max-size workaround with a video-mode grid whose media row has definite space from the current dynamic viewport before video metadata loads.

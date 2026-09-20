@@ -2469,6 +2469,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     const chatAttachmentUrlPromises = new Map();
     let chatAttachmentPreviewVersion = 0;
     let chatAttachmentVideoTimer = 0;
+    let pendingVisionMessageId = "";
 
     function chatAttachmentMimeType(file) {
       return String(file?.mime_type || file?.type || "").trim().toLowerCase();
@@ -2790,6 +2791,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           if (objectUrl) URL.revokeObjectURL(objectUrl);
           chatAttachmentObjectUrls.delete(item.fileId);
         }
+        if (selected.some((item) => item.messageId === pendingVisionMessageId)) pendingVisionMessageId = "";
         selected.forEach((item) => { item.input.checked = false; });
         if (bar) bar.hidden = true;
         await window.PulsChat.refresh();
@@ -2872,6 +2874,9 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         }
         uploadState.bubble.dataset.chatMessageId = String(data.message_id || "");
         uploadState.bubble.innerHTML = chatAttachmentBodyMarkup(data.file, { state: "saved", time: uploadState.time, messageId: data.message_id });
+        if (!pendingVisionMessageId && isChatImage(data.file) && data.message_id) {
+          pendingVisionMessageId = String(data.message_id);
+        }
         if (uploadState.previewUrl) URL.revokeObjectURL(uploadState.previewUrl);
         void hydrateChatAttachmentImages(uploadState.bubble);
         window.PulsChat.afterAttachment(owner);
@@ -3546,6 +3551,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
       window.PulsChat.sending = true;
       const chatOwner = window.pulsCurrentUser?.id;
+      const attachmentMessageId = pendingVisionMessageId;
       $("#sendBtn").disabled = true;
       appendMessage(prompt, true);
       input.value = "";
@@ -3563,6 +3569,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
             first_name: chatUser.payload.first_name,
             language: getLanguage(),
             car_info: chatUser.payload.car_info,
+            ...(attachmentMessageId ? { attachment_message_id: attachmentMessageId } : {}),
             ...window.PulsChat.requestContext()
           })
         });
@@ -3583,6 +3590,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         if (chatOwner !== window.pulsCurrentUser?.id) return;
         const answer = data.answer || data.reply || data.message || data.output || rawAnswer || JSON.stringify(data, null, 2);
         const links = normalizeResponseLinks(data.links || []);
+        if (attachmentMessageId && pendingVisionMessageId === attachmentMessageId) pendingVisionMessageId = "";
         loading.innerHTML = assistantMessageMarkup(answer, new Date().toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" }), links);
           updateQuota(data.quota);
           await window.PulsChat.afterSend(data, chatOwner);
@@ -3698,6 +3706,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         window.PulsChat.authChanged();
         window.PulsCar.authChanged();
         if (!event.detail?.user) {
+          pendingVisionMessageId = "";
           clearPrivateUiCache();
           window.pulsAppUser = null;
           fillVehicleForm(loadVehicleProfile());
