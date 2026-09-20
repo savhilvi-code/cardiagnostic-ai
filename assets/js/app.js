@@ -2696,6 +2696,10 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     }
 
     function restoredChatAttachmentMarkup(row, time) {
+      const messageId = String(row?.id || "");
+      document.querySelectorAll("[data-chat-message-id]").forEach((node) => {
+        if (messageId && node.dataset.chatMessageId === messageId) node.remove();
+      });
       const attachments = Array.isArray(row?.attachments) ? row.attachments : [];
       const metadata = row?.metadata && typeof row.metadata === "object" ? row.metadata : {};
       const files = attachments
@@ -2715,6 +2719,34 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       }
       const cards = files.map((file) => chatAttachmentBodyMarkup(file, { state: "saved", messageId: row?.id || "" })).join("");
       return `<div class="bubble user chat-attachment-message" data-chat-message-id="${escapeHtml(row?.id || "")}">${textMarkup}<div class="chat-attachment-stack">${cards}</div><small>${escapeHtml(time)}</small></div>`;
+    }
+
+    function showPendingAttachmentMessage(pending, text) {
+      const bubble = pending?.bubble;
+      if (!bubble || !pending.messageId || !pending.fileId) return;
+      document.querySelectorAll("[data-chat-message-id]").forEach((node) => {
+        if (node !== bubble && node.dataset.chatMessageId === pending.messageId) node.remove();
+      });
+      if (!bubble.isConnected) $("#messages")?.appendChild(bubble);
+      const file = {
+        ...(pending.file || {}),
+        id: pending.fileId,
+        mime_type: pending.file?.mime_type || pending.mimeType || "application/octet-stream",
+        original_filename: pending.file?.original_filename || pending.filename,
+      };
+      const textMarkup = text ? `<div class="chat-attachment-message-text">${linkifyText(text)}</div>` : "";
+      const card = chatAttachmentBodyMarkup(file, { state: "saved", messageId: pending.messageId });
+      bubble.dataset.chatMessageId = pending.messageId;
+      bubble.innerHTML = `${textMarkup}<div class="chat-attachment-stack">${card}</div><small>${escapeHtml(pending.time || "")}</small>`;
+      bubble.hidden = false;
+      pending.optimisticVisible = true;
+      void hydrateChatAttachmentImages(bubble);
+    }
+
+    function hidePendingAttachmentMessage(pending) {
+      if (!pending?.optimisticVisible || !pending.bubble) return;
+      pending.bubble.hidden = true;
+      pending.optimisticVisible = false;
     }
 
     async function openChatImagePreview(fileId, filename) {
@@ -2925,8 +2957,15 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         state: "uploading",
         messageId: "",
         fileId: "",
+        file: {
+          mime_type: chatAttachmentMimeType(file),
+          original_filename: chatAttachmentFilename(file),
+        },
+        metadata: null,
+        time: uploadState.time,
         bubble: uploadState.bubble,
         cancelRequested: false,
+        optimisticVisible: false,
       } : null;
       if (pending) {
         uploadState.bubble.hidden = true;
@@ -2966,6 +3005,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         if (pendingChatAttachment === pending) {
           pending.messageId = String(data.message_id || "");
           pending.fileId = String(data.file?.id || "");
+          pending.file = { ...pending.file, ...(data.file || {}) };
+          pending.metadata = data.message?.metadata || data.metadata || null;
           pending.state = "ready";
           syncPendingAttachmentComposer();
         }
@@ -3697,13 +3738,18 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       if (attachmentMessageId) input.value = "";
       syncPendingAttachmentComposer();
       resizePromptInput();
-      showView("assistant");
+      if (!document.body.classList.contains("assistant-mode")) showView("assistant");
+      if (attachmentMessageId) {
+        showPendingAttachmentMessage(pending, prompt);
+        scrollMessagesToBottom({ force: true });
+      }
 
       try {
         await window.PulsChat.beforeSend();
         const chatUser = await getChatUserContext();
         if (!chatUser?.payload) {
           if (attachmentMessageId && !pendingChatAttachment) pendingChatAttachment = pending;
+          hidePendingAttachmentMessage(pending);
           input.value = prompt;
           window.openAuthModal?.();
           return;
@@ -3714,7 +3760,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           appendMessage(prompt, true, { forceScroll: true });
           input.value = "";
           resizePromptInput();
-        } else scrollMessagesToBottom({ force: true });
+        }
         loading = appendMessage(t("assistant.loading"), false, { autoScroll: false });
 
         const res = await fetch(CHAT_API_URL, {
@@ -3761,6 +3807,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           const errorText = t("assistant.error");
           if (attachmentMessageId && !attachmentSendSucceeded) {
             if (!pendingChatAttachment) pendingChatAttachment = pending;
+            hidePendingAttachmentMessage(pending);
             input.value = prompt;
             resizePromptInput();
           }
