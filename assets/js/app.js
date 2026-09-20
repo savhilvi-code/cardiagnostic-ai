@@ -2479,6 +2479,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     let chatAttachmentPreviewVersion = 0;
     let chatAttachmentVideoTimer = 0;
     let pendingChatAttachment = null;
+    let activeChatAttachmentUploads = 0;
 
     function syncPendingAttachmentComposer() {
       const pending = pendingChatAttachment;
@@ -2498,7 +2499,15 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         remove.disabled = pending.state === "removing" || Boolean(window.PulsChat?.sending);
       }
       const send = $("#sendBtn");
-      if (send) send.disabled = Boolean(window.PulsChat?.sending || pending?.state === "uploading" || pending?.state === "removing");
+      const hasText = Boolean($("#promptInput")?.value.trim());
+      const hasReadyAttachment = Boolean(pending?.state === "ready" && pending?.messageId);
+      if (send) send.disabled = Boolean(
+        window.PulsChat?.sending
+        || activeChatAttachmentUploads > 0
+        || pending?.state === "uploading"
+        || pending?.state === "removing"
+        || (!hasText && !hasReadyAttachment)
+      );
       resizePromptInput();
     }
 
@@ -2700,6 +2709,11 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       document.querySelectorAll("[data-chat-message-id]").forEach((node) => {
         if (messageId && node.dataset.chatMessageId === messageId) node.remove();
       });
+      if (
+        messageId
+        && pendingChatAttachment?.messageId === messageId
+        && !pendingChatAttachment.optimisticVisible
+      ) return "";
       const attachments = Array.isArray(row?.attachments) ? row.attachments : [];
       const metadata = row?.metadata && typeof row.metadata === "object" ? row.metadata : {};
       const files = attachments
@@ -2949,6 +2963,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         toast(t("composer.pdfTooLarge"));
         return;
       }
+      activeChatAttachmentUploads += 1;
+      syncPendingAttachmentComposer();
       const owner = window.pulsCurrentUser?.id;
       const uploadState = appendChatAttachmentUpload(file);
       const pendingCandidate = (isChatImage(file) || isChatPdf(file)) && !pendingChatAttachment;
@@ -3012,16 +3028,24 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         }
         if (uploadState.previewUrl) URL.revokeObjectURL(uploadState.previewUrl);
         void hydrateChatAttachmentImages(uploadState.bubble);
-        window.PulsChat.afterAttachment(owner);
+        if (!pending) window.PulsChat.afterAttachment(owner);
         toast(t("composer.attachmentSaved"));
         if (pending?.cancelRequested && pendingChatAttachment === pending) void removePendingAttachment();
       } catch (error) {
         console.error("Chat attachment upload failed:", error);
-        ensureChatAttachmentStateVisible(uploadState);
-        uploadState.bubble.hidden = false;
-        uploadState.bubble.innerHTML = chatAttachmentBodyMarkup(file, { state: "failed", time: uploadState.time, previewUrl: uploadState.previewUrl });
-        if (pendingChatAttachment === pending) clearPendingAttachment();
+        if (pending) {
+          uploadState.bubble.remove();
+          if (uploadState.previewUrl) URL.revokeObjectURL(uploadState.previewUrl);
+          if (pendingChatAttachment === pending) clearPendingAttachment();
+        } else {
+          ensureChatAttachmentStateVisible(uploadState);
+          uploadState.bubble.hidden = false;
+          uploadState.bubble.innerHTML = chatAttachmentBodyMarkup(file, { state: "failed", time: uploadState.time, previewUrl: uploadState.previewUrl });
+        }
         toast(String(error.message || t("composer.attachmentError")));
+      } finally {
+        activeChatAttachmentUploads = Math.max(0, activeChatAttachmentUploads - 1);
+        syncPendingAttachmentComposer();
       }
     }
 
@@ -3721,6 +3745,10 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       const input = $("#promptInput");
       const prompt = input.value.trim();
       const pending = pendingChatAttachment;
+      if (activeChatAttachmentUploads > 0) {
+        toast(t("composer.attachmentUploadWait"));
+        return;
+      }
       if (!prompt && !pending?.messageId) return;
       if (pending && pending.state !== "ready") {
         toast(t("composer.attachmentUploadWait"));
@@ -3960,14 +3988,14 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       $("#messages")?.addEventListener("scroll", (event) => {
         chatAutoFollow = messagesAreNearBottom(event.currentTarget);
       }, { passive: true });
-      promptInput.addEventListener("input", resizePromptInput);
+      promptInput.addEventListener("input", syncPendingAttachmentComposer);
       promptInput.addEventListener("keydown", (event) => {
         if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
           event.preventDefault();
           sendPrompt();
         }
       });
-      resizePromptInput();
+      syncPendingAttachmentComposer();
       ["#journalSearch", "#historySearch", "#manualSearch", "#videoSearch"].forEach((selector) => {
         $(selector)?.addEventListener("input", () => renderLists());
       });
