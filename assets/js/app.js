@@ -2481,6 +2481,16 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     let pendingChatAttachment = null;
     let activeChatAttachmentUploads = 0;
 
+    function chatComposerCanSend() {
+      const pending = pendingChatAttachment;
+      const hasText = Boolean($("#promptInput")?.value.trim());
+      const hasReadyAttachment = Boolean(pending?.state === "ready" && pending?.messageId);
+      return !window.PulsChat?.sending
+        && activeChatAttachmentUploads === 0
+        && (!pending || pending.state === "ready")
+        && (hasText || hasReadyAttachment);
+    }
+
     function syncPendingAttachmentComposer() {
       const pending = pendingChatAttachment;
       const card = $("#composerPendingAttachment");
@@ -2499,15 +2509,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         remove.disabled = pending.state === "removing" || Boolean(window.PulsChat?.sending);
       }
       const send = $("#sendBtn");
-      const hasText = Boolean($("#promptInput")?.value.trim());
-      const hasReadyAttachment = Boolean(pending?.state === "ready" && pending?.messageId);
-      if (send) send.disabled = Boolean(
-        window.PulsChat?.sending
-        || activeChatAttachmentUploads > 0
-        || pending?.state === "uploading"
-        || pending?.state === "removing"
-        || (!hasText && !hasReadyAttachment)
-      );
+      if (send) send.disabled = !chatComposerCanSend();
       resizePromptInput();
     }
 
@@ -2532,7 +2534,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       pending.state = "removing";
       syncPendingAttachmentComposer();
       try {
-        const response = await fetch(`${API_BASE_URL}/api/storage/files/${encodeURIComponent(pending.fileId)}/messages/${encodeURIComponent(pending.messageId)}`, {
+        const response = await fetch(`${API_BASE_URL}/api/storage/files/${encodeURIComponent(pending.fileId)}/messages/${encodeURIComponent(pending.messageId)}?pending=true`, {
           method: "DELETE",
           headers: await backendAuthHeaders(),
         });
@@ -3745,17 +3747,13 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       const input = $("#promptInput");
       const prompt = input.value.trim();
       const pending = pendingChatAttachment;
-      if (activeChatAttachmentUploads > 0) {
-        toast(t("composer.attachmentUploadWait"));
-        return;
-      }
-      if (!prompt && !pending?.messageId) return;
-      if (pending && pending.state !== "ready") {
-        toast(t("composer.attachmentUploadWait"));
+      if (!chatComposerCanSend()) {
+        if (activeChatAttachmentUploads > 0 || pending?.state === "uploading") {
+          toast(t("composer.attachmentUploadWait"));
+        }
         return;
       }
       if (!requireSignedInForChat()) return;
-      if (window.PulsChat.sending) return;
       const chatOwner = window.pulsCurrentUser?.id;
       const attachmentMessageId = pending?.messageId || "";
       let attachmentSendSucceeded = false;

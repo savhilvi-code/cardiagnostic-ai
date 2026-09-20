@@ -2286,6 +2286,16 @@ body.assistant-mode .assistant-right {
   font-size: 22px !important;
 }
 
+.composer .send:disabled,
+body.assistant-mode .composer .send:disabled {
+  opacity: .38;
+  cursor: not-allowed;
+  transform: none;
+  border-color: rgba(125, 157, 190, .42) !important;
+  background: rgba(34, 57, 80, .72) !important;
+  box-shadow: none;
+}
+
 .composer-menu-wrap {
   position: relative;
   z-index: 5;
