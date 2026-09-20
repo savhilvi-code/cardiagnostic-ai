@@ -1,5 +1,10 @@
 # Frontend Task Log
 
+## 2026-09-20 — Mobile portrait attachment viewer containment
+
+- Constrained the existing attachment modal and native video element to the dynamic portrait viewport using border-box sizing and safe-area-aware `dvh` limits.
+- Kept native controls and the close control inside the visible width/height without changing desktop/landscape playback or authenticated download behavior.
+
 ## 2026-09-20 — Mobile Chat attachment visibility and video fallback
 
 - Kept the selected-attachment action bar inside the mobile portrait viewport above the fixed composer, without horizontal overflow.

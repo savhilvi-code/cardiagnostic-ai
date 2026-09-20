@@ -3594,6 +3594,42 @@ button.chat-attachment-file-icon.is-openable {
   text-align: center;
 }
 
+@media (max-width: 680px) and (orientation: portrait) {
+  .chat-image-preview {
+    padding: calc(8px + env(safe-area-inset-top)) 8px calc(8px + env(safe-area-inset-bottom));
+    overflow: hidden;
+  }
+
+  .chat-image-preview-dialog {
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100vh - 16px);
+    max-height: calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    padding: 44px 8px 12px;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .chat-image-preview-dialog video {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    max-height: calc(100vh - 116px);
+    max-height: calc(100dvh - 116px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    object-fit: contain;
+  }
+
+  .chat-image-preview-close {
+    top: 6px;
+    right: 8px;
+  }
+
+  .chat-image-preview-status {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+}
+
 @media (min-width: 1051px) {
   body.assistant-mode.chat-active .side {
     position: relative !important;
