@@ -2730,7 +2730,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         : "";
       const textMarkup = userText ? `<div class="chat-attachment-message-text">${linkifyText(userText)}</div>` : "";
       if (!files.length) {
-        if (metadata.had_attachments !== true || metadata.attachments_deleted !== true) return "";
+        if (metadata.had_attachments !== true) return null;
+        if (metadata.attachments_deleted !== true) return "";
         return `<div class="bubble user chat-attachment-message chat-attachment-tombstone" data-chat-message-id="${escapeHtml(row?.id || "")}">${textMarkup}<div class="chat-attachment-deleted-card" aria-disabled="true"><span class="chat-attachment-deleted-icon" aria-hidden="true">${iconMap.file}</span><span><strong>${escapeHtml(t("composer.attachmentDeletedTitle"))}</strong><small>${escapeHtml(t("composer.attachmentDeletedByUser"))}</small></span></div><small>${escapeHtml(time)}</small></div>`;
       }
       const cards = files.map((file) => chatAttachmentBodyMarkup(file, { state: "saved", messageId: row?.id || "" })).join("");

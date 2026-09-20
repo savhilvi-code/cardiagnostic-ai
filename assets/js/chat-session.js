@@ -52,7 +52,7 @@ window.PulsChat = (() => {
         const latest=visible.at(-1);lastActivity=validTime(latest.created_at);
         marker={conversationId:latest.conversation_id,vehicleId:latest.vehicle_id||null,problemId:latest.problem_id||null,lastActivity};store();banner();
         const box=document.getElementById('messages');
-        box.innerHTML=visible.map(row=>{const time=escapeHtml(new Date(row.created_at).toLocaleTimeString(currentLocale(),{hour:'2-digit',minute:'2-digit'}));const attachment=window.PulsChatAttachments?.restoredMessageMarkup(row,time);if(attachment)return attachment;return row.role==='user'?`<div class="bubble user">${linkifyText(row.message_text)}<small>${time}</small></div>`:`<div class="bubble assistant"><img class="puls-message-avatar" src="assets/img/puls-logo.png" alt=""><div class="puls-message-body"><strong>PULS</strong><br>${linkifyText(row.message_text)}<small>${time}</small></div></div>`;}).join('');
+        box.innerHTML=visible.map(row=>{const time=escapeHtml(new Date(row.created_at).toLocaleTimeString(currentLocale(),{hour:'2-digit',minute:'2-digit'}));const attachment=window.PulsChatAttachments?.restoredMessageMarkup(row,time);if(attachment!==null&&attachment!==undefined)return attachment;return row.role==='user'?`<div class="bubble user">${linkifyText(row.message_text)}<small>${time}</small></div>`:`<div class="bubble assistant"><img class="puls-message-avatar" src="assets/img/puls-logo.png" alt=""><div class="puls-message-body"><strong>PULS</strong><br>${linkifyText(row.message_text)}<small>${time}</small></div></div>`;}).join('');
         void window.PulsChatAttachments?.hydrate(box);
         document.body.classList.add('chat-active');scrollMessagesToBottom();
       }catch(error){
