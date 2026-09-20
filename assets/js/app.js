@@ -2237,7 +2237,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     }
 
     async function renderAssistantMessages() {
-      return window.PulsChat.restore();
+      return restoreChatMessages();
     }
 
     function getSplashScreen() {
@@ -2433,7 +2433,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
       syncComposerVisibility(viewId);
       if (viewId === "car") window.PulsCar.render();
-      if (assistantActive) void window.PulsChat.restore();
+      if (assistantActive) void restoreChatMessages();
       syncAssistantMessageHeight();
       if (window.innerWidth < 1050) window.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -2452,7 +2452,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       }, 3600);
     }
 
-    function appendMessage(text, isUser) {
+    function appendMessage(text, isUser, { autoScroll = true, forceScroll = false } = {}) {
       const div = document.createElement("div");
       div.className = `bubble ${isUser ? "user" : "assistant"}`;
       const time = new Date().toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" });
@@ -2463,7 +2463,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       messagesBox.querySelector(".chat-empty-state")?.remove();
       messagesBox.appendChild(div);
       document.body.classList.add("chat-active");
-      scrollMessagesToBottom();
+      if (autoScroll) scrollMessagesToBottom({ force: forceScroll });
       return div;
     }
 
@@ -2530,7 +2530,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         if (!response.ok) throw new Error(t("composer.attachmentDeleteError"));
         pending.bubble?.remove();
         clearPendingAttachment();
-        await window.PulsChat.refresh();
+        await preserveMessagesScroll(() => window.PulsChat.refresh());
       } catch (error) {
         if (pendingChatAttachment === pending) {
           pending.state = "ready";
@@ -2594,9 +2594,6 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       const time = new Date().toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" });
       bubble.classList.add("chat-attachment-message");
       bubble.innerHTML = chatAttachmentBodyMarkup(file, { state: "uploading", time, previewUrl });
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        bubble.scrollIntoView({ block: "end", inline: "nearest" });
-      }));
       return { bubble, previewUrl, time };
     }
 
@@ -2867,10 +2864,10 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         if (selected.some((item) => item.messageId === pendingChatAttachment?.messageId)) clearPendingAttachment();
         selected.forEach((item) => { item.input.checked = false; });
         if (bar) bar.hidden = true;
-        await window.PulsChat.refresh();
+        await preserveMessagesScroll(() => window.PulsChat.refresh());
         toast(t("composer.attachmentDeleted"));
       } catch (error) {
-        await window.PulsChat.refresh().catch(() => {});
+        await preserveMessagesScroll(() => window.PulsChat.refresh()).catch(() => {});
         document.querySelectorAll("[data-chat-attachment-select]").forEach((input) => {
           const key = `${input.dataset.chatAttachmentSelect || ""}:${input.dataset.chatMessageId || ""}`;
           if (selectedKeys.has(key)) input.checked = true;
@@ -2940,7 +2937,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         await window.PulsChat.beforeSend();
         let context = window.PulsChat.requestContext();
         if (!context.conversation_id) {
-          await window.PulsChat.restore();
+          await restoreChatMessages();
           context = window.PulsChat.requestContext();
         }
         ensureChatAttachmentStateVisible(uploadState);
@@ -2999,9 +2996,58 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       return `<img class="puls-message-avatar" src="assets/img/puls-logo.png" alt=""><div class="puls-message-body"><strong>PULS</strong><br>${linkifyText(text)}${media}${sources ? `<div class="puls-search-sources">${sources}</div>` : ''} <small>${time}</small></div>`;
     }
 
-    function scrollMessagesToBottom() {
+    let chatAutoFollow = true;
+    let chatInitialRestoreComplete = false;
+
+    function messagesAreNearBottom(box = $("#messages")) {
+      return !box || box.scrollHeight - box.scrollTop - box.clientHeight <= 72;
+    }
+
+    function captureMessagesScroll() {
       const box = $("#messages");
-      requestAnimationFrame(() => { if (box) box.scrollTop = box.scrollHeight; });
+      return box ? { top: box.scrollTop, follow: chatAutoFollow && messagesAreNearBottom(box) } : null;
+    }
+
+    function restoreMessagesScroll(snapshot) {
+      const box = $("#messages");
+      if (!box || !snapshot) return;
+      if (snapshot.follow) {
+        chatAutoFollow = true;
+        box.scrollTop = box.scrollHeight;
+      } else {
+        chatAutoFollow = false;
+        box.scrollTop = snapshot.top;
+      }
+    }
+
+    async function preserveMessagesScroll(action) {
+      const snapshot = captureMessagesScroll();
+      try {
+        return await action();
+      } finally {
+        restoreMessagesScroll(snapshot);
+      }
+    }
+
+    async function restoreChatMessages() {
+      const initial = !chatInitialRestoreComplete;
+      if (initial) chatInitialRestoreComplete = true;
+      const snapshot = captureMessagesScroll();
+      try {
+        return await window.PulsChat.restore();
+      } finally {
+        if (initial) scrollMessagesToBottom({ force: true });
+        else restoreMessagesScroll(snapshot);
+      }
+    }
+
+    function scrollMessagesToBottom({ force = false } = {}) {
+      const box = $("#messages");
+      if (!box || (!force && !chatAutoFollow)) return;
+      if (force) chatAutoFollow = true;
+      requestAnimationFrame(() => {
+        if (force || chatAutoFollow) box.scrollTop = box.scrollHeight;
+      });
     }
 
     function syncAssistantMessageHeight() {
@@ -3633,7 +3679,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     async function sendPrompt() {
       const input = $("#promptInput");
       const prompt = input.value.trim();
-      let pending = pendingChatAttachment;
+      const pending = pendingChatAttachment;
       if (!prompt && !pending?.messageId) return;
       if (pending && pending.state !== "ready") {
         toast(t("composer.attachmentUploadWait"));
@@ -3641,41 +3687,36 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       }
       if (!requireSignedInForChat()) return;
       if (window.PulsChat.sending) return;
-      await window.PulsChat.beforeSend();
-      pending = pendingChatAttachment;
-      if (!prompt && !pending?.messageId) return;
-      if (pending && pending.state !== "ready") {
-        toast(t("composer.attachmentUploadWait"));
-        return;
-      }
-      showView("assistant");
-
-      const chatUser = await getChatUserContext();
-      if (!chatUser?.payload) {
-        window.openAuthModal?.();
-        return;
-      }
-
-      pending = pendingChatAttachment;
-      if (!prompt && !pending?.messageId) return;
-      if (pending && pending.state !== "ready") {
-        toast(t("composer.attachmentUploadWait"));
-        return;
-      }
-      if (window.PulsChat.sending) return;
-
-      window.PulsChat.sending = true;
       const chatOwner = window.pulsCurrentUser?.id;
       const attachmentMessageId = pending?.messageId || "";
       let attachmentSendSucceeded = false;
-      if (attachmentMessageId && pendingChatAttachment === pending) pendingChatAttachment = null;
-      syncPendingAttachmentComposer();
-      if (!attachmentMessageId) appendMessage(prompt, true);
-      input.value = "";
-      resizePromptInput();
+      let loading = null;
 
-      const loading = appendMessage(t("assistant.loading"), false);
+      window.PulsChat.sending = true;
+      if (attachmentMessageId && pendingChatAttachment === pending) pendingChatAttachment = null;
+      if (attachmentMessageId) input.value = "";
+      syncPendingAttachmentComposer();
+      resizePromptInput();
+      showView("assistant");
+
       try {
+        await window.PulsChat.beforeSend();
+        const chatUser = await getChatUserContext();
+        if (!chatUser?.payload) {
+          if (attachmentMessageId && !pendingChatAttachment) pendingChatAttachment = pending;
+          input.value = prompt;
+          window.openAuthModal?.();
+          return;
+        }
+        if (chatOwner !== window.pulsCurrentUser?.id) return;
+
+        if (!attachmentMessageId) {
+          appendMessage(prompt, true, { forceScroll: true });
+          input.value = "";
+          resizePromptInput();
+        } else scrollMessagesToBottom({ force: true });
+        loading = appendMessage(t("assistant.loading"), false, { autoScroll: false });
+
         const res = await fetch(CHAT_API_URL, {
           method: "POST",
           headers: await backendJsonHeaders(),
@@ -3708,11 +3749,12 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         const answer = data.answer || data.reply || data.message || data.output || rawAnswer || JSON.stringify(data, null, 2);
         const links = normalizeResponseLinks(data.links || []);
         if (attachmentMessageId) attachmentSendSucceeded = true;
+        const responseScroll = captureMessagesScroll();
         loading.innerHTML = assistantMessageMarkup(answer, new Date().toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" }), links);
           updateQuota(data.quota);
           await window.PulsChat.afterSend(data, chatOwner);
           window.PulsCar.invalidate();
-          scrollMessagesToBottom();
+          restoreMessagesScroll(responseScroll);
         } catch (error) {
           console.error("PULS /chat request failed:", error);
           if (chatOwner !== window.pulsCurrentUser?.id) return;
@@ -3722,13 +3764,17 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
             input.value = prompt;
             resizePromptInput();
           }
-          loading.innerHTML = assistantMessageMarkup(errorText, new Date().toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" }));
-
-          scrollMessagesToBottom();
+          if (loading) {
+            const errorScroll = captureMessagesScroll();
+            loading.innerHTML = assistantMessageMarkup(errorText, new Date().toLocaleTimeString(currentLocale(), { hour: "2-digit", minute: "2-digit" }));
+            restoreMessagesScroll(errorScroll);
+          } else {
+            toast(errorText);
+          }
         } finally {
           window.PulsChat.sending = false;
           syncPendingAttachmentComposer();
-          if (attachmentSendSucceeded) await window.PulsChat.refresh();
+          if (attachmentSendSucceeded) await preserveMessagesScroll(() => window.PulsChat.refresh());
         }
       }
 
@@ -3827,6 +3873,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       await window.pulsAuthReady;
       window.addEventListener("puls-auth-change", async (event) => {
         window.PulsChat.authChanged();
+        chatInitialRestoreComplete = false;
+        chatAutoFollow = true;
         window.PulsCar.authChanged();
         if (!event.detail?.user) {
           clearPendingAttachment();
@@ -3862,6 +3910,9 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       });
 
       const promptInput = $("#promptInput");
+      $("#messages")?.addEventListener("scroll", (event) => {
+        chatAutoFollow = messagesAreNearBottom(event.currentTarget);
+      }, { passive: true });
       promptInput.addEventListener("input", resizePromptInput);
       promptInput.addEventListener("keydown", (event) => {
         if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
