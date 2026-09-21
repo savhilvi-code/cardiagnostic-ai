@@ -1,5 +1,10 @@
 # Frontend Task Log
 
+## 2026-09-21 — Chat vehicle-selection provenance
+
+- Extended the existing Chat request context with `vehicle_selection_explicit`: ordinary restored/selected vehicle context is marked passive, while the existing explicit `continueProblem` action is marked authoritative for that turn.
+- Kept the existing `vehicle_id`, Conversation/Problem marker and `/chat` flow unchanged, and bumped only the `chat-session.js` cache key. No UI, Search, attachment, storage or database behavior changed.
+
 ## 2026-09-20 — Chat Vision V1 pending composer attachment
 
 - Kept the first uploaded image as an explicit in-memory composer attachment until Send succeeds, showing its filename and upload/ready/removal state.

@@ -72,7 +72,10 @@ window.PulsChat = (() => {
   }
   function requestContext(){
     const vehicle=marker?.vehicleId||loadVehicleProfile().id;
-    return {...(marker?.conversationId?{conversation_id:marker.conversationId}:{}),...(isBackendVehicleId(vehicle)?{vehicle_id:vehicle}:{}),...(marker?.problemId?{problem_id:marker.problemId}:{})};
+    const vehicleContext=isBackendVehicleId(vehicle)
+      ?{vehicle_id:vehicle,vehicle_selection_explicit:Boolean(pendingProblemSelection&&marker?.problemId)}
+      :{};
+    return {...(marker?.conversationId?{conversation_id:marker.conversationId}:{}),...vehicleContext,...(marker?.problemId?{problem_id:marker.problemId}:{})};
   }
   async function afterSend(response,user){
     if(user!==window.pulsCurrentUser?.id||owner!==user)return;
