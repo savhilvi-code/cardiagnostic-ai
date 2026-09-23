@@ -8,6 +8,7 @@ let selectedPlanUser = null;
 let selectedDeleteUser = null;
 const inspectorState = {
   tab: "library",
+  systemView: "overview",
   loaded: new Set(),
   offsets: {
     vehicles: 0,
@@ -651,8 +652,10 @@ async function initializeAdmin() {
 
     const hash = String(window.location.hash || "").replace(/^#/, "");
     if (hash.startsWith("knowledge")) {
-      const requestedTab = hash.split("/")[1];
-      if (requestedTab && inspectorLoaders[requestedTab]) inspectorState.tab = requestedTab;
+      const [, requestedTab, requestedSystemView] = hash.split("/");
+      if (["library", "general", "successful", "review", "system"].includes(requestedTab)) inspectorState.tab = requestedTab;
+      else if (requestedTab && inspectorLoaders[requestedTab]) { inspectorState.tab = "system"; inspectorState.systemView = requestedTab; }
+      if (requestedTab === "system" && requestedSystemView && inspectorLoaders[requestedSystemView]) inspectorState.systemView = requestedSystemView;
       await selectAdminSection("knowledge");
     } else if (hash.startsWith("live-flow")) {
       await selectAdminSection("live-flow");
@@ -1626,10 +1629,9 @@ async function loadInspectorConversations() {
   });
   const payload = await adminFetch(`/admin/knowledge/conversations?${query}`);
   const items = Array.isArray(payload?.items) ? payload.items : [];
-  if (!items.length) renderInspectorEmpty("conversationList");
-  else adminEl("conversationList").innerHTML = items.map((row) => inspectorRow({
+  const conversationCard = (row) => inspectorRow({
     id: row.id, kind: "conversation", primary: inspectorConversationTitle(row),
-    secondary: `${inspectorUser(row)} · ${inspectorVehicle(row)}`,
+    secondary: inspectorVehicle(row),
     meta: [
       { label: "Status", value: inspectorEnumLabel(row.status) },
       { label: "Messages", value: row.message_count ?? 0 },
@@ -1641,7 +1643,26 @@ async function loadInspectorConversations() {
       { label: "Started", value: row.started_at },
       { label: "Context", value: row.context }
     ], body: `<div class="inspector-messages" data-conversation-messages="${escapeAdminHtml(row.id)}"><div class="admin-empty">Expand to load messages.</div></div>`
-  })).join("");
+  });
+  if (!items.length) renderInspectorEmpty("conversationList");
+  else {
+    const byUser = new Map();
+    items.forEach((row) => {
+      const key = String(row.user_id || "unassigned");
+      if (!byUser.has(key)) byUser.set(key, { label: inspectorUser(row), rows: [] });
+      byUser.get(key).rows.push(row);
+    });
+    adminEl("conversationList").innerHTML = [...byUser.values()].map((group) => {
+      const byDay = new Map();
+      group.rows.forEach((row) => {
+        const timestamp = row.last_message_at || row.started_at || row.created_at;
+        const day = timestamp ? new Date(timestamp).toLocaleDateString() : "Date not recorded";
+        if (!byDay.has(day)) byDay.set(day, []);
+        byDay.get(day).push(row);
+      });
+      return `<details class="inspector-tree-group" open><summary><strong>${escapeAdminHtml(group.label)}</strong><span>${group.rows.length} conversation(s)</span></summary><div>${[...byDay.entries()].map(([day, rows]) => `<details class="inspector-tree-session"><summary><strong>${escapeAdminHtml(day)}</strong><span>${rows.reduce((sum, row) => sum + Number(row.message_count || 0), 0)} messages</span></summary>${rows.map(conversationCard).join("")}</details>`).join("")}</div></details>`;
+    }).join("");
+  }
   if (payload?.warnings?.length) adminEl("conversationList").insertAdjacentHTML("afterbegin", inspectorWarnings(payload));
   renderInspectorPager(kind, payload, "conversationPager");
 }
@@ -1658,7 +1679,8 @@ async function loadConversationMessages(details) {
     target.dataset.loaded = "true";
     target.innerHTML = items.length ? items.map((row) => {
       const role = String(row.role || "unknown").toLowerCase();
-      return `<article class="inspector-message is-${escapeAdminHtml(role)}"><header>${escapeAdminHtml(role)} · ${escapeAdminHtml(formatAdminDate(row.created_at))}</header><div>${escapeAdminHtml(row.content || row.message_text || "")}</div></article>`;
+      const attachmentState = row.metadata?.had_attachments ? (row.metadata?.attachments_deleted ? " · attachment deleted" : " · attachment") : "";
+      return `<article class="inspector-message is-${escapeAdminHtml(role)}"><header>${escapeAdminHtml(role)} · ${escapeAdminHtml(formatAdminDate(row.created_at))}${escapeAdminHtml(attachmentState)}</header><div>${escapeAdminHtml(row.content || row.message_text || "")}</div></article>`;
     }).join("") : `<div class="admin-empty">No messages in this conversation.</div>`;
     if (Number(payload?.total || 0) > items.length) {
       target.insertAdjacentHTML("beforeend", `<div class="admin-status">Showing first ${items.length} of ${payload.total} messages.</div>`);
@@ -1782,8 +1804,7 @@ async function loadInspectorSearch() {
   });
   const payload = await adminFetch(`/admin/knowledge/search-episodes?${query}`);
   const items = Array.isArray(payload?.items) ? payload.items : [];
-  if (!items.length) renderInspectorEmpty("episodeList");
-  else adminEl("episodeList").innerHTML = items.map((row) => inspectorRow({
+  const episodeCard = (row) => inspectorRow({
     id: row.id, kind: "episode", primary: row.problem?.title || `Search Episode #${row.id}`,
     secondary: `${inspectorVehicle(row)} · ${compactInspectorValue(row.search_context?.reason || row.search_context || "No trigger recorded")}`,
     meta: [
@@ -1798,8 +1819,21 @@ async function loadInspectorSearch() {
       { label: "Completed", value: row.completed_at },
       { label: "Final summary", value: row.final_summary }
     ],
-    body: `<div class="inspector-runs" data-episode-runs="${escapeAdminHtml(row.id)}"><div class="admin-empty">Expand to load search stages.</div></div>`
-  })).join("");
+    body: `<div class="inspector-runs" data-episode-runs="${escapeAdminHtml(row.id)}"><div class="admin-empty">Expand to load Runs → Sources → Research Evidence → Evidence Response.</div></div>`
+  });
+  if (!items.length) renderInspectorEmpty("episodeList");
+  else {
+    const contexts = new Map();
+    items.forEach((row) => {
+      const vehicle = inspectorVehicle(row);
+      const context = vehicle && vehicle !== "Vehicle unavailable" ? vehicle : "Standalone context";
+      if (!contexts.has(context)) contexts.set(context, new Map());
+      const problem = row.problem?.title || row.problem_id || "No linked Problem";
+      if (!contexts.get(context).has(problem)) contexts.get(context).set(problem, []);
+      contexts.get(context).get(problem).push(row);
+    });
+    adminEl("episodeList").innerHTML = [...contexts.entries()].map(([context, problems]) => `<details class="inspector-tree-group" open><summary><strong>${escapeAdminHtml(context)}</strong><span>${[...problems.values()].reduce((sum, rows) => sum + rows.length, 0)} episode(s)</span></summary><div>${[...problems.entries()].map(([problem, rows]) => `<details class="inspector-tree-session" open><summary><strong>${escapeAdminHtml(problem)}</strong><span>${rows.length} episode(s)</span></summary>${rows.map(episodeCard).join("")}</details>`).join("")}</div></details>`).join("");
+  }
   if (payload?.warnings?.length) adminEl("episodeList").insertAdjacentHTML("afterbegin", inspectorWarnings(payload));
   renderInspectorPager(kind, payload, "episodePager");
 }
@@ -1814,7 +1848,12 @@ async function loadEpisodeRuns(details) {
     const payload = await adminFetch(`/admin/knowledge/search-episodes/${encodeURIComponent(id)}/runs?limit=50`);
     const items = Array.isArray(payload?.items) ? payload.items : [];
     target.dataset.loaded = "true";
-    target.innerHTML = items.length ? items.map((run) => `
+    target.innerHTML = items.length ? items.map((run) => {
+      const result = run.result_data && typeof run.result_data === "object" ? run.result_data : {};
+      const sources = result.sources || result.links || [];
+      const evidence = result.research_evidence || result.evidence_units || [];
+      const response = result.evidence_response || result.final_response || run.result_summary;
+      return `
       <article class="inspector-run">
         <header>Stage ${escapeAdminHtml(run.stage_number)} · ${escapeAdminHtml(run.status || "—")} · ${escapeAdminHtml(run.provider || "provider —")} / ${escapeAdminHtml(run.model || "model —")}</header>
         <div><strong>Mode:</strong> ${escapeAdminHtml(run.run_type || "—")}</div>
@@ -1826,8 +1865,12 @@ async function loadEpisodeRuns(details) {
         <div><strong>Sources found:</strong> ${escapeAdminHtml(run.sources_found ?? "—")} · <strong>Relevant:</strong> ${escapeAdminHtml(run.relevant_sources ?? "—")}</div>
         ${run.next_stage_reason ? `<div><strong>Next stage:</strong> ${escapeAdminHtml(compactInspectorValue(run.next_stage_reason))}</div>` : ""}
         ${run.error_message ? `<div class="inspector-error"><strong>Error:</strong> ${escapeAdminHtml(run.error_message)}</div>` : ""}
-        <details><summary>Raw persisted result</summary><pre class="inspector-json">${escapeAdminHtml(inspectorJson(run.result_data))}</pre></details>
-      </article>`).join("") : `<div class="admin-empty">No search runs were persisted for this episode.</div>`;
+        <details><summary>Sources (${sources.length})</summary>${sources.length ? sources.map((source) => `<div class="search-memory-row"><strong>${escapeAdminHtml(source.title || source.url || "Source")}</strong><span>${escapeAdminHtml(source.url || source.source_id || "")}</span></div>`).join("") : '<div class="admin-status">No source list stored in this Run result.</div>'}</details>
+        <details><summary>Research Evidence (${evidence.length})</summary>${evidence.length ? evidence.map((unit) => `<div class="search-memory-row"><strong>${escapeAdminHtml(unit.claim || unit.evidence_text || unit.title || "Evidence")}</strong><span>${escapeAdminHtml(unit.source_url || unit.source_id || "")}</span></div>`).join("") : '<div class="admin-status">No evidence units stored in this Run result.</div>'}</details>
+        <details><summary>Evidence Response</summary><div class="search-memory-response">${escapeAdminHtml(compactInspectorValue(response || "No response stored"))}</div></details>
+        <details><summary>Technical details · debug</summary><pre class="inspector-json">${escapeAdminHtml(inspectorJson(run.result_data))}</pre></details>
+      </article>`;
+    }).join("") : `<div class="admin-empty">No search runs were persisted for this episode.</div>`;
   } catch (error) {
     target.innerHTML = `<div class="admin-empty inspector-error">${escapeAdminHtml(error.message)}</div>`;
   }
@@ -1956,8 +1999,8 @@ function renderKnowledgeCategories() {
   const categories = knowledgeLibraryState.scope === "vehicles" ? [
     ["overview", "Overview"], ["configuration", "Configuration"], ["technical-data", "Technical Data"],
     ["manuals", "Manuals"], ["specifications", "Specifications"], ["procedures", "Procedures"],
-    ["videos", "Videos"], ["sources", "Sources"], ["problems", "Problems & Symptoms"],
-    ["research-evidence", "Research Evidence"], ["successful-cases", "Successful Cases"],
+    ["videos", "Videos"], ["problems", "Problems"], ["research-evidence", "Research"],
+    ["sources", "Sources"], ["successful-cases", "Successful Cases"],
     ["schema-gaps", "Schema Gaps"],
   ] : [["overview", "Folders & Sections"], ["all", "All Materials"]];
   adminEl("knowledgeCategories").innerHTML = categories.map(([key, label]) => `<button type="button" class="knowledge-category ${knowledgeLibraryState.category === key ? "is-active" : ""}" data-knowledge-category="${key}">${escapeAdminHtml(label)}${key === "problems" ? "" : ` <span>${knowledgeCategoryCount(key)}</span>`}</button>`).join("");
@@ -1979,11 +2022,45 @@ function configurationLabel(item) {
 }
 
 
+function configurationDimension(item, key) {
+  if (key === "year") return item.year_from || item.year_to ? `${item.year_from || "…"}–${item.year_to || "…"}` : "Year not recorded";
+  const aliases = { body: item.body_type || item.chassis_code, engine: item.engine || item.engine_code };
+  return aliases[key] || item[key] || `${key.replaceAll("_", " ")} not recorded`;
+}
+
+
+function configurationMatchesFilters(item) {
+  const filters = {
+    year: adminEl("libraryYear")?.value, generation: adminEl("libraryGeneration")?.value,
+    body: adminEl("libraryBody")?.value, engine: adminEl("libraryEngine")?.value,
+    fuel_type: adminEl("libraryFuel")?.value, transmission: adminEl("libraryTransmission")?.value,
+    drivetrain: adminEl("libraryDrivetrain")?.value,
+  };
+  return Object.entries(filters).every(([key, raw]) => {
+    const wanted = String(raw || "").trim().toLowerCase();
+    return !wanted || String(configurationDimension(item, key)).toLowerCase().includes(wanted);
+  });
+}
+
+
+function renderConfigurationBranch(items, dimensions, depth = 0) {
+  if (!dimensions.length) return items.map((item) => `<button class="knowledge-configuration-option ${String(item.id) === String(knowledgeLibraryState.configurationId) ? "is-active" : ""}" type="button" data-configuration-id="${escapeAdminHtml(item.id)}"><strong>${escapeAdminHtml([configurationDimension(item, "fuel_type"), item.market].filter(Boolean).join(" · ") || "Open configuration")}</strong><small>${escapeAdminHtml(configurationLabel(item))}</small></button>`).join("");
+  const [dimension, ...rest] = dimensions;
+  const groups = new Map();
+  items.forEach((item) => {
+    const label = configurationDimension(item, dimension);
+    if (!groups.has(label)) groups.set(label, []);
+    groups.get(label).push(item);
+  });
+  return [...groups.entries()].map(([label, rows]) => `<details class="configuration-tree-level depth-${depth}" ${depth < 2 ? "open" : ""}><summary><span>${escapeAdminHtml(dimension.replaceAll("_", " "))}</span><strong>${escapeAdminHtml(label)}</strong><small>${rows.length}</small></summary><div>${renderConfigurationBranch(rows, rest, depth + 1)}</div></details>`).join("");
+}
+
+
 function renderConfigurationPicker() {
   const node = adminEl("knowledgeConfigurationPicker");
-  const items = knowledgeLibraryState.configurations || [];
+  const items = (knowledgeLibraryState.configurations || []).filter(configurationMatchesFilters);
   node.hidden = knowledgeLibraryState.scope !== "vehicles" || !knowledgeLibraryState.make;
-  node.innerHTML = items.length ? items.map((item) => `<button class="knowledge-configuration-option ${String(item.id) === String(knowledgeLibraryState.configurationId) ? "is-active" : ""}" type="button" data-configuration-id="${escapeAdminHtml(item.id)}"><strong>${escapeAdminHtml(configurationLabel(item))}</strong><small>${escapeAdminHtml(item.id)}</small></button>`).join("") : '<div class="admin-empty">No global configurations exist for this model.</div>';
+  node.innerHTML = items.length ? renderConfigurationBranch(items, ["generation", "body", "year", "engine", "transmission", "drivetrain"]) : '<div class="admin-empty">No configurations match this model and the current filters.</div>';
 }
 
 
@@ -2071,7 +2148,7 @@ function renderVehicleConfigurationInspector(payload) {
     return;
   }
   if (category === "configuration") {
-    list.innerHTML = `<div class="vehicle-identity-grid">${(payload.identity || []).map((field) => `<article class="is-${field.status.toLowerCase()}"><span>${escapeAdminHtml(field.field_key.replaceAll("_", " "))}</span><strong>${escapeAdminHtml(field.status === "KNOWN" ? compactInspectorValue(field.value) : "Missing")}</strong></article>`).join("")}</div>`;
+    list.innerHTML = `<div class="vehicle-identity-grid">${(payload.identity || []).map((field) => `<article class="is-${field.status.toLowerCase()}"><span>${escapeAdminHtml(field.field_key.replaceAll("_", " "))}</span><strong>${escapeAdminHtml(field.status === "KNOWN" ? compactInspectorValue(field.value) : "Missing")}</strong></article>`).join("")}</div><details class="configuration-technical-details"><summary>Technical details</summary><pre class="inspector-json">${escapeAdminHtml(inspectorJson({ configuration_id: payload.configuration.id, metadata: payload.configuration.metadata || {} }))}</pre></details>`;
     return;
   }
   if (category === "technical-data") {
@@ -2166,11 +2243,25 @@ async function loadKnowledgeMaterials() {
     knowledge_type: adminEl("libraryKnowledgeType")?.value, source_type: adminEl("librarySourceType")?.value,
     review_status: adminEl("libraryReviewStatus")?.value, year: adminEl("libraryYear")?.value,
     generation: adminEl("libraryGeneration")?.value, body: adminEl("libraryBody")?.value,
-    engine: adminEl("libraryEngine")?.value, transmission: adminEl("libraryTransmission")?.value,
+    engine: adminEl("libraryEngine")?.value, fuel: adminEl("libraryFuel")?.value,
+    transmission: adminEl("libraryTransmission")?.value, drivetrain: adminEl("libraryDrivetrain")?.value,
     q: adminEl("libraryItemSearch")?.value,
   };
   Object.entries(values).forEach(([key, value]) => { if (String(value || "").trim()) params.set(key, String(value).trim()); });
   renderKnowledgeMaterials(await adminFetch(`/admin/knowledge/library/items?${params}`));
+}
+
+
+async function applyKnowledgeFilters() {
+  knowledgeLibraryState.offset = 0;
+  if (knowledgeLibraryState.scope === "vehicles") {
+    const visible = (knowledgeLibraryState.configurations || []).filter(configurationMatchesFilters);
+    if (!visible.some((item) => String(item.id) === String(knowledgeLibraryState.configurationId))) {
+      knowledgeLibraryState.configurationId = String(visible[0]?.id || "");
+    }
+    renderConfigurationPicker();
+  }
+  await loadKnowledgeMaterials();
 }
 
 
@@ -2181,7 +2272,8 @@ async function selectKnowledgeScope(scope) {
   const vehicleScope = knowledgeLibraryState.scope === "vehicles";
   adminEl("knowledgeAlphabet").hidden = !vehicleScope;
   adminEl("libraryCatalogSearch").hidden = !vehicleScope; adminEl("librarySearchButton").hidden = !vehicleScope;
-  adminEl("generalSectionForm").hidden = vehicleScope;
+  adminEl("generalSectionForm").hidden = true;
+  document.querySelectorAll(".general-only-action").forEach((button) => { button.hidden = vehicleScope; });
   adminEl("knowledgeConfigurationPicker").hidden = !vehicleScope || !knowledgeLibraryState.make;
   adminEl("knowledgeModelEyebrow").textContent = vehicleScope ? "Vehicle knowledge" : "General Knowledge";
   adminEl("knowledgeModelTitle").textContent = vehicleScope ? (knowledgeLibraryState.make ? `${knowledgeLibraryState.make} ${knowledgeLibraryState.model}` : "Select a make and model") : "General Knowledge";
@@ -2204,6 +2296,15 @@ function resetKnowledgeSectionForm() {
   setKnowledgeField("generalSectionId", "");
   setKnowledgeField("generalSectionOrder", "0");
   adminEl("generalSectionCancel").hidden = true;
+  adminEl("generalSectionForm").hidden = true;
+}
+
+
+function openKnowledgeSectionForm(sectionType) {
+  resetKnowledgeSectionForm();
+  setKnowledgeField("generalSectionType", sectionType);
+  adminEl("generalSectionForm").hidden = false;
+  adminEl("generalSectionName")?.focus();
 }
 
 
@@ -2229,6 +2330,7 @@ function editKnowledgeSection(id) {
   setKnowledgeField("generalSectionDescription", section.description); setKnowledgeField("generalSectionParent", section.parent_id);
   setKnowledgeField("generalSectionType", section.section_type); setKnowledgeField("generalSectionOrder", section.sort_order);
   adminEl("generalSectionCancel").hidden = false;
+  adminEl("generalSectionForm").hidden = false;
 }
 
 
@@ -2403,7 +2505,9 @@ function reviewCandidateBody(entry) {
   });
   const caseId = entry.candidate_type === "SUCCESSFUL_CASE" ? item.id : item.metadata?.origin_fleet_event_id;
   const caseDelete = caseId ? `<button class="admin-button admin-button-danger" type="button" data-hard-delete-type="case" data-hard-delete-id="${escapeAdminHtml(caseId)}">Delete Case</button>` : "";
-  return `<article class="knowledge-review-card"><header><div><span class="knowledge-origin is-${entry.candidate_type === "SUCCESSFUL_CASE" ? "user-case" : "candidate"}">${escapeAdminHtml(entry.candidate_type.replaceAll("_", " "))}</span><h3>${escapeAdminHtml(item.title || symptomTitle || item.cause || `Candidate #${item.id}`)}</h3></div><span class="knowledge-review-status">${escapeAdminHtml(item.validation_status || "PENDING REVIEW")}</span></header><div class="knowledge-review-columns"><section><h4>Original Case</h4><pre class="inspector-json">${escapeAdminHtml(inspectorJson(original || { reference: item.id, symptoms: item.symptoms, cause: item.cause, action: item.action, result: item.result }))}</pre></section><section><h4>Mechanic Review</h4><pre class="inspector-json">${escapeAdminHtml(inspectorJson(item.metadata?.mechanic_review || { decision: "Pending" }))}</pre></section></div><footer><button class="admin-button admin-button-primary" type="button" data-review-candidate-type="${escapeAdminHtml(entry.candidate_type)}" data-review-candidate-id="${escapeAdminHtml(item.id)}">Mechanic Review</button>${caseDelete}</footer></article>`;
+  const review = item.metadata?.mechanic_review || {};
+  const readable = (value) => Array.isArray(value) ? value.filter(Boolean).join("; ") : compactInspectorValue(value || "Not recorded");
+  return `<article class="knowledge-review-card"><header><div><span class="knowledge-origin is-${entry.candidate_type === "SUCCESSFUL_CASE" ? "user-case" : "candidate"}">${escapeAdminHtml(entry.candidate_type.replaceAll("_", " "))}</span><h3>${escapeAdminHtml(item.title || symptomTitle || item.cause || "Untitled candidate")}</h3></div><span class="knowledge-review-status">${escapeAdminHtml(item.validation_status || "PENDING REVIEW")}</span></header><div class="knowledge-review-columns"><section><h4>Original case</h4><dl class="human-readable-fields"><dt>Symptoms</dt><dd>${escapeAdminHtml(readable(original?.symptoms || item.symptoms))}</dd><dt>Cause</dt><dd>${escapeAdminHtml(readable(original?.cause || item.causes))}</dd><dt>Action</dt><dd>${escapeAdminHtml(readable(original?.action || original?.action_or_repair || item.solutions))}</dd><dt>Result</dt><dd>${escapeAdminHtml(readable(original?.result || item.metadata?.result))}</dd></dl></section><section><h4>Mechanic review</h4><dl class="human-readable-fields"><dt>Decision</dt><dd>${escapeAdminHtml(review.decision || "Pending")}</dd><dt>Comment</dt><dd>${escapeAdminHtml(review.technical_comment || "Not reviewed")}</dd><dt>Language</dt><dd>${escapeAdminHtml(review.review_language || "Original language")}</dd></dl></section></div><details><summary>Technical details · debug</summary><pre class="inspector-json">${escapeAdminHtml(inspectorJson({ reference: item.id, source_relations: item.knowledge_sources || [], metadata: item.metadata || {} }))}</pre></details><footer><button class="admin-button admin-button-primary" type="button" data-review-candidate-type="${escapeAdminHtml(entry.candidate_type)}" data-review-candidate-id="${escapeAdminHtml(item.id)}">Mechanic Review</button>${caseDelete}</footer></article>`;
 }
 
 
@@ -2426,7 +2530,7 @@ function openKnowledgeReviewModal(type, id) {
 
 async function saveKnowledgeReview(event) {
   event.preventDefault();
-  const payload = { candidate_type: adminEl("reviewCandidateType").value, candidate_id: adminEl("reviewCandidateId").value, decision: adminEl("reviewDecision").value, technical_comment: adminEl("reviewComment").value.trim() || null, normalized_symptoms: linesFromInput("reviewSymptoms"), confirmed_cause: adminEl("reviewCause").value.trim() || null, recommended_checks: linesFromInput("reviewChecks"), verification_note: adminEl("reviewVerification").value.trim() || null };
+  const payload = { candidate_type: adminEl("reviewCandidateType").value, candidate_id: adminEl("reviewCandidateId").value, decision: adminEl("reviewDecision").value, review_language: adminEl("reviewLanguage")?.value || null, technical_comment: adminEl("reviewComment").value.trim() || null, normalized_symptoms: linesFromInput("reviewSymptoms"), confirmed_cause: adminEl("reviewCause").value.trim() || null, recommended_checks: linesFromInput("reviewChecks"), verification_note: adminEl("reviewVerification").value.trim() || null };
   try { await adminFetch("/admin/knowledge/library/reviews", { method: "POST", body: JSON.stringify(payload) }); adminEl("knowledgeReviewModal").hidden = true; await loadKnowledgeReviewQueue(); }
   catch (error) { adminEl("knowledgeReviewStatus").textContent = error.message; adminEl("knowledgeReviewStatus").className = "admin-status knowledge-form-wide error"; }
 }
@@ -2439,18 +2543,24 @@ async function loadKnowledgeLibrary() {
 
 
 async function loadAdminSuccessfulCases() {
-  knowledgeLibraryState.scope = "general";
-  await selectKnowledgeScope("general");
   const payload = await adminFetch(`/admin/knowledge/library/items?limit=${knowledgeLibraryState.limit}&offset=0&knowledge_type=SUCCESSFUL_CASE`);
-  renderKnowledgeMaterials(payload);
+  const items = Array.isArray(payload?.items) ? payload.items : [];
+  knowledgeLibraryState.items = new Map(items.map((item) => [String(item.id), item]));
+  adminEl("successfulCaseList").innerHTML = items.length ? items.map((item) => {
+    const original = item.metadata?.original_case || {};
+    const vehicle = knowledgeApplicabilityText(item.applicability);
+    const sources = knowledgeSourceLinks(item);
+    return `<article class="knowledge-material-card successful-case-card"><header><div><span class="knowledge-origin is-successful-user-case">Successful Case</span><h3>${escapeAdminHtml(item.title || "Confirmed repair case")}</h3></div><span class="knowledge-review-status">${escapeAdminHtml(item.validation_status || "Pending review")}</span></header><div class="knowledge-applicability-line">${escapeAdminHtml(vehicle)}</div><dl class="human-readable-fields"><dt>Symptoms</dt><dd>${escapeAdminHtml(compactInspectorValue(item.symptoms || original.symptoms || "Not recorded"))}</dd><dt>Confirmed cause</dt><dd>${escapeAdminHtml(compactInspectorValue(item.causes || original.cause || "Not recorded"))}</dd><dt>Repair / action</dt><dd>${escapeAdminHtml(compactInspectorValue(item.solutions || original.action || "Not recorded"))}</dd><dt>Result</dt><dd>${escapeAdminHtml(compactInspectorValue(item.metadata?.result || original.result || "Not recorded"))}</dd></dl>${sources ? `<div class="knowledge-source-links">${sources}</div>` : ""}<details><summary>Technical provenance · debug</summary><pre class="inspector-json">${escapeAdminHtml(inspectorJson({ id: item.id, origin: item.metadata?.original_case_reference, review: item.metadata?.mechanic_review }))}</pre></details><footer><button class="admin-button" type="button" data-edit-knowledge="${escapeAdminHtml(item.id)}">Edit</button></footer></article>`;
+  }).join("") : '<div class="admin-empty">No successful cases are available.</div>';
+  const total = Number(payload?.total || items.length);
+  adminEl("successfulCasePager").innerHTML = total ? `<span>${total} successful case(s)</span>` : "";
 }
 
 
 async function loadAdminSchemaGaps() {
-  const status = adminEl("schemaGapStatus")?.value || "UNMAPPED";
-  const payload = await adminFetch(`/admin/knowledge/vehicle-schema/gaps?limit=100&offset=0&status=${encodeURIComponent(status)}`);
+  const payload = await adminFetch("/admin/knowledge/vehicle-schema/gaps?limit=100&offset=0&status=UNMAPPED");
   const items = Array.isArray(payload?.items) ? payload.items : [];
-  adminEl("schemaGapList").innerHTML = items.length ? items.map((gap) => `<article class="knowledge-material-card"><header><div><span class="knowledge-origin">Schema Gap</span><h3>${escapeAdminHtml(gap.normalized_parameter || gap.raw_parameter)}</h3></div><span class="knowledge-review-status">${escapeAdminHtml(gap.mapping_status)}</span></header><p>${escapeAdminHtml(compactInspectorValue(gap.normalized_value ?? gap.raw_value))}${gap.unit ? ` ${escapeAdminHtml(gap.unit)}` : ""}</p><div class="knowledge-card-meta"><span>Configuration ${escapeAdminHtml(gap.vehicle_configuration_id || "unresolved")}</span><span>Source ${escapeAdminHtml(gap.source_id || "—")}</span><span>Run ${escapeAdminHtml(gap.origin_search_run_id || "—")}</span></div>${gap.mapping_status === "UNMAPPED" ? `<footer><button class="admin-button" type="button" data-gap-review="${escapeAdminHtml(gap.id)}" data-gap-status="REJECTED">Reject</button></footer>` : ""}</article>`).join("") : '<div class="admin-empty">No Schema Gaps in this state.</div>';
+  adminEl("schemaGapList").innerHTML = items.length ? items.map((gap) => `<article class="knowledge-material-card"><header><div><span class="knowledge-origin">Schema Gap</span><h3>${escapeAdminHtml(gap.normalized_parameter || gap.raw_parameter)}</h3></div><span class="knowledge-review-status">${escapeAdminHtml(gap.mapping_status)}</span></header><p>${escapeAdminHtml(compactInspectorValue(gap.normalized_value ?? gap.raw_value))}${gap.unit ? ` ${escapeAdminHtml(gap.unit)}` : ""}</p><div class="knowledge-applicability-line">${escapeAdminHtml(knowledgeApplicabilityText(gap.vehicle_context || gap.applicability))}</div><div class="knowledge-card-meta"><span>Source ${escapeAdminHtml(gap.source_id || "—")}</span><span>Search Run ${escapeAdminHtml(gap.origin_search_run_id || "—")}</span><span>Created ${escapeAdminHtml(formatAdminDate(gap.created_at))}</span></div><details><summary>Technical details</summary><pre class="inspector-json">${escapeAdminHtml(inspectorJson({ id: gap.id, vehicle_configuration_id: gap.vehicle_configuration_id }))}</pre></details><footer><button class="admin-button" type="button" data-gap-review="${escapeAdminHtml(gap.id)}" data-gap-status="REJECTED">Reject</button></footer></article>`).join("") : '<div class="admin-empty">No unmapped Schema Gaps.</div>';
 }
 
 
@@ -2469,7 +2579,8 @@ const inspectorLoaders = {
   sources: loadInspectorSources,
   knowledge: loadInspectorKnowledge,
   "schema-gaps": loadAdminSchemaGaps,
-  storage: async () => {}
+  storage: async () => {},
+  system: async () => {}
 };
 
 
@@ -2489,13 +2600,20 @@ async function loadInspectorTab(tab, force = false) {
 
 
 async function selectInspectorTab(tab) {
-  if (!inspectorLoaders[tab]) tab = "overview";
+  const primaryTabs = new Set(["library", "general", "successful", "review", "system"]);
+  if (!primaryTabs.has(tab) && inspectorLoaders[tab]) {
+    inspectorState.systemView = tab;
+    tab = "system";
+  }
+  if (!primaryTabs.has(tab)) tab = "library";
   inspectorState.tab = tab;
   document.querySelectorAll("[data-inspector-tab]").forEach((button) => {
     button.classList.toggle("is-active", button.dataset.inspectorTab === tab);
   });
   document.querySelectorAll(".inspector-panel").forEach((panel) => { panel.hidden = true; });
-  const panelAlias = { general: "Library", materials: "Knowledge", successful: "Library", "schema-gaps": "SchemaGaps" };
+  adminEl("knowledgeSystemNav").hidden = tab !== "system";
+  if (tab === "system") { await selectSystemView(inspectorState.systemView); return; }
+  const panelAlias = { general: "Library", materials: "Knowledge", "schema-gaps": "SchemaGaps" };
   const panelId = `inspector${panelAlias[tab] || (tab.charAt(0).toUpperCase() + tab.slice(1))}`;
   const panel = adminEl(panelId);
   if (panel) panel.hidden = false;
@@ -2503,6 +2621,20 @@ async function selectInspectorTab(tab) {
   if (tab === "library") { await selectKnowledgeScope("vehicles"); return; }
   if (tab === "general") { await selectKnowledgeScope("general"); return; }
   await loadInspectorTab(tab);
+}
+
+
+async function selectSystemView(view) {
+  const allowed = new Set(["overview", "conversations", "search", "sources", "schema-gaps", "storage", "knowledge", "vehicles", "problems", "events"]);
+  inspectorState.systemView = allowed.has(view) ? view : "overview";
+  document.querySelectorAll(".inspector-panel").forEach((panel) => { panel.hidden = true; });
+  document.querySelectorAll("[data-system-view]").forEach((button) => button.classList.toggle("is-active", button.dataset.systemView === inspectorState.systemView));
+  const aliases = { "schema-gaps": "SchemaGaps" };
+  const name = aliases[inspectorState.systemView] || (inspectorState.systemView.charAt(0).toUpperCase() + inspectorState.systemView.slice(1));
+  const panel = adminEl(`inspector${name}`);
+  if (panel) panel.hidden = false;
+  window.history.replaceState(null, "", `#knowledge/system/${inspectorState.systemView}`);
+  await loadInspectorTab(inspectorState.systemView);
 }
 
 
@@ -3033,6 +3165,10 @@ document.addEventListener(
       button.addEventListener("click", () => selectInspectorTab(button.dataset.inspectorTab));
     });
 
+    document.querySelectorAll("[data-system-view]").forEach((button) => {
+      button.addEventListener("click", () => selectSystemView(button.dataset.systemView));
+    });
+
     document.querySelectorAll("[data-inspector-load]").forEach((button) => {
       button.addEventListener("click", async () => {
         const tab = button.dataset.inspectorLoad;
@@ -3041,11 +3177,13 @@ document.addEventListener(
       });
     });
 
-    adminEl("inspectorRefreshBtn")?.addEventListener("click", () => loadInspectorTab(inspectorState.tab, true));
+    adminEl("inspectorRefreshBtn")?.addEventListener("click", () => loadInspectorTab(inspectorState.tab === "system" ? inspectorState.systemView : inspectorState.tab, true));
     adminEl("knowledgeAddMaterial")?.addEventListener("click", () => openKnowledgeMaterialModal());
+    adminEl("knowledgeNewSection")?.addEventListener("click", () => openKnowledgeSectionForm("SECTION"));
+    adminEl("knowledgeNewFolder")?.addEventListener("click", () => openKnowledgeSectionForm("FOLDER"));
     adminEl("librarySearchButton")?.addEventListener("click", () => { knowledgeLibraryState.catalogLetter = ""; loadKnowledgeCatalog(); });
     adminEl("libraryCatalogSearch")?.addEventListener("keydown", (event) => { if (event.key === "Enter") { event.preventDefault(); knowledgeLibraryState.catalogLetter = ""; loadKnowledgeCatalog(); } });
-    adminEl("libraryApplyFilters")?.addEventListener("click", () => { knowledgeLibraryState.offset = 0; loadKnowledgeMaterials(); });
+    adminEl("libraryApplyFilters")?.addEventListener("click", applyKnowledgeFilters);
     adminEl("reviewQueueRefresh")?.addEventListener("click", () => { knowledgeLibraryState.reviewOffset = 0; loadKnowledgeReviewQueue(); });
     adminEl("knowledgeMaterialForm")?.addEventListener("submit", saveKnowledgeMaterial);
     adminEl("knowledgeReviewForm")?.addEventListener("submit", saveKnowledgeReview);
