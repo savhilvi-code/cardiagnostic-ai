@@ -26,6 +26,8 @@ const KNOWLEDGE_REVIEW_STATUSES = ["PENDING_REVIEW", "VERIFIED", "NEEDS_CLARIFIC
 const knowledgeLibraryState = {
   scope: "vehicles", make: "", model: "", category: "overview", offset: 0,
   limit: 25, counts: {}, catalogLetter: "", items: new Map(), reviewOffset: 0,
+  configurationId: "", configurations: [], configurationInspector: null,
+  sections: [], sectionRelations: [], selectedSectionId: "",
 };
 let adminHardDeleteState = null;
 const SIDEBAR_STORAGE_KEY = "puls-admin-sidebar-collapsed";
@@ -1951,11 +1953,13 @@ function knowledgeCategoryCount(key) {
 
 
 function renderKnowledgeCategories() {
-  const categories = [
-    ["overview", "Overview"], ["manuals", "Manuals"], ["specifications", "Specifications"],
-    ["procedures", "Procedures"], ["videos", "Videos"], ["forums", "Forums"],
-    ["problems", "Problems & Symptoms"], ["successful-cases", "Successful Cases"], ["all", "All"],
-  ].filter(([key]) => knowledgeLibraryState.scope === "vehicles" || key !== "problems");
+  const categories = knowledgeLibraryState.scope === "vehicles" ? [
+    ["overview", "Overview"], ["configuration", "Configuration"], ["technical-data", "Technical Data"],
+    ["manuals", "Manuals"], ["specifications", "Specifications"], ["procedures", "Procedures"],
+    ["videos", "Videos"], ["sources", "Sources"], ["problems", "Problems & Symptoms"],
+    ["research-evidence", "Research Evidence"], ["successful-cases", "Successful Cases"],
+    ["schema-gaps", "Schema Gaps"],
+  ] : [["overview", "Folders & Sections"], ["all", "All Materials"]];
   adminEl("knowledgeCategories").innerHTML = categories.map(([key, label]) => `<button type="button" class="knowledge-category ${knowledgeLibraryState.category === key ? "is-active" : ""}" data-knowledge-category="${key}">${escapeAdminHtml(label)}${key === "problems" ? "" : ` <span>${knowledgeCategoryCount(key)}</span>`}</button>`).join("");
 }
 
@@ -1966,6 +1970,66 @@ function renderKnowledgeCatalog(payload) {
     <section class="knowledge-make-group"><h3>${escapeAdminHtml(make.make)}</h3>
       <div>${(make.models || []).map((model) => `<button type="button" class="knowledge-model-button ${knowledgeLibraryState.make === make.make && knowledgeLibraryState.model === model ? "is-active" : ""}" data-knowledge-make="${escapeAdminHtml(make.make)}" data-knowledge-model="${escapeAdminHtml(model)}">${escapeAdminHtml(model)}</button>`).join("")}</div>
     </section>`).join("") : '<div class="admin-empty">No makes or models found in the current catalog.</div>';
+}
+
+
+function configurationLabel(item) {
+  const years = item.year_from || item.year_to ? `${item.year_from || "…"}–${item.year_to || "…"}` : "Unknown year";
+  return [item.generation, item.body_type || item.chassis_code, years, item.engine || item.engine_code, item.fuel_type, item.transmission, item.drivetrain, item.market].filter(Boolean).join(" · ") || "Incomplete configuration";
+}
+
+
+function renderConfigurationPicker() {
+  const node = adminEl("knowledgeConfigurationPicker");
+  const items = knowledgeLibraryState.configurations || [];
+  node.hidden = knowledgeLibraryState.scope !== "vehicles" || !knowledgeLibraryState.make;
+  node.innerHTML = items.length ? items.map((item) => `<button class="knowledge-configuration-option ${String(item.id) === String(knowledgeLibraryState.configurationId) ? "is-active" : ""}" type="button" data-configuration-id="${escapeAdminHtml(item.id)}"><strong>${escapeAdminHtml(configurationLabel(item))}</strong><small>${escapeAdminHtml(item.id)}</small></button>`).join("") : '<div class="admin-empty">No global configurations exist for this model.</div>';
+}
+
+
+async function loadVehicleConfigurations() {
+  const params = new URLSearchParams({ make: knowledgeLibraryState.make, model: knowledgeLibraryState.model, limit: "100" });
+  const payload = await adminFetch(`/admin/knowledge/library/configurations?${params}`);
+  knowledgeLibraryState.configurations = Array.isArray(payload?.items) ? payload.items : [];
+  if (!knowledgeLibraryState.configurations.some((item) => String(item.id) === String(knowledgeLibraryState.configurationId))) {
+    knowledgeLibraryState.configurationId = String(knowledgeLibraryState.configurations[0]?.id || "");
+  }
+  renderConfigurationPicker();
+}
+
+
+function sectionOptions(selected = "") {
+  return ['<option value="">Unfiled</option>', ...(knowledgeLibraryState.sections || []).map((section) => `<option value="${escapeAdminHtml(section.id)}" ${String(section.id) === String(selected) ? "selected" : ""}>${escapeAdminHtml(`${section.lifecycle_status === "ARCHIVED" ? "[Archived] " : ""}${section.name}`)}</option>`)].join("");
+}
+
+
+function renderKnowledgeSectionTree() {
+  const sections = knowledgeLibraryState.sections || [];
+  const byParent = new Map();
+  sections.forEach((section) => {
+    const parent = String(section.parent_id || "");
+    if (!byParent.has(parent)) byParent.set(parent, []);
+    byParent.get(parent).push(section);
+  });
+  const branch = (parent = "", depth = 0, seen = new Set()) => (byParent.get(parent) || []).map((section) => {
+    if (seen.has(String(section.id))) return "";
+    const nextSeen = new Set(seen); nextSeen.add(String(section.id));
+    const counts = section.counts || {};
+    return `<div class="knowledge-section-node ${section.lifecycle_status === "ARCHIVED" ? "is-archived" : ""}" style="--section-depth:${depth}">
+      <button type="button" data-section-select="${escapeAdminHtml(section.id)}"><strong>${escapeAdminHtml(section.name)}</strong><small>${counts.children || 0} folder(s) · ${counts.materials || 0} material(s) · ${counts.sources || 0} source(s)</small></button>
+      <span><button class="admin-button" type="button" data-section-edit="${escapeAdminHtml(section.id)}">Edit</button><button class="admin-button" type="button" data-section-state="${section.lifecycle_status === "ARCHIVED" ? "restore" : "archive"}" data-section-id="${escapeAdminHtml(section.id)}">${section.lifecycle_status === "ARCHIVED" ? "Restore" : "Archive"}</button></span>
+    </div>${branch(String(section.id), depth + 1, nextSeen)}`;
+  }).join("");
+  adminEl("knowledgeCatalog").innerHTML = branch() || '<div class="admin-empty">No General Knowledge sections yet.</div>';
+  adminEl("generalSectionParent").innerHTML = '<option value="">Root level</option>' + sections.map((section) => `<option value="${escapeAdminHtml(section.id)}">${escapeAdminHtml(section.name)}</option>`).join("");
+}
+
+
+async function loadKnowledgeSections() {
+  const payload = await adminFetch("/admin/knowledge/library/sections?include_archived=true");
+  knowledgeLibraryState.sections = Array.isArray(payload?.items) ? payload.items : [];
+  knowledgeLibraryState.sectionRelations = Array.isArray(payload?.relations) ? payload.relations : [];
+  renderKnowledgeSectionTree();
 }
 
 
@@ -1987,6 +2051,68 @@ function knowledgeSourceLinks(item) {
 }
 
 
+function vehicleInspectorSource(source) {
+  if (!source) return "—";
+  const url = safeInspectorUrl(source.url || source.canonical_url);
+  return url ? `<a class="inspector-link" href="${escapeAdminHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeAdminHtml(source.title || source.domain || url)} ↗</a>` : escapeAdminHtml(source.title || source.id || "Source");
+}
+
+
+function renderVehicleConfigurationInspector(payload) {
+  knowledgeLibraryState.configurationInspector = payload;
+  knowledgeLibraryState.counts = { ALL: payload?.counts?.materials || 0 };
+  renderKnowledgeCategories();
+  const category = knowledgeLibraryState.category;
+  const list = adminEl("knowledgeLibraryList");
+  if (!payload?.configuration) { list.innerHTML = '<div class="admin-empty">Select a concrete vehicle configuration.</div>'; return; }
+  if (category === "overview") {
+    const labels = { known_fields: "Known fields", missing_fields: "Missing fields", unmapped: "Unmapped", sources: "Sources", research_evidence: "Research Evidence", problems: "Problems / Symptoms", successful_cases: "Successful Cases", materials: "Materials" };
+    list.innerHTML = `<div class="vehicle-coverage-grid">${Object.entries(labels).map(([key, label]) => `<article><span>${escapeAdminHtml(label)}</span><strong>${Number(payload.counts?.[key] || 0)}</strong></article>`).join("")}</div>`;
+    return;
+  }
+  if (category === "configuration") {
+    list.innerHTML = `<div class="vehicle-identity-grid">${(payload.identity || []).map((field) => `<article class="is-${field.status.toLowerCase()}"><span>${escapeAdminHtml(field.field_key.replaceAll("_", " "))}</span><strong>${escapeAdminHtml(field.status === "KNOWN" ? compactInspectorValue(field.value) : "Missing")}</strong></article>`).join("")}</div>`;
+    return;
+  }
+  if (category === "technical-data") {
+    const groups = new Map();
+    (payload.technical_schema || []).forEach((field) => { if (!groups.has(field.category)) groups.set(field.category, []); groups.get(field.category).push(field); });
+    list.innerHTML = [...groups.entries()].map(([name, fields]) => `<section class="technical-schema-group"><h3>${escapeAdminHtml(name)}</h3><div>${fields.map((field) => `<article class="technical-schema-row is-${field.status.toLowerCase()}"><div><strong>${escapeAdminHtml(field.field_key)}</strong><small>${escapeAdminHtml(field.provenance_type || field.status)}</small></div><span>${field.status === "KNOWN" ? `${escapeAdminHtml(compactInspectorValue(field.value))}${field.unit ? ` ${escapeAdminHtml(field.unit)}` : ""}` : "Missing"}</span><span>${vehicleInspectorSource(field.source)}</span></article>`).join("")}</div></section>`).join("");
+    return;
+  }
+  if (["manuals", "specifications", "procedures", "videos"].includes(category)) {
+    renderKnowledgeMaterials({ items: payload.materials?.[category] || [], total: (payload.materials?.[category] || []).length, limit: 100, offset: 0, counts: {} });
+    return;
+  }
+  if (category === "sources") {
+    list.innerHTML = (payload.sources || []).map((source) => `<article class="knowledge-material-card"><header><h3>${vehicleInspectorSource(source)}</h3><span class="knowledge-review-status">${escapeAdminHtml(source.source_type || "SOURCE")}</span></header><p>${escapeAdminHtml(source.description || source.domain || "No description")}</p><pre class="inspector-json">${escapeAdminHtml(inspectorJson(source.metadata || {}))}</pre></article>`).join("") || '<div class="admin-empty">No source provenance for this configuration.</div>';
+    return;
+  }
+  if (category === "research-evidence") {
+    list.innerHTML = (payload.research_evidence || []).map((item) => `<article class="knowledge-material-card"><header><h3>Evidence ${escapeAdminHtml(item.id)}</h3><span class="knowledge-review-status">${escapeAdminHtml(item.status || "RAW")}</span></header><p>${escapeAdminHtml(item.evidence_text)}</p><div class="knowledge-card-meta"><span>Run ${escapeAdminHtml(item.origin_search_run_id)}</span><span>${escapeAdminHtml(item.structured_data?.applicability || item.structured_data?.vehicle_applicability || "Applicability not recorded")}</span></div>${vehicleInspectorSource(item.source)}</article>`).join("") || '<div class="admin-empty">No compatible Research Evidence.</div>';
+    return;
+  }
+  if (category === "schema-gaps") {
+    list.innerHTML = (payload.schema_gaps || []).map((gap) => `<article class="knowledge-material-card"><header><div><span class="knowledge-origin">Unmapped</span><h3>${escapeAdminHtml(gap.normalized_parameter || gap.raw_parameter)}</h3></div><span class="knowledge-review-status">${escapeAdminHtml(gap.mapping_status)}</span></header><p>${escapeAdminHtml(compactInspectorValue(gap.normalized_value ?? gap.raw_value))}${gap.unit ? ` ${escapeAdminHtml(gap.unit)}` : ""}</p><div class="knowledge-card-meta"><span>Run ${escapeAdminHtml(gap.origin_search_run_id || "—")}</span><span>${vehicleInspectorSource(gap.source)}</span></div><footer><button class="admin-button" type="button" data-gap-review="${escapeAdminHtml(gap.id)}" data-gap-status="REJECTED">Reject</button></footer></article>`).join("") || '<div class="admin-empty">No Schema Gaps for this configuration.</div>';
+    return;
+  }
+  if (category === "problems") {
+    list.innerHTML = (payload.problems || []).map((item) => `<article class="knowledge-material-card knowledge-problem-card"><header><h3>${escapeAdminHtml(item.title || `Problem ${item.id}`)}</h3><span class="knowledge-review-status">${escapeAdminHtml(item.status || "—")}</span></header><dl><dt>Class</dt><dd>${escapeAdminHtml(item.problem_class || "—")}</dd><dt>Symptoms</dt><dd>${escapeAdminHtml(compactInspectorValue(item.symptoms))}</dd><dt>Conclusion</dt><dd>${escapeAdminHtml(item.current_conclusion || "Not confirmed")}</dd></dl></article>`).join("") || '<div class="admin-empty">No Problems for this configuration.</div>';
+    return;
+  }
+  if (category === "successful-cases") {
+    renderKnowledgeMaterials({ items: payload.successful_cases || [], total: (payload.successful_cases || []).length, limit: 100, offset: 0, counts: {} });
+  }
+}
+
+
+async function loadVehicleConfigurationInspector() {
+  if (!knowledgeLibraryState.configurationId) { knowledgeLibraryState.configurationInspector = null; renderVehicleConfigurationInspector(null); return; }
+  const payload = await adminFetch(`/admin/knowledge/library/configurations/${encodeURIComponent(knowledgeLibraryState.configurationId)}`);
+  renderVehicleConfigurationInspector(payload);
+}
+
+
 function renderKnowledgeMaterials(payload) {
   const items = Array.isArray(payload?.items) ? payload.items : [];
   knowledgeLibraryState.items = new Map(items.map((item) => [String(item.id), item]));
@@ -1994,6 +2120,8 @@ function renderKnowledgeMaterials(payload) {
   renderKnowledgeCategories();
   adminEl("knowledgeLibraryList").innerHTML = items.length ? items.map((item) => {
     const sourceLinks = knowledgeSourceLinks(item);
+    const sectionRelation = (knowledgeLibraryState.sectionRelations || []).find((relation) => String(relation.knowledge_item_id) === String(item.id));
+    const folderControl = knowledgeLibraryState.scope === "general" ? `<label class="knowledge-folder-control">Folder <select class="admin-select" data-material-section="${escapeAdminHtml(item.id)}">${sectionOptions(sectionRelation?.section_id || "")}</select><button class="admin-button" type="button" data-move-material="${escapeAdminHtml(item.id)}">Move</button></label>` : "";
     return `<article class="knowledge-material-card" data-knowledge-item="${escapeAdminHtml(item.id)}">
       <header><div><span class="knowledge-origin is-${escapeAdminHtml(String(item.provenance_type || "external").toLowerCase().replaceAll("_", "-"))}">${escapeAdminHtml(String(item.provenance_type || "External Web").replaceAll("_", " "))}</span><h3>${escapeAdminHtml(item.title || `Knowledge #${item.id}`)}</h3></div><span class="knowledge-review-status">${escapeAdminHtml(String(item.validation_status || "—").replaceAll("_", " "))}</span></header>
       <p>${escapeAdminHtml(item.summary || item.metadata?.description || "No summary")}</p>
@@ -2001,7 +2129,7 @@ function renderKnowledgeMaterials(payload) {
       <div class="knowledge-card-meta"><span>${escapeAdminHtml(item.knowledge_type || "OTHER")}</span><span>${escapeAdminHtml(item.component || "All components")}</span><span>${item.knowledge_sources?.length || 0} source(s)</span></div>
       ${sourceLinks ? `<div class="knowledge-source-links">${sourceLinks}</div>` : ""}
       <details><summary>View structured knowledge</summary><pre class="inspector-json">${escapeAdminHtml(inspectorJson({ symptoms: item.symptoms, conditions: item.conditions, causes: item.causes, checks: item.checks, solutions: item.solutions, notes: item.metadata?.notes, mechanic_review: item.metadata?.mechanic_review }))}</pre></details>
-      <footer><button class="admin-button" type="button" data-edit-knowledge="${escapeAdminHtml(item.id)}">Edit</button><button class="admin-button admin-danger-button" type="button" data-archive-knowledge="${escapeAdminHtml(item.id)}">Archive</button><button class="admin-button admin-button-danger" type="button" data-hard-delete-type="knowledge" data-hard-delete-id="${escapeAdminHtml(item.id)}">Delete Material</button>${item.metadata?.origin_fleet_event_id ? `<button class="admin-button admin-button-danger" type="button" data-hard-delete-type="case" data-hard-delete-id="${escapeAdminHtml(item.metadata.origin_fleet_event_id)}">Delete Case</button>` : ""}</footer>
+      <footer>${folderControl}<button class="admin-button" type="button" data-edit-knowledge="${escapeAdminHtml(item.id)}">Edit</button><button class="admin-button admin-danger-button" type="button" data-archive-knowledge="${escapeAdminHtml(item.id)}">Archive</button><button class="admin-button admin-button-danger" type="button" data-hard-delete-type="knowledge" data-hard-delete-id="${escapeAdminHtml(item.id)}">Delete Material</button>${item.metadata?.origin_fleet_event_id ? `<button class="admin-button admin-button-danger" type="button" data-hard-delete-type="case" data-hard-delete-id="${escapeAdminHtml(item.metadata.origin_fleet_event_id)}">Delete Case</button>` : ""}</footer>
     </article>`;
   }).join("") : '<div class="admin-empty">No knowledge materials match these filters.</div>';
   renderKnowledgeLibraryPager(payload);
@@ -2028,6 +2156,7 @@ async function loadKnowledgeMaterials() {
   if (knowledgeLibraryState.scope === "vehicles" && (!knowledgeLibraryState.make || !knowledgeLibraryState.model)) return;
   renderKnowledgeCategories();
   adminEl("knowledgeLibraryList").innerHTML = '<div class="admin-empty">Loading knowledge materials…</div>';
+  if (knowledgeLibraryState.scope === "vehicles") { await loadVehicleConfigurationInspector(); return; }
   if (knowledgeLibraryState.category === "problems") { await loadKnowledgeProblems(); return; }
   const params = new URLSearchParams({ limit: String(knowledgeLibraryState.limit), offset: String(knowledgeLibraryState.offset) });
   if (knowledgeLibraryState.scope === "general") params.set("scope", "general");
@@ -2050,21 +2179,70 @@ async function selectKnowledgeScope(scope) {
   knowledgeLibraryState.offset = 0; knowledgeLibraryState.category = "overview";
   document.querySelectorAll("[data-knowledge-scope]").forEach((button) => button.classList.toggle("is-active", button.dataset.knowledgeScope === knowledgeLibraryState.scope));
   const vehicleScope = knowledgeLibraryState.scope === "vehicles";
-  adminEl("knowledgeAlphabet").hidden = !vehicleScope; adminEl("knowledgeCatalog").hidden = !vehicleScope;
+  adminEl("knowledgeAlphabet").hidden = !vehicleScope;
   adminEl("libraryCatalogSearch").hidden = !vehicleScope; adminEl("librarySearchButton").hidden = !vehicleScope;
+  adminEl("generalSectionForm").hidden = vehicleScope;
+  adminEl("knowledgeConfigurationPicker").hidden = !vehicleScope || !knowledgeLibraryState.make;
   adminEl("knowledgeModelEyebrow").textContent = vehicleScope ? "Vehicle knowledge" : "General Knowledge";
   adminEl("knowledgeModelTitle").textContent = vehicleScope ? (knowledgeLibraryState.make ? `${knowledgeLibraryState.make} ${knowledgeLibraryState.model}` : "Select a make and model") : "General Knowledge";
   adminEl("knowledgeModelSubtitle").textContent = vehicleScope ? "Applicability is evaluated per vehicle configuration." : "Reusable knowledge without a vehicle binding.";
   if (vehicleScope) await loadKnowledgeCatalog();
-  else await loadKnowledgeMaterials();
+  else { await loadKnowledgeSections(); await loadKnowledgeMaterials(); }
 }
 
 
 async function selectKnowledgeModel(make, model) {
-  knowledgeLibraryState.make = make; knowledgeLibraryState.model = model; knowledgeLibraryState.offset = 0; knowledgeLibraryState.category = "overview";
+  knowledgeLibraryState.make = make; knowledgeLibraryState.model = model; knowledgeLibraryState.offset = 0; knowledgeLibraryState.category = "overview"; knowledgeLibraryState.configurationId = "";
   adminEl("knowledgeModelTitle").textContent = `${make} ${model}`;
   adminEl("knowledgeModelSubtitle").textContent = "General and configuration-specific materials remain visibly distinct.";
-  await loadKnowledgeCatalog(); await loadKnowledgeMaterials();
+  await loadKnowledgeCatalog(); await loadVehicleConfigurations(); await loadKnowledgeMaterials();
+}
+
+
+function resetKnowledgeSectionForm() {
+  adminEl("generalSectionForm")?.reset();
+  setKnowledgeField("generalSectionId", "");
+  setKnowledgeField("generalSectionOrder", "0");
+  adminEl("generalSectionCancel").hidden = true;
+}
+
+
+async function saveKnowledgeSection(event) {
+  event.preventDefault();
+  const id = adminEl("generalSectionId").value;
+  const payload = {
+    name: adminEl("generalSectionName").value.trim(),
+    description: adminEl("generalSectionDescription").value.trim() || null,
+    parent_id: adminEl("generalSectionParent").value || null,
+    section_type: adminEl("generalSectionType").value,
+    sort_order: Number(adminEl("generalSectionOrder").value || 0),
+  };
+  await adminFetch(id ? `/admin/knowledge/library/sections/${encodeURIComponent(id)}` : "/admin/knowledge/library/sections", { method: id ? "PATCH" : "POST", body: JSON.stringify(payload) });
+  resetKnowledgeSectionForm(); await loadKnowledgeSections();
+}
+
+
+function editKnowledgeSection(id) {
+  const section = (knowledgeLibraryState.sections || []).find((item) => String(item.id) === String(id));
+  if (!section) return;
+  setKnowledgeField("generalSectionId", section.id); setKnowledgeField("generalSectionName", section.name);
+  setKnowledgeField("generalSectionDescription", section.description); setKnowledgeField("generalSectionParent", section.parent_id);
+  setKnowledgeField("generalSectionType", section.section_type); setKnowledgeField("generalSectionOrder", section.sort_order);
+  adminEl("generalSectionCancel").hidden = false;
+}
+
+
+async function changeKnowledgeSectionState(id, action) {
+  await adminFetch(`/admin/knowledge/library/sections/${encodeURIComponent(id)}/${action}`, { method: "POST" });
+  await loadKnowledgeSections();
+}
+
+
+async function moveKnowledgeMaterial(itemId, select) {
+  const sectionId = select?.value;
+  if (!sectionId) { setInspectorStatus("Select a destination folder.", "error"); return; }
+  await adminFetch(`/admin/knowledge/library/sections/${encodeURIComponent(sectionId)}/relations`, { method: "PUT", body: JSON.stringify({ knowledge_item_id: itemId }) });
+  await loadKnowledgeSections(); await loadKnowledgeMaterials();
 }
 
 
@@ -2260,8 +2438,27 @@ async function loadKnowledgeLibrary() {
 }
 
 
+async function loadAdminSuccessfulCases() {
+  knowledgeLibraryState.scope = "general";
+  await selectKnowledgeScope("general");
+  const payload = await adminFetch(`/admin/knowledge/library/items?limit=${knowledgeLibraryState.limit}&offset=0&knowledge_type=SUCCESSFUL_CASE`);
+  renderKnowledgeMaterials(payload);
+}
+
+
+async function loadAdminSchemaGaps() {
+  const status = adminEl("schemaGapStatus")?.value || "UNMAPPED";
+  const payload = await adminFetch(`/admin/knowledge/vehicle-schema/gaps?limit=100&offset=0&status=${encodeURIComponent(status)}`);
+  const items = Array.isArray(payload?.items) ? payload.items : [];
+  adminEl("schemaGapList").innerHTML = items.length ? items.map((gap) => `<article class="knowledge-material-card"><header><div><span class="knowledge-origin">Schema Gap</span><h3>${escapeAdminHtml(gap.normalized_parameter || gap.raw_parameter)}</h3></div><span class="knowledge-review-status">${escapeAdminHtml(gap.mapping_status)}</span></header><p>${escapeAdminHtml(compactInspectorValue(gap.normalized_value ?? gap.raw_value))}${gap.unit ? ` ${escapeAdminHtml(gap.unit)}` : ""}</p><div class="knowledge-card-meta"><span>Configuration ${escapeAdminHtml(gap.vehicle_configuration_id || "unresolved")}</span><span>Source ${escapeAdminHtml(gap.source_id || "—")}</span><span>Run ${escapeAdminHtml(gap.origin_search_run_id || "—")}</span></div>${gap.mapping_status === "UNMAPPED" ? `<footer><button class="admin-button" type="button" data-gap-review="${escapeAdminHtml(gap.id)}" data-gap-status="REJECTED">Reject</button></footer>` : ""}</article>`).join("") : '<div class="admin-empty">No Schema Gaps in this state.</div>';
+}
+
+
 const inspectorLoaders = {
   library: loadKnowledgeLibrary,
+  general: () => selectKnowledgeScope("general"),
+  materials: loadInspectorKnowledge,
+  successful: loadAdminSuccessfulCases,
   review: loadKnowledgeReviewQueue,
   overview: loadInspectorOverview,
   vehicles: loadInspectorVehicles,
@@ -2270,7 +2467,9 @@ const inspectorLoaders = {
   events: loadInspectorEvents,
   search: loadInspectorSearch,
   sources: loadInspectorSources,
-  knowledge: loadInspectorKnowledge
+  knowledge: loadInspectorKnowledge,
+  "schema-gaps": loadAdminSchemaGaps,
+  storage: async () => {}
 };
 
 
@@ -2296,10 +2495,13 @@ async function selectInspectorTab(tab) {
     button.classList.toggle("is-active", button.dataset.inspectorTab === tab);
   });
   document.querySelectorAll(".inspector-panel").forEach((panel) => { panel.hidden = true; });
-  const panelId = `inspector${tab.charAt(0).toUpperCase()}${tab.slice(1)}`;
+  const panelAlias = { general: "Library", materials: "Knowledge", successful: "Library", "schema-gaps": "SchemaGaps" };
+  const panelId = `inspector${panelAlias[tab] || (tab.charAt(0).toUpperCase() + tab.slice(1))}`;
   const panel = adminEl(panelId);
   if (panel) panel.hidden = false;
   window.history.replaceState(null, "", `#knowledge/${tab}`);
+  if (tab === "library") { await selectKnowledgeScope("vehicles"); return; }
+  if (tab === "general") { await selectKnowledgeScope("general"); return; }
   await loadInspectorTab(tab);
 }
 
@@ -2847,6 +3049,9 @@ document.addEventListener(
     adminEl("reviewQueueRefresh")?.addEventListener("click", () => { knowledgeLibraryState.reviewOffset = 0; loadKnowledgeReviewQueue(); });
     adminEl("knowledgeMaterialForm")?.addEventListener("submit", saveKnowledgeMaterial);
     adminEl("knowledgeReviewForm")?.addEventListener("submit", saveKnowledgeReview);
+    adminEl("generalSectionForm")?.addEventListener("submit", saveKnowledgeSection);
+    adminEl("generalSectionCancel")?.addEventListener("click", resetKnowledgeSectionForm);
+    adminEl("schemaGapRefresh")?.addEventListener("click", loadAdminSchemaGaps);
     adminEl("adminHardDeleteConfirm")?.addEventListener("click", confirmAdminHardDelete);
     adminEl("flowRefreshBtn")?.addEventListener("click", loadFlowTraces);
     adminEl("flowCopyTrace")?.addEventListener("click", copyFlowTrace);
@@ -2885,8 +3090,18 @@ document.addEventListener(
       if (knowledgeLetter) { knowledgeLibraryState.catalogLetter = knowledgeLetter.dataset.knowledgeLetter; adminEl("libraryCatalogSearch").value = ""; document.querySelectorAll("[data-knowledge-letter]").forEach((button) => button.classList.toggle("is-active", button === knowledgeLetter)); await loadKnowledgeCatalog(); return; }
       const knowledgeModel = event.target.closest?.("[data-knowledge-model]");
       if (knowledgeModel) { await selectKnowledgeModel(knowledgeModel.dataset.knowledgeMake, knowledgeModel.dataset.knowledgeModel); return; }
+      const configuration = event.target.closest?.("[data-configuration-id]");
+      if (configuration) { knowledgeLibraryState.configurationId = configuration.dataset.configurationId; renderConfigurationPicker(); await loadKnowledgeMaterials(); return; }
       const knowledgeCategory = event.target.closest?.("[data-knowledge-category]");
       if (knowledgeCategory) { knowledgeLibraryState.category = knowledgeCategory.dataset.knowledgeCategory; knowledgeLibraryState.offset = 0; await loadKnowledgeMaterials(); return; }
+      const sectionEdit = event.target.closest?.("[data-section-edit]");
+      if (sectionEdit) { editKnowledgeSection(sectionEdit.dataset.sectionEdit); return; }
+      const sectionState = event.target.closest?.("[data-section-state]");
+      if (sectionState) { await changeKnowledgeSectionState(sectionState.dataset.sectionId, sectionState.dataset.sectionState); return; }
+      const moveMaterial = event.target.closest?.("[data-move-material]");
+      if (moveMaterial) { await moveKnowledgeMaterial(moveMaterial.dataset.moveMaterial, moveMaterial.closest("footer")?.querySelector("[data-material-section]")); return; }
+      const gapReview = event.target.closest?.("[data-gap-review]");
+      if (gapReview) { await adminFetch(`/admin/knowledge/vehicle-schema/gaps/${encodeURIComponent(gapReview.dataset.gapReview)}`, { method: "PATCH", body: JSON.stringify({ mapping_status: gapReview.dataset.gapStatus }) }); if (inspectorState.tab === "schema-gaps") await loadAdminSchemaGaps(); else await loadKnowledgeMaterials(); return; }
       const editKnowledge = event.target.closest?.("[data-edit-knowledge]");
       if (editKnowledge) { openKnowledgeMaterialModal(knowledgeLibraryState.items.get(String(editKnowledge.dataset.editKnowledge))); return; }
       const archiveKnowledge = event.target.closest?.("[data-archive-knowledge]");

@@ -8,7 +8,7 @@
   <meta name="robots" content="noindex, nofollow">
 
   <link rel="icon" type="image/png" href="assets/img/puls-logo.png">
-  <link rel="stylesheet" href="assets/css/admin.css?v=20260920-trace-truth1">
+  <link rel="stylesheet" href="assets/css/admin.css?v=20260923-admin-v3">
 </head>
 
 <body>
@@ -174,16 +174,21 @@
           </div>
 
           <div class="inspector-tabs" role="tablist" aria-label="Data Inspector views">
-            <button class="inspector-tab is-active" type="button" data-inspector-tab="library">Knowledge Library</button>
-            <button class="inspector-tab" type="button" data-inspector-tab="review">Review Queue</button>
-            <button class="inspector-tab" type="button" data-inspector-tab="overview">Data Inspector</button>
+            <button class="inspector-tab is-active" type="button" data-inspector-tab="library">Vehicle Library</button>
+            <button class="inspector-tab" type="button" data-inspector-tab="general">General Knowledge</button>
+            <button class="inspector-tab" type="button" data-inspector-tab="materials">Materials</button>
+            <button class="inspector-tab" type="button" data-inspector-tab="successful">Successful Cases</button>
+            <button class="inspector-tab" type="button" data-inspector-tab="review">Mechanic Review</button>
+            <button class="inspector-tab" type="button" data-inspector-tab="overview">Overview</button>
             <button class="inspector-tab" type="button" data-inspector-tab="vehicles">Vehicles</button>
             <button class="inspector-tab" type="button" data-inspector-tab="conversations">Conversations</button>
             <button class="inspector-tab" type="button" data-inspector-tab="problems">Problems</button>
             <button class="inspector-tab" type="button" data-inspector-tab="events">Vehicle Events</button>
             <button class="inspector-tab" type="button" data-inspector-tab="search">Search Memory</button>
             <button class="inspector-tab" type="button" data-inspector-tab="sources">Sources</button>
-            <button class="inspector-tab" type="button" data-inspector-tab="knowledge">Knowledge</button>
+            <button class="inspector-tab" type="button" data-inspector-tab="schema-gaps">Schema Gaps</button>
+            <button class="inspector-tab" type="button" data-inspector-tab="storage">Storage / R2 Mirror</button>
+            <button class="inspector-tab" type="button" data-inspector-tab="knowledge">Legacy Knowledge Inspector</button>
           </div>
 
           <div id="inspectorLibrary" class="inspector-panel">
@@ -196,6 +201,16 @@
               <button id="librarySearchButton" class="admin-button" type="button">Search</button>
               <button id="knowledgeAddMaterial" class="admin-button admin-button-primary" type="button">+ Add Material</button>
             </div>
+            <form id="generalSectionForm" class="knowledge-section-toolbar" hidden>
+              <input id="generalSectionId" type="hidden">
+              <input id="generalSectionName" class="admin-search" required placeholder="Section or folder name">
+              <input id="generalSectionDescription" class="admin-search" placeholder="Description">
+              <select id="generalSectionParent" class="admin-select"><option value="">Root level</option></select>
+              <select id="generalSectionType" class="admin-select"><option value="SECTION">Section</option><option value="FOLDER">Folder</option></select>
+              <input id="generalSectionOrder" class="admin-search admin-search-short" type="number" value="0" placeholder="Order">
+              <button class="admin-button admin-button-primary" type="submit">Save</button>
+              <button id="generalSectionCancel" class="admin-button" type="button" hidden>Cancel edit</button>
+            </form>
             <div id="knowledgeAlphabet" class="knowledge-alphabet" aria-label="Filter makes by first letter"></div>
             <div class="knowledge-library-layout">
               <aside id="knowledgeCatalog" class="knowledge-catalog"><div class="admin-empty">Loading vehicle catalog…</div></aside>
@@ -203,6 +218,7 @@
                 <header class="knowledge-model-heading">
                   <div><span id="knowledgeModelEyebrow" class="admin-eyebrow">Vehicle knowledge</span><h2 id="knowledgeModelTitle">Select a make and model</h2><p id="knowledgeModelSubtitle">Choose a model from the catalog or search above.</p></div>
                 </header>
+                <div id="knowledgeConfigurationPicker" class="knowledge-configuration-picker" hidden></div>
                 <div id="knowledgeCategories" class="knowledge-category-tabs"></div>
                 <div id="knowledgeFilters" class="knowledge-filters">
                   <select id="libraryKnowledgeType" class="admin-select"><option value="">All knowledge types</option></select>
@@ -344,6 +360,20 @@
               <div class="inspector-column"><h2>Fleet events</h2><div id="fleetList" class="inspector-list"></div></div>
             </div>
             <div id="knowledgePager" class="inspector-pager"></div>
+          </div>
+
+          <div id="inspectorSchemaGaps" class="inspector-panel" hidden>
+            <div class="inspector-block-heading"><div><h2>Schema Gaps</h2><p>Legitimate technical parameters that do not map to the fixed Automotive Schema.</p></div></div>
+            <div class="inspector-toolbar">
+              <select id="schemaGapStatus" class="admin-select"><option value="UNMAPPED">Unmapped</option><option value="MAPPED">Mapped</option><option value="REJECTED">Rejected</option></select>
+              <button id="schemaGapRefresh" class="admin-button" type="button">Apply</button>
+            </div>
+            <div id="schemaGapList" class="inspector-list"></div>
+          </div>
+
+          <div id="inspectorStorage" class="inspector-panel" hidden>
+            <div class="inspector-block-heading"><div><h2>Storage / R2 Mirror</h2><p>Full structured-data mirror is intentionally deferred to a later V3 phase.</p></div></div>
+            <div class="admin-state-card"><strong>Foundation only</strong><p>Private binary storage remains active. Structured mirror status, retries and restore-readiness will appear here when that phase is implemented.</p></div>
           </div>
 
           <div id="inspectorStatus" class="admin-status" role="status" aria-live="polite"></div>
@@ -569,6 +599,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/supabaseClient.js"></script>
   <script src="assets/js/config.js"></script>
-  <script src="assets/js/admin.js?v=20260920-trace-truth1"></script>
+  <script src="assets/js/admin.js?v=20260923-admin-v3"></script>
 </body>
 </html>

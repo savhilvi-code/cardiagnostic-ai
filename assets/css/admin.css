@@ -997,6 +997,11 @@ button.inspector-stat-card:hover {
 .knowledge-model-heading { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
 .knowledge-model-heading h2 { margin: 4px 0; font-size: 24px; }
 .knowledge-model-heading p { margin: 0; color: var(--muted); }
+.knowledge-configuration-picker { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 8px; margin-bottom: 12px; }
+.knowledge-configuration-picker[hidden] { display: none; }
+.knowledge-configuration-option { display: grid; gap: 5px; padding: 11px 12px; border: 1px solid #263b4b; border-radius: 10px; background: #091721; color: var(--text); text-align: left; cursor: pointer; }
+.knowledge-configuration-option small { color: var(--muted); overflow-wrap: anywhere; }
+.knowledge-configuration-option.is-active { border-color: #18b7ff; background: #0c2c40; }
 .knowledge-category-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; }
 .knowledge-category { flex: 0 0 auto; padding: 8px 10px; border: 1px solid #263b4b; border-radius: 9px; background: #0a1823; color: #9bb5c8; cursor: pointer; }
 .knowledge-category span { display: inline-grid; place-items: center; min-width: 18px; height: 18px; margin-left: 4px; border-radius: 9px; background: rgba(255,255,255,.08); font-size: 10px; }
@@ -1019,6 +1024,27 @@ button.inspector-stat-card:hover {
 .knowledge-material-card details { margin-top: 11px; }
 .knowledge-material-card summary { color: #9ccae5; cursor: pointer; }
 .knowledge-material-card footer, .knowledge-review-card footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+.knowledge-folder-control { display: flex; align-items: center; gap: 7px; margin-right: auto; color: var(--muted); font-size: 12px; }
+.knowledge-folder-control .admin-select { min-height: 36px; padding-top: 7px; padding-bottom: 7px; }
+.knowledge-section-toolbar { display: grid; grid-template-columns: minmax(170px, 1fr) minmax(220px, 1.4fr) minmax(150px, .8fr) minmax(100px, .6fr) 90px auto auto; gap: 8px; margin: 0 0 14px; }
+.knowledge-section-toolbar[hidden] { display: none; }
+.knowledge-section-node { margin-left: calc(var(--section-depth) * 13px); padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.055); }
+.knowledge-section-node > button { width: 100%; padding: 7px; border: 0; background: transparent; color: var(--text); text-align: left; cursor: default; }
+.knowledge-section-node > button strong, .knowledge-section-node > button small { display: block; }
+.knowledge-section-node > button small { margin-top: 4px; color: var(--muted); }
+.knowledge-section-node > span { display: flex; gap: 5px; padding: 0 7px; }
+.knowledge-section-node > span .admin-button { min-height: 30px; padding: 5px 8px; font-size: 11px; }
+.knowledge-section-node.is-archived { opacity: .55; }
+.vehicle-coverage-grid, .vehicle-identity-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 9px; }
+.vehicle-coverage-grid article, .vehicle-identity-grid article { padding: 14px; border: 1px solid #263b4b; border-radius: 11px; background: #0b1a25; }
+.vehicle-coverage-grid span, .vehicle-identity-grid span { display: block; color: var(--muted); font-size: 11px; text-transform: uppercase; }
+.vehicle-coverage-grid strong, .vehicle-identity-grid strong { display: block; margin-top: 7px; color: var(--text); font-size: 20px; }
+.vehicle-identity-grid article.is-missing strong, .technical-schema-row.is-missing > span { color: #d8a867; }
+.technical-schema-group { border: 1px solid #263b4b; border-radius: 12px; overflow: hidden; background: #0b1a25; }
+.technical-schema-group h3 { margin: 0; padding: 12px 14px; border-bottom: 1px solid #263b4b; font-size: 15px; }
+.technical-schema-row { display: grid; grid-template-columns: minmax(220px, 1.4fr) minmax(150px, 1fr) minmax(160px, 1fr); gap: 10px; align-items: center; padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,.05); }
+.technical-schema-row:last-child { border-bottom: 0; }
+.technical-schema-row small { display: block; margin-top: 3px; color: var(--muted); }
 .admin-danger-button { color: #ff9ea7; border-color: rgba(255,93,104,.45); }
 .knowledge-problem-card dl { display: grid; grid-template-columns: 140px 1fr; gap: 7px 12px; }
 .knowledge-problem-card dt { color: #7da3ba; }
@@ -1217,6 +1243,9 @@ button.inspector-stat-card:hover {
   .pipeline-node:not(:last-child)::after {
     display: none;
   }
+
+  .knowledge-section-toolbar { grid-template-columns: 1fr 1fr; }
+  .technical-schema-row { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 560px) {
