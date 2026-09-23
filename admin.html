@@ -8,7 +8,7 @@
   <meta name="robots" content="noindex, nofollow">
 
   <link rel="icon" type="image/png" href="assets/img/puls-logo.png">
-  <link rel="stylesheet" href="assets/css/admin.css?v=20260923-admin-v3-cleanup">
+  <link rel="stylesheet" href="assets/css/admin.css?v=20260923-admin-v3-ux-correction">
 </head>
 
 <body>
@@ -350,7 +350,7 @@
           <div id="inspectorSources" class="inspector-panel" hidden>
             <div class="inspector-toolbar">
               <input id="sourceSearch" class="admin-search" type="search" placeholder="Search source title…">
-              <input id="sourceType" class="admin-search admin-search-short" type="search" placeholder="Source type">
+              <select id="sourceType" class="admin-select"><option value="">All canonical source types</option><option value="MANUFACTURER">Manufacturer</option><option value="MANUAL">Manual</option><option value="FORUM">Forum</option><option value="WEBSITE">Website</option><option value="YOUTUBE">YouTube</option><option value="SOCIAL">Social</option><option value="DOCUMENT">Document</option><option value="PULS">PULS</option><option value="OTHER">Other</option></select>
               <button class="admin-button" type="button" data-inspector-load="sources">Apply</button>
             </div>
             <div id="sourceList" class="inspector-list"></div>
@@ -387,9 +387,9 @@
           <div id="inspectorStatus" class="admin-status" role="status" aria-live="polite"></div>
         </div>
 
-        <div id="knowledgeMaterialModal" class="admin-dialog-backdrop" hidden>
-          <section class="admin-dialog knowledge-dialog" role="dialog" aria-modal="true" aria-labelledby="knowledgeMaterialTitle">
-            <div class="admin-dialog-header"><div><div class="admin-eyebrow">Knowledge Library</div><h2 id="knowledgeMaterialTitle">Add Material</h2></div><button class="admin-dialog-close" type="button" data-close-knowledge-modal aria-label="Close">×</button></div>
+        <div id="knowledgeMaterialModal" class="admin-dialog-backdrop admin-workspace-backdrop" hidden>
+          <section class="admin-dialog knowledge-dialog admin-workspace" role="dialog" aria-modal="true" aria-labelledby="knowledgeMaterialTitle">
+            <div class="admin-dialog-header"><div><div class="admin-eyebrow">Knowledge Library workspace</div><h2 id="knowledgeMaterialTitle">Add Material</h2><p id="knowledgeMaterialContext" class="workspace-context">Create a reusable material in the current library context.</p></div><button class="admin-dialog-close" type="button" data-close-knowledge-modal aria-label="Close">×</button></div>
             <div class="knowledge-add-modes">
               <button class="knowledge-add-mode is-active" type="button" data-material-mode="url">Add URL</button>
               <button class="knowledge-add-mode" type="button" data-material-mode="note">Create Note</button>
@@ -415,14 +415,15 @@
               </fieldset>
               <label class="knowledge-form-wide">Notes<textarea id="materialNotes" class="admin-search" rows="2"></textarea></label>
               <div id="knowledgeMaterialStatus" class="admin-status knowledge-form-wide" role="status"></div>
-              <div class="admin-dialog-actions knowledge-form-wide"><button class="admin-button" type="button" data-close-knowledge-modal>Cancel</button><button id="knowledgeMaterialSave" class="admin-button admin-button-primary" type="submit">Save</button></div>
+              <div class="admin-dialog-actions knowledge-form-wide"><button class="admin-button" type="button" data-close-knowledge-modal>← Back</button><button id="knowledgeMaterialSave" class="admin-button admin-button-primary" type="submit">Save</button></div>
             </form>
           </section>
         </div>
 
-        <div id="knowledgeReviewModal" class="admin-dialog-backdrop" hidden>
-          <section class="admin-dialog knowledge-dialog" role="dialog" aria-modal="true" aria-labelledby="knowledgeReviewTitle">
-            <div class="admin-dialog-header"><div><div class="admin-eyebrow">Mechanic Review</div><h2 id="knowledgeReviewTitle">Review candidate</h2></div><button class="admin-dialog-close" type="button" data-close-review-modal aria-label="Close">×</button></div>
+        <div id="knowledgeReviewModal" class="admin-dialog-backdrop admin-workspace-backdrop" hidden>
+          <section class="admin-dialog knowledge-dialog admin-workspace" role="dialog" aria-modal="true" aria-labelledby="knowledgeReviewTitle">
+            <div class="admin-dialog-header"><div><div class="admin-eyebrow">Mechanic Review workspace</div><h2 id="knowledgeReviewTitle">Case</h2><p class="workspace-context">Review the canonical case without changing its source provenance.</p></div><button class="admin-dialog-close" type="button" data-close-review-modal aria-label="Close">×</button></div>
+            <div id="reviewWorkspaceCase" class="review-workspace-case"></div>
             <form id="knowledgeReviewForm" class="knowledge-form">
               <input id="reviewCandidateType" type="hidden"><input id="reviewCandidateId" type="hidden">
               <label>Decision<select id="reviewDecision" class="admin-select"><option value="VERIFIED">Verified</option><option value="NEEDS_CLARIFICATION">Needs Clarification</option><option value="REJECTED">Rejected</option><option value="PENDING_REVIEW">Pending Review</option></select></label>
@@ -434,7 +435,7 @@
               <label>Verification note<input id="reviewVerification" class="admin-search"></label>
               <label class="knowledge-form-wide">Recommended checks<textarea id="reviewChecks" class="admin-search" rows="2" placeholder="One check per line"></textarea></label>
               <div id="knowledgeReviewStatus" class="admin-status knowledge-form-wide" role="status"></div>
-              <div class="admin-dialog-actions knowledge-form-wide"><button class="admin-button" type="button" data-close-review-modal>Cancel</button><button class="admin-button admin-button-primary" type="submit">Save Review</button></div>
+              <div class="admin-dialog-actions knowledge-form-wide"><button class="admin-button" type="button" data-close-review-modal>← Back</button><button class="admin-button admin-button-primary" type="submit">Save Review</button></div>
             </form>
           </section>
         </div>
@@ -458,7 +459,7 @@
           </div>
           <div class="flow-layout">
             <aside class="flow-recent-panel">
-              <div class="inspector-toolbar flow-filters"><select id="flowStatus" class="admin-select"><option value="">All statuses</option><option value="RUNNING">LIVE</option><option value="COMPLETED">Completed</option><option value="FAILED">Failed</option></select><input id="flowUser" class="admin-search" placeholder="User ID"><input id="flowVehicle" class="admin-search" placeholder="Vehicle ID"></div>
+              <div class="inspector-toolbar flow-filters"><select id="flowStatus" class="admin-select"><option value="">All statuses</option><option value="RUNNING">LIVE</option><option value="COMPLETED">Completed</option><option value="FAILED">Failed</option></select><input id="flowUser" class="admin-search" placeholder="Paste User ID"><input id="flowVehicle" class="admin-search" placeholder="Paste Vehicle ID"><button id="flowSearch" class="admin-button" type="button">Search</button></div>
               <h2>Recent requests</h2><div id="flowTraceList" class="flow-trace-list"><div class="admin-empty">Loading traces…</div></div>
             </aside>
             <section class="flow-stage-panel">
@@ -609,6 +610,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/supabaseClient.js"></script>
   <script src="assets/js/config.js"></script>
-  <script src="assets/js/admin.js?v=20260923-admin-v3-cleanup"></script>
+  <script src="assets/js/admin.js?v=20260923-admin-v3-ux-correction"></script>
 </body>
 </html>

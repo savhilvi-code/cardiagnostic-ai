@@ -29,6 +29,7 @@ const knowledgeLibraryState = {
   limit: 25, counts: {}, catalogLetter: "", items: new Map(), reviewOffset: 0,
   configurationId: "", configurations: [], configurationInspector: null,
   sections: [], sectionRelations: [], selectedSectionId: "",
+  reviewCandidates: new Map(),
 };
 let adminHardDeleteState = null;
 const SIDEBAR_STORAGE_KEY = "puls-admin-sidebar-collapsed";
@@ -1973,7 +1974,15 @@ function initializeKnowledgeLibraryControls() {
   adminEl("libraryKnowledgeType").innerHTML = knowledgeOptions(KNOWLEDGE_TYPES, "All knowledge types");
   adminEl("librarySourceType").innerHTML = knowledgeOptions(KNOWLEDGE_SOURCE_TYPES, "All source types");
   adminEl("libraryReviewStatus").innerHTML = knowledgeOptions(KNOWLEDGE_REVIEW_STATUSES, "All review states");
-  adminEl("knowledgeAlphabet").innerHTML = [..."ABCDEFGHIJKLMNOPQRSTUVWXYZ#"].map((letter) => `<button type="button" data-knowledge-letter="${letter}">${letter}</button>`).join("");
+  renderKnowledgeAlphabet();
+}
+
+
+function renderKnowledgeAlphabet() {
+  const node = adminEl("knowledgeAlphabet");
+  if (!node) return;
+  node.innerHTML = [..."ABCDEFGHIJKLMNOPQRSTUVWXYZ#"].map((letter) => `<button type="button" class="${knowledgeLibraryState.catalogLetter === letter ? "is-active" : ""}" data-knowledge-letter="${letter}">${letter}</button>`).join("");
+  node.hidden = knowledgeLibraryState.scope !== "vehicles";
 }
 
 
@@ -2045,7 +2054,17 @@ function configurationMatchesFilters(item) {
 
 function renderConfigurationBranch(items, dimensions, depth = 0) {
   if (!dimensions.length) return items.map((item) => `<button class="knowledge-configuration-option ${String(item.id) === String(knowledgeLibraryState.configurationId) ? "is-active" : ""}" type="button" data-configuration-id="${escapeAdminHtml(item.id)}"><strong>${escapeAdminHtml([configurationDimension(item, "fuel_type"), item.market].filter(Boolean).join(" · ") || "Open configuration")}</strong><small>${escapeAdminHtml(configurationLabel(item))}</small></button>`).join("");
+  const hasKnownValue = (item, key) => {
+    if (key === "year") return Boolean(item.year_from || item.year_to);
+    if (key === "body") return Boolean(item.body_type || item.chassis_code);
+    if (key === "engine") return Boolean(item.engine || item.engine_code);
+    return Boolean(item[key]);
+  };
+  if (!dimensions.some((dimension) => items.some((item) => hasKnownValue(item, dimension)))) {
+    return items.map((item) => `<button class="knowledge-configuration-option ${String(item.id) === String(knowledgeLibraryState.configurationId) ? "is-active" : ""}" type="button" data-configuration-id="${escapeAdminHtml(item.id)}"><strong>Open configuration</strong><small>${escapeAdminHtml(configurationLabel(item))}</small></button>`).join("");
+  }
   const [dimension, ...rest] = dimensions;
+  if (!items.some((item) => hasKnownValue(item, dimension))) return renderConfigurationBranch(items, rest, depth);
   const groups = new Map();
   items.forEach((item) => {
     const label = configurationDimension(item, dimension);
@@ -2061,6 +2080,7 @@ function renderConfigurationPicker() {
   const items = (knowledgeLibraryState.configurations || []).filter(configurationMatchesFilters);
   node.hidden = knowledgeLibraryState.scope !== "vehicles" || !knowledgeLibraryState.make;
   node.innerHTML = items.length ? renderConfigurationBranch(items, ["generation", "body", "year", "engine", "transmission", "drivetrain"]) : '<div class="admin-empty">No configurations match this model and the current filters.</div>';
+  renderKnowledgeAlphabet();
 }
 
 
@@ -2117,6 +2137,7 @@ async function loadKnowledgeCatalog() {
   else if (knowledgeLibraryState.catalogLetter) params.set("letter", knowledgeLibraryState.catalogLetter);
   adminEl("knowledgeCatalog").innerHTML = '<div class="admin-empty">Loading vehicle catalog…</div>';
   renderKnowledgeCatalog(await adminFetch(`/admin/knowledge/library/catalog?${params}`));
+  renderKnowledgeAlphabet();
 }
 
 
@@ -2270,7 +2291,7 @@ async function selectKnowledgeScope(scope) {
   knowledgeLibraryState.offset = 0; knowledgeLibraryState.category = "overview";
   document.querySelectorAll("[data-knowledge-scope]").forEach((button) => button.classList.toggle("is-active", button.dataset.knowledgeScope === knowledgeLibraryState.scope));
   const vehicleScope = knowledgeLibraryState.scope === "vehicles";
-  adminEl("knowledgeAlphabet").hidden = !vehicleScope;
+  renderKnowledgeAlphabet();
   adminEl("libraryCatalogSearch").hidden = !vehicleScope; adminEl("librarySearchButton").hidden = !vehicleScope;
   adminEl("generalSectionForm").hidden = true;
   document.querySelectorAll(".general-only-action").forEach((button) => { button.hidden = vehicleScope; });
@@ -2372,6 +2393,7 @@ function openKnowledgeMaterialModal(item = null) {
   const source = item?.knowledge_sources?.[0]?.source;
   setKnowledgeField("materialUrl", source?.url); setKnowledgeField("materialSourceType", source?.source_type);
   adminEl("knowledgeMaterialTitle").textContent = item ? "Edit Material" : "Add Material";
+  adminEl("knowledgeMaterialContext").textContent = knowledgeLibraryState.scope === "general" ? "General Knowledge · choose a section/folder after saving when needed." : `Vehicle Library · ${[knowledgeLibraryState.make, knowledgeLibraryState.model].filter(Boolean).join(" ") || "vehicle applicability"}`;
   adminEl("knowledgeMaterialStatus").textContent = "";
   adminEl("knowledgeMaterialForm").querySelector(".knowledge-applicability").hidden = knowledgeLibraryState.scope === "general";
   setKnowledgeMaterialMode(source?.url || !item ? "url" : "note");
@@ -2506,8 +2528,25 @@ function reviewCandidateBody(entry) {
   const caseId = entry.candidate_type === "SUCCESSFUL_CASE" ? item.id : item.metadata?.origin_fleet_event_id;
   const caseDelete = caseId ? `<button class="admin-button admin-button-danger" type="button" data-hard-delete-type="case" data-hard-delete-id="${escapeAdminHtml(caseId)}">Delete Case</button>` : "";
   const review = item.metadata?.mechanic_review || {};
-  const readable = (value) => Array.isArray(value) ? value.filter(Boolean).join("; ") : compactInspectorValue(value || "Not recorded");
-  return `<article class="knowledge-review-card"><header><div><span class="knowledge-origin is-${entry.candidate_type === "SUCCESSFUL_CASE" ? "user-case" : "candidate"}">${escapeAdminHtml(entry.candidate_type.replaceAll("_", " "))}</span><h3>${escapeAdminHtml(item.title || symptomTitle || item.cause || "Untitled candidate")}</h3></div><span class="knowledge-review-status">${escapeAdminHtml(item.validation_status || "PENDING REVIEW")}</span></header><div class="knowledge-review-columns"><section><h4>Original case</h4><dl class="human-readable-fields"><dt>Symptoms</dt><dd>${escapeAdminHtml(readable(original?.symptoms || item.symptoms))}</dd><dt>Cause</dt><dd>${escapeAdminHtml(readable(original?.cause || item.causes))}</dd><dt>Action</dt><dd>${escapeAdminHtml(readable(original?.action || original?.action_or_repair || item.solutions))}</dd><dt>Result</dt><dd>${escapeAdminHtml(readable(original?.result || item.metadata?.result))}</dd></dl></section><section><h4>Mechanic review</h4><dl class="human-readable-fields"><dt>Decision</dt><dd>${escapeAdminHtml(review.decision || "Pending")}</dd><dt>Comment</dt><dd>${escapeAdminHtml(review.technical_comment || "Not reviewed")}</dd><dt>Language</dt><dd>${escapeAdminHtml(review.review_language || "Original language")}</dd></dl></section></div><details><summary>Technical details · debug</summary><pre class="inspector-json">${escapeAdminHtml(inspectorJson({ reference: item.id, source_relations: item.knowledge_sources || [], metadata: item.metadata || {} }))}</pre></details><footer><button class="admin-button admin-button-primary" type="button" data-review-candidate-type="${escapeAdminHtml(entry.candidate_type)}" data-review-candidate-id="${escapeAdminHtml(item.id)}">Mechanic Review</button>${caseDelete}</footer></article>`;
+  return `<article class="knowledge-review-card"><header><div><span class="knowledge-origin is-${entry.candidate_type === "SUCCESSFUL_CASE" ? "user-case" : "candidate"}">${escapeAdminHtml(entry.candidate_type.replaceAll("_", " "))}</span><h3>${escapeAdminHtml(item.title || symptomTitle || item.cause || "Untitled candidate")}</h3></div><span class="knowledge-review-status">${escapeAdminHtml(item.validation_status || "PENDING REVIEW")}</span></header>${reviewCaseMarkup(entry)}<div class="knowledge-card-meta"><span>Review: ${escapeAdminHtml(review.decision || "Pending")}</span><span>Language: ${escapeAdminHtml(review.review_language || "Original")}</span></div><details><summary>Technical details</summary><pre class="inspector-json">${escapeAdminHtml(inspectorJson({ reference: item.id, source_relations: item.knowledge_sources || [], metadata: item.metadata || {} }))}</pre></details><footer><button class="admin-button admin-button-primary" type="button" data-review-candidate-type="${escapeAdminHtml(entry.candidate_type)}" data-review-candidate-id="${escapeAdminHtml(item.id)}">Open Case</button>${caseDelete}</footer></article>`;
+}
+
+
+function reviewCaseMarkup(entry) {
+  const item = entry?.candidate || {};
+  const original = entry?.candidate_type === "SUCCESSFUL_CASE" ? item : (item.metadata?.original_case || {});
+  const readable = (value) => Array.isArray(value) ? value.filter(Boolean).map((part) => compactInspectorValue(part)).join("; ") : compactInspectorValue(value);
+  const row = (label, value) => value && readable(value) ? `<dt>${escapeAdminHtml(label)}</dt><dd>${escapeAdminHtml(readable(value))}</dd>` : "";
+  const applicability = item.applicability || original.applicability;
+  const sourceRows = [
+    ...(item.knowledge_sources || []).map((link) => link.source),
+    ...(Array.isArray(original.related_sources) ? original.related_sources : []),
+  ].filter(Boolean);
+  const sourceLinks = sourceRows.map((source) => {
+    const url = safeInspectorUrl(source.url || source.canonical_url);
+    return url ? `<a class="inspector-link" href="${escapeAdminHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeAdminHtml(source.title || source.domain || url)} ↗</a>` : `<span>${escapeAdminHtml(source.title || source.domain || "Source")}</span>`;
+  }).join("");
+  return `<section class="case-human-summary">${applicability ? `<div class="knowledge-applicability-line">${escapeAdminHtml(knowledgeApplicabilityText(applicability))}</div>` : ""}<dl class="human-readable-fields">${row("Problem / symptoms", original.symptoms || item.symptoms)}${row("Checks / diagnostic context", original.checks || item.checks || original.confirmed_facts)}${row("Confirmed cause", original.cause || item.causes)}${row("Action / repair", original.action || original.action_or_repair || item.solutions)}${row("Outcome", original.result || item.metadata?.result)}</dl>${sourceLinks ? `<div class="knowledge-source-links"><strong>Evidence / Sources</strong>${sourceLinks}</div>` : ""}</section>`;
 }
 
 
@@ -2516,6 +2555,7 @@ async function loadKnowledgeReviewQueue() {
   adminEl("reviewQueueList").innerHTML = '<div class="admin-empty">Loading review queue…</div>';
   const payload = await adminFetch(`/admin/knowledge/library/review-queue?${params}`);
   const items = Array.isArray(payload?.items) ? payload.items : [];
+  knowledgeLibraryState.reviewCandidates = new Map(items.map((entry) => [String(entry.candidate?.id || ""), entry]));
   adminEl("reviewQueueList").innerHTML = items.length ? items.map(reviewCandidateBody).join("") : '<div class="admin-empty">No candidates in this review state.</div>';
   const total = Number(payload?.total || 0), offset = Number(payload?.offset || 0), limit = Number(payload?.limit || knowledgeLibraryState.limit);
   adminEl("reviewQueuePager").innerHTML = total > limit ? `<button class="admin-button" type="button" data-review-page="${Math.max(0, offset - limit)}" ${offset <= 0 ? "disabled" : ""}>Previous</button><span>${offset + 1}–${Math.min(total, offset + limit)} of ${total}</span><button class="admin-button" type="button" data-review-page="${offset + limit}" ${offset + limit >= total ? "disabled" : ""}>Next</button>` : "";
@@ -2524,6 +2564,9 @@ async function loadKnowledgeReviewQueue() {
 
 function openKnowledgeReviewModal(type, id) {
   adminEl("knowledgeReviewForm").reset(); setKnowledgeField("reviewCandidateType", type); setKnowledgeField("reviewCandidateId", id);
+  const entry = knowledgeLibraryState.reviewCandidates.get(String(id));
+  adminEl("reviewWorkspaceCase").innerHTML = entry ? `${reviewCaseMarkup(entry)}<details><summary>Technical details</summary><pre class="inspector-json">${escapeAdminHtml(inspectorJson({ candidate_type: entry.candidate_type, id, metadata: entry.candidate?.metadata || {} }))}</pre></details>` : '<div class="admin-empty">Case context is unavailable. Refresh the review queue.</div>';
+  setKnowledgeField("reviewLanguage", entry?.candidate?.metadata?.mechanic_review?.review_language || "");
   adminEl("knowledgeReviewStatus").textContent = ""; adminEl("knowledgeReviewModal").hidden = false;
 }
 
@@ -2689,6 +2732,7 @@ function renderFlowTraces() {
     <button class="flow-trace ${liveFlowState.trace?.id === trace.id ? "is-selected" : ""}" type="button" data-flow-trace="${escapeAdminHtml(trace.id)}">
       <span><strong>${escapeAdminHtml(trace.status === "RUNNING" ? "LIVE" : "REPLAY")}</strong> ${escapeAdminHtml(trace.intent || "REQUEST")}</span>
       <span>${escapeAdminHtml(trace.user_label || trace.user_id || "unknown user")}</span>
+      <span>Vehicle: ${escapeAdminHtml(trace.vehicle_label || trace.vehicle_id || "standalone")}</span>
       <span>${escapeAdminHtml(trace.message_excerpt || "No excerpt")}</span>
       <small>${escapeAdminHtml(trace.started_at || "")} · ${Number(trace.duration_ms || 0)} ms</small>
     </button>`).join("") : '<div class="admin-empty">No traces found.</div>';
@@ -3195,8 +3239,10 @@ document.addEventListener(
     adminEl("flowCopyTrace")?.addEventListener("click", copyFlowTrace);
     adminEl("flowExportTrace")?.addEventListener("click", exportFlowTrace);
     adminEl("flowStatus")?.addEventListener("change", loadFlowTraces);
-    adminEl("flowUser")?.addEventListener("change", loadFlowTraces);
-    adminEl("flowVehicle")?.addEventListener("change", loadFlowTraces);
+    adminEl("flowSearch")?.addEventListener("click", loadFlowTraces);
+    [adminEl("flowUser"), adminEl("flowVehicle")].forEach((input) => input?.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") { event.preventDefault(); loadFlowTraces(); }
+    }));
     adminEl("flowPlay")?.addEventListener("click", playFlowReplay);
     adminEl("flowPause")?.addEventListener("click", stopFlowPlayback);
     adminEl("flowRestart")?.addEventListener("click", () => { stopFlowPlayback(); selectFlowEvent(0); });

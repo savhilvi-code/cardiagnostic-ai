@@ -1085,6 +1085,22 @@ button.inspector-stat-card:hover {
 .admin-dialog-backdrop { position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; padding: 22px; background: rgba(0,0,0,.76); overflow: auto; }
 .admin-dialog-backdrop[hidden] { display: none; }
 .knowledge-dialog { width: min(880px, 100%); max-height: calc(100vh - 44px); overflow: auto; }
+.admin-workspace-backdrop { align-items: stretch; justify-items: stretch; padding: 14px; }
+.admin-dialog.admin-workspace {
+  width: min(1380px, 100%);
+  height: calc(100dvh - 28px);
+  max-height: none;
+  margin: 0 auto;
+  padding: 28px clamp(18px, 3vw, 44px);
+  overflow: auto;
+  border-radius: 16px;
+}
+.admin-workspace .admin-dialog-header { position: sticky; top: -28px; z-index: 3; margin: -28px calc(-1 * clamp(18px, 3vw, 44px)) 20px; padding: 24px clamp(18px, 3vw, 44px) 17px; border-bottom: 1px solid var(--border); background: rgba(8,21,31,.98); }
+.admin-workspace .admin-dialog-close { top: 20px; right: clamp(18px, 3vw, 44px); }
+.workspace-context { margin: 6px 48px 0 0 !important; }
+.review-workspace-case { margin-bottom: 22px; padding: 18px; border: 1px solid #263b4b; border-radius: 13px; background: #07131d; }
+.case-human-summary { display: grid; gap: 10px; }
+.case-human-summary .knowledge-source-links { align-items: center; }
 .admin-dialog-header h2 { margin-bottom: 0; }
 .knowledge-add-modes { margin: 10px 0; }
 .knowledge-upload-note { margin: 8px 0 13px !important; padding: 8px 10px; border-radius: 8px; background: rgba(255,209,92,.08); color: #d8be78 !important; font-size: 12px; }
@@ -1102,6 +1118,13 @@ button.inspector-stat-card:hover {
 .knowledge-form-wide { grid-column: 1 / -1; }
 .knowledge-applicability { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 13px; border: 1px solid #294052; border-radius: 12px; }
 .knowledge-applicability legend { padding: 0 7px; color: #9ed4f1; }
+
+@media (max-width: 720px) {
+  .admin-workspace-backdrop { padding: 0; }
+  .admin-dialog.admin-workspace { height: 100dvh; border: 0; border-radius: 0; padding: 20px 14px; }
+  .admin-workspace .admin-dialog-header { top: -20px; margin: -20px -14px 16px; padding: 18px 14px 14px; }
+  .admin-workspace .admin-dialog-close { top: 14px; right: 14px; }
+}
 
 /* MODALS */
 
