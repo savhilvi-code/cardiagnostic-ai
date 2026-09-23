@@ -2886,7 +2886,8 @@ function initializeSidebar() {
 const liveFlowState = {
   traces: [], trace: null, events: [], index: -1, timer: null,
   speed: 1, streamAbort: null, streamCursor: 0, mode: "trace", copyTimer: null,
-  followUsers: new Map(), followVehicles: new Map(), vehicleLookupTimer: null
+  followUsers: new Map(), followVehicles: new Map(), vehicleLookupTimer: null,
+  followUserId: "", followVehicleId: "", filterMode: "none"
 };
 
 
@@ -2925,7 +2926,7 @@ function shortFlowId(value) {
 
 
 function flowUserLabel(user) {
-  const id = String(user.user_id || user.id || "");
+  const id = String(user.trace_user_id || user.user_id || "");
   return `${user.email || user.full_name || user.name || "User"} · ${shortFlowId(id)}`;
 }
 
@@ -2935,7 +2936,7 @@ function renderFlowUserOptions() {
   if (!node) return;
   liveFlowState.followUsers = new Map();
   node.innerHTML = adminUsers.map((user) => {
-    const id = String(user.user_id || user.id || "");
+    const id = String(user.trace_user_id || user.user_id || "");
     const label = flowUserLabel(user);
     if (id) { liveFlowState.followUsers.set(label, id); liveFlowState.followUsers.set(id, id); }
     return id ? `<option value="${escapeAdminHtml(label)}"></option>` : "";
@@ -2958,7 +2959,6 @@ async function loadFlowVehicleOptions(query = "") {
     if (query.trim()) params.set("q", query.trim());
     const payload = await adminFetch(`/admin/knowledge/vehicles?${params}`);
     const vehicles = Array.isArray(payload?.items) ? payload.items : [];
-    liveFlowState.followVehicles = new Map();
     node.innerHTML = vehicles.map((vehicle) => {
       const id = String(vehicle.id || "");
       const label = flowVehicleLabel(vehicle);
@@ -2971,21 +2971,39 @@ async function loadFlowVehicleOptions(query = "") {
 }
 
 
-async function applyFlowFollow(kind) {
+function syncFlowFollowSelection(kind) {
   const input = adminEl(kind === "user" ? "flowFollowUser" : "flowFollowVehicle");
   const map = kind === "user" ? liveFlowState.followUsers : liveFlowState.followVehicles;
-  const id = map.get(input?.value.trim());
-  if (!id) return;
-  setKnowledgeField("flowUser", kind === "user" ? id : "");
-  setKnowledgeField("flowVehicle", kind === "vehicle" ? id : "");
-  setKnowledgeField(kind === "user" ? "flowFollowVehicle" : "flowFollowUser", "");
-  flowSetStatus(`Following ${kind} ${shortFlowId(id)}.`);
+  const id = map.get(input?.value.trim()) || "";
+  if (kind === "user") liveFlowState.followUserId = id;
+  else liveFlowState.followVehicleId = id;
+}
+
+
+async function searchFlowFollow() {
+  syncFlowFollowSelection("user");
+  syncFlowFollowSelection("vehicle");
+  const userValue = adminEl("flowFollowUser")?.value.trim() || "";
+  const vehicleValue = adminEl("flowFollowVehicle")?.value.trim() || "";
+  if ((userValue && !liveFlowState.followUserId) || (vehicleValue && !liveFlowState.followVehicleId)) {
+    flowSetStatus("Select a User or Vehicle from the available results before searching.", "error");
+    return;
+  }
+  liveFlowState.filterMode = "follow";
+  const labels = [
+    liveFlowState.followUserId ? `user ${shortFlowId(liveFlowState.followUserId)}` : "",
+    liveFlowState.followVehicleId ? `vehicle ${shortFlowId(liveFlowState.followVehicleId)}` : "",
+  ].filter(Boolean);
+  flowSetStatus(labels.length ? `Following ${labels.join(" + ")}.` : "Showing all requests.");
   await loadFlowTraces();
 }
 
 
 async function clearFlowFollow() {
   ["flowFollowUser", "flowFollowVehicle", "flowUser", "flowVehicle"].forEach((id) => setKnowledgeField(id, ""));
+  liveFlowState.followUserId = "";
+  liveFlowState.followVehicleId = "";
+  liveFlowState.filterMode = "none";
   flowSetStatus("");
   await loadFlowTraces();
 }
@@ -2994,8 +3012,8 @@ async function clearFlowFollow() {
 async function loadFlowTraces() {
   const params = new URLSearchParams({ limit: "50" });
   const status = adminEl("flowStatus")?.value;
-  const user = adminEl("flowUser")?.value.trim();
-  const vehicle = adminEl("flowVehicle")?.value.trim();
+  const user = liveFlowState.filterMode === "follow" ? liveFlowState.followUserId : (liveFlowState.filterMode === "manual" ? adminEl("flowUser")?.value.trim() : "");
+  const vehicle = liveFlowState.filterMode === "follow" ? liveFlowState.followVehicleId : (liveFlowState.filterMode === "manual" ? adminEl("flowVehicle")?.value.trim() : "");
   if (status) params.set("status", status);
   if (user) params.set("user_id", user);
   if (vehicle) params.set("vehicle_id", vehicle);
@@ -3493,10 +3511,11 @@ document.addEventListener(
     adminEl("flowExportTrace")?.addEventListener("click", exportFlowTrace);
     adminEl("flowStatus")?.addEventListener("change", loadFlowTraces);
     adminEl("flowSearch")?.addEventListener("click", () => {
-      setKnowledgeField("flowFollowUser", ""); setKnowledgeField("flowFollowVehicle", ""); loadFlowTraces();
+      liveFlowState.filterMode = "manual"; loadFlowTraces();
     });
-    adminEl("flowFollowUser")?.addEventListener("change", () => applyFlowFollow("user"));
-    adminEl("flowFollowVehicle")?.addEventListener("change", () => applyFlowFollow("vehicle"));
+    adminEl("flowFollowSearch")?.addEventListener("click", searchFlowFollow);
+    adminEl("flowFollowUser")?.addEventListener("change", () => syncFlowFollowSelection("user"));
+    adminEl("flowFollowVehicle")?.addEventListener("change", () => syncFlowFollowSelection("vehicle"));
     adminEl("flowFollowVehicle")?.addEventListener("focus", () => loadFlowVehicleOptions(adminEl("flowFollowVehicle")?.value || ""));
     adminEl("flowFollowVehicle")?.addEventListener("input", (event) => {
       clearTimeout(liveFlowState.vehicleLookupTimer);
@@ -3504,7 +3523,7 @@ document.addEventListener(
     });
     adminEl("flowFollowClear")?.addEventListener("click", clearFlowFollow);
     [adminEl("flowUser"), adminEl("flowVehicle")].forEach((input) => input?.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") { event.preventDefault(); loadFlowTraces(); }
+      if (event.key === "Enter") { event.preventDefault(); liveFlowState.filterMode = "manual"; loadFlowTraces(); }
     }));
     adminEl("flowPlay")?.addEventListener("click", playFlowReplay);
     adminEl("flowPause")?.addEventListener("click", stopFlowPlayback);

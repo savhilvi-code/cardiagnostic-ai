@@ -1382,6 +1382,7 @@ button.inspector-stat-card:hover {
 .flow-follow-controls { display: grid; gap: 9px; margin-bottom: 12px; padding: 12px; border: 1px solid #284357; border-radius: 12px; background: #091923; }
 .flow-follow-controls label { display: grid; gap: 5px; min-width: 0; color: #86a6bd; font-size: 12px; }
 .flow-follow-controls .admin-search { min-width: 0; width: 100%; }
+.flow-follow-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .flow-advanced-lookup { margin-bottom: 14px; color: #86a6bd; }
 .flow-advanced-lookup summary { cursor: pointer; font-size: 12px; }
 .flow-advanced-lookup .flow-filters { margin-top: 9px; }

@@ -463,9 +463,9 @@
                 <strong>Follow</strong>
                 <label><span>User</span><input id="flowFollowUser" class="admin-search" list="flowUserOptions" placeholder="Search user"><datalist id="flowUserOptions"></datalist></label>
                 <label><span>Vehicle</span><input id="flowFollowVehicle" class="admin-search" list="flowVehicleOptions" placeholder="Search vehicle"><datalist id="flowVehicleOptions"></datalist></label>
-                <button id="flowFollowClear" class="admin-button" type="button">Clear</button>
+                <div class="flow-follow-actions"><button id="flowFollowSearch" class="admin-button admin-button-primary" type="button">Search</button><button id="flowFollowClear" class="admin-button" type="button">Clear</button></div>
               </div>
-              <details class="flow-advanced-lookup"><summary>Advanced · direct ID lookup</summary><div class="inspector-toolbar flow-filters"><select id="flowStatus" class="admin-select"><option value="">All statuses</option><option value="RUNNING">LIVE</option><option value="COMPLETED">Completed</option><option value="FAILED">Failed</option></select><input id="flowUser" class="admin-search" placeholder="Paste User ID"><input id="flowVehicle" class="admin-search" placeholder="Paste Vehicle ID"><button id="flowSearch" class="admin-button" type="button">Search</button></div></details>
+              <details class="flow-advanced-lookup"><summary>Advanced · direct ID lookup</summary><div class="inspector-toolbar flow-filters"><select id="flowStatus" class="admin-select"><option value="">All statuses</option><option value="RUNNING">LIVE</option><option value="COMPLETED">Completed</option><option value="FAILED">Failed</option></select><input id="flowUser" class="admin-search" placeholder="Paste full User ID"><input id="flowVehicle" class="admin-search" placeholder="Paste full Vehicle ID"><button id="flowSearch" class="admin-button" type="button">Lookup exact IDs</button></div></details>
               <h2>Recent requests</h2><div id="flowTraceList" class="flow-trace-list"><div class="admin-empty">Loading traces…</div></div>
             </aside>
             <section class="flow-stage-panel">
