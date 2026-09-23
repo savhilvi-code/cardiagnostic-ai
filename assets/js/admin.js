@@ -31,6 +31,7 @@ const knowledgeLibraryState = {
   sections: [], sectionRelations: [], selectedSectionId: "",
   reviewCandidates: new Map(),
 };
+let knowledgeReviewWorkspace = null;
 let adminHardDeleteState = null;
 const SIDEBAR_STORAGE_KEY = "puls-admin-sidebar-collapsed";
 
@@ -2532,21 +2533,72 @@ function reviewCandidateBody(entry) {
 }
 
 
-function reviewCaseMarkup(entry) {
+function reviewHumanValue(value) {
+  if (Array.isArray(value)) return value.filter((part) => part !== null && part !== undefined && part !== "").map(reviewHumanValue).filter(Boolean).join("; ");
+  if (value && typeof value === "object") return Object.entries(value).filter(([, part]) => part !== null && part !== undefined && part !== "").map(([key, part]) => `${key.replaceAll("_", " ")}: ${reviewHumanValue(part)}`).join("; ");
+  return String(value ?? "").trim();
+}
+
+
+function reviewFirst(...values) {
+  return values.find((value) => {
+    if (Array.isArray(value)) return value.length > 0;
+    if (value && typeof value === "object") return Object.keys(value).length > 0;
+    return value !== null && value !== undefined && String(value).trim() !== "";
+  });
+}
+
+
+function reviewCaseFields(entry) {
+  const item = entry?.candidate || {};
+  const metadata = item.metadata || {};
+  const successful = entry?.candidate_type === "SUCCESSFUL_CASE" || metadata.material_type === "SUCCESSFUL_CASE";
+  const original = entry?.candidate_type === "SUCCESSFUL_CASE" ? item : (metadata.original_case || {});
+  const originEvent = item.origin_event || metadata.origin_event || original.origin_event || {};
+  const problem = item.original_problem || metadata.original_problem || original.original_problem || {};
+  const review = metadata.mechanic_review || {};
+  const applicability = item.applicability || original.applicability || metadata.applicability;
+  return {
+    vehicle: applicability ? knowledgeApplicabilityText(applicability) : "",
+    original_problem: reviewFirst(problem.user_complaint, problem.title, problem.description, problem.summary, original.user_complaint) || "",
+    symptoms: reviewFirst(original.symptoms, item.symptoms, problem.symptoms) || [],
+    history_context: [originEvent.event_type, originEvent.title, originEvent.description, originEvent.notes, originEvent.event_date, originEvent.mileage].filter((value) => value !== null && value !== undefined && value !== ""),
+    checked: reviewFirst(original.checks, item.checks, metadata.confirmed_facts, originEvent.metadata?.checks, problem.checks) || [],
+    hypotheses: reviewFirst(problem.current_conclusion, problem.possible_causes, metadata.hypotheses, !successful ? item.causes : []) || [],
+    recommended_checks: reviewFirst(item.checks, original.recommended_checks, problem.next_steps) || [],
+    action_repair: reviewFirst(original.action, original.action_or_repair, item.solutions, originEvent.action) || "",
+    confirmed_cause: successful ? (reviewFirst(original.cause, item.cause, item.causes) || "") : (review.confirmed_cause || ""),
+    outcome: reviewFirst(original.result, metadata.result, originEvent.result) || "",
+  };
+}
+
+
+function reviewSourceMarkup(entry) {
   const item = entry?.candidate || {};
   const original = entry?.candidate_type === "SUCCESSFUL_CASE" ? item : (item.metadata?.original_case || {});
-  const readable = (value) => Array.isArray(value) ? value.filter(Boolean).map((part) => compactInspectorValue(part)).join("; ") : compactInspectorValue(value);
-  const row = (label, value) => value && readable(value) ? `<dt>${escapeAdminHtml(label)}</dt><dd>${escapeAdminHtml(readable(value))}</dd>` : "";
-  const applicability = item.applicability || original.applicability;
   const sourceRows = [
     ...(item.knowledge_sources || []).map((link) => link.source),
-    ...(Array.isArray(original.related_sources) ? original.related_sources : []),
-  ].filter(Boolean);
+    ...(item.related_sources || []).map((link) => link.source || link),
+    ...(Array.isArray(original.related_sources) ? original.related_sources.map((link) => link.source || link) : []),
+  ].filter(Boolean).filter((source, index, rows) => rows.findIndex((candidate) => String(candidate.id || candidate.url || candidate.canonical_url) === String(source.id || source.url || source.canonical_url)) === index);
   const sourceLinks = sourceRows.map((source) => {
     const url = safeInspectorUrl(source.url || source.canonical_url);
     return url ? `<a class="inspector-link" href="${escapeAdminHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeAdminHtml(source.title || source.domain || url)} ↗</a>` : `<span>${escapeAdminHtml(source.title || source.domain || "Source")}</span>`;
   }).join("");
-  return `<section class="case-human-summary">${applicability ? `<div class="knowledge-applicability-line">${escapeAdminHtml(knowledgeApplicabilityText(applicability))}</div>` : ""}<dl class="human-readable-fields">${row("Problem / symptoms", original.symptoms || item.symptoms)}${row("Checks / diagnostic context", original.checks || item.checks || original.confirmed_facts)}${row("Confirmed cause", original.cause || item.causes)}${row("Action / repair", original.action || original.action_or_repair || item.solutions)}${row("Outcome", original.result || item.metadata?.result)}</dl>${sourceLinks ? `<div class="knowledge-source-links"><strong>Evidence / Sources</strong>${sourceLinks}</div>` : ""}</section>`;
+  return sourceLinks || '<span class="admin-muted">Not recorded</span>';
+}
+
+
+function reviewCaseMarkup(entry, fields = reviewCaseFields(entry)) {
+  const labels = {
+    vehicle: "Vehicle / applicability", original_problem: "Original problem / user complaint",
+    symptoms: "Symptoms", history_context: "Relevant vehicle / history context",
+    checked: "Already checked", hypotheses: "PULS diagnosis / hypotheses",
+    recommended_checks: "Recommended checks", action_repair: "Actual action / repair",
+    confirmed_cause: "Confirmed cause", outcome: "Outcome",
+  };
+  const rows = Object.entries(labels).map(([key, label]) => `<dt>${escapeAdminHtml(label)}</dt><dd>${escapeAdminHtml(reviewHumanValue(fields[key]) || "Not recorded")}</dd>`).join("");
+  return `<section class="case-human-summary"><dl class="human-readable-fields">${rows}</dl><div class="knowledge-source-links"><strong>Evidence / Sources</strong>${reviewSourceMarkup(entry)}</div></section>`;
 }
 
 
@@ -2562,19 +2614,145 @@ async function loadKnowledgeReviewQueue() {
 }
 
 
+function reviewCanonicalForm(entry) {
+  const review = entry?.candidate?.metadata?.mechanic_review || {};
+  return {
+    technical_comment: review.technical_comment || "",
+    normalized_symptoms: Array.isArray(review.normalized_symptoms) ? review.normalized_symptoms : [],
+    confirmed_cause: review.confirmed_cause || "",
+    recommended_checks: Array.isArray(review.recommended_checks) ? review.recommended_checks : [],
+    verification_note: review.verification_note || "",
+  };
+}
+
+
+function setReviewForm(values) {
+  setKnowledgeField("reviewComment", values.technical_comment);
+  setKnowledgeField("reviewSymptoms", (values.normalized_symptoms || []).join("\n"));
+  setKnowledgeField("reviewCause", values.confirmed_cause);
+  setKnowledgeField("reviewChecks", (values.recommended_checks || []).join("\n"));
+  setKnowledgeField("reviewVerification", values.verification_note);
+}
+
+
+function currentReviewForm() {
+  return {
+    technical_comment: adminEl("reviewComment").value.trim(),
+    normalized_symptoms: linesFromInput("reviewSymptoms"),
+    confirmed_cause: adminEl("reviewCause").value.trim(),
+    recommended_checks: linesFromInput("reviewChecks"),
+    verification_note: adminEl("reviewVerification").value.trim(),
+  };
+}
+
+
+async function translateReviewFields(fields, targetLanguage) {
+  const payload = await adminFetch("/admin/knowledge/library/review-translation", { method: "POST", body: JSON.stringify({ target_language: targetLanguage, fields }) });
+  return payload?.fields || {};
+}
+
+
+function reviewTranslationPayload(caseFields, formFields) {
+  return {
+    ...caseFields,
+    review_technical_comment: formFields.technical_comment,
+    review_symptoms: formFields.normalized_symptoms,
+    review_confirmed_cause: formFields.confirmed_cause,
+    review_recommended_checks: formFields.recommended_checks,
+    review_verification_note: formFields.verification_note,
+  };
+}
+
+
+function splitReviewTranslation(fields) {
+  return {
+    caseFields: Object.fromEntries(Object.entries(fields).filter(([key]) => !key.startsWith("review_"))),
+    formFields: {
+      technical_comment: fields.review_technical_comment || "",
+      normalized_symptoms: fields.review_symptoms || [],
+      confirmed_cause: fields.review_confirmed_cause || "",
+      recommended_checks: fields.review_recommended_checks || [],
+      verification_note: fields.review_verification_note || "",
+    },
+  };
+}
+
+
+async function changeKnowledgeReviewLanguage() {
+  if (!knowledgeReviewWorkspace) return;
+  const language = adminEl("reviewLanguage")?.value || "";
+  const status = adminEl("knowledgeReviewStatus");
+  status.className = "admin-status knowledge-form-wide";
+  if (!language || language === "en") {
+    adminEl("reviewWorkspaceCase").innerHTML = knowledgeReviewWorkspace.canonicalMarkup;
+    setReviewForm(knowledgeReviewWorkspace.canonicalForm);
+    status.textContent = "";
+    return;
+  }
+  const cached = knowledgeReviewWorkspace.translations.get(language);
+  if (cached) {
+    adminEl("reviewWorkspaceCase").innerHTML = `${reviewCaseMarkup(knowledgeReviewWorkspace.entry, cached.caseFields)}${knowledgeReviewWorkspace.technicalMarkup}`;
+    setReviewForm(cached.formFields);
+    status.textContent = "";
+    return;
+  }
+  status.textContent = "Translating Case for review…";
+  try {
+    const translated = splitReviewTranslation(await translateReviewFields(reviewTranslationPayload(knowledgeReviewWorkspace.canonicalCase, knowledgeReviewWorkspace.canonicalForm), language));
+    knowledgeReviewWorkspace.translations.set(language, translated);
+    adminEl("reviewWorkspaceCase").innerHTML = `${reviewCaseMarkup(knowledgeReviewWorkspace.entry, translated.caseFields)}${knowledgeReviewWorkspace.technicalMarkup}`;
+    setReviewForm(translated.formFields);
+    status.textContent = "";
+  } catch (error) {
+    adminEl("reviewWorkspaceCase").innerHTML = knowledgeReviewWorkspace.canonicalMarkup;
+    setReviewForm(knowledgeReviewWorkspace.canonicalForm);
+    status.textContent = `Translation failed. Showing canonical Case: ${error.message}`;
+    status.className = "admin-status knowledge-form-wide error";
+  }
+}
+
+
 function openKnowledgeReviewModal(type, id) {
   adminEl("knowledgeReviewForm").reset(); setKnowledgeField("reviewCandidateType", type); setKnowledgeField("reviewCandidateId", id);
   const entry = knowledgeLibraryState.reviewCandidates.get(String(id));
-  adminEl("reviewWorkspaceCase").innerHTML = entry ? `${reviewCaseMarkup(entry)}<details><summary>Technical details</summary><pre class="inspector-json">${escapeAdminHtml(inspectorJson({ candidate_type: entry.candidate_type, id, metadata: entry.candidate?.metadata || {} }))}</pre></details>` : '<div class="admin-empty">Case context is unavailable. Refresh the review queue.</div>';
-  setKnowledgeField("reviewLanguage", entry?.candidate?.metadata?.mechanic_review?.review_language || "");
+  const technicalMarkup = entry ? `<details><summary>Technical details</summary><pre class="inspector-json">${escapeAdminHtml(inspectorJson({ candidate_type: entry.candidate_type, id, metadata: entry.candidate?.metadata || {} }))}</pre></details>` : "";
+  const canonicalCase = entry ? reviewCaseFields(entry) : {};
+  const canonicalForm = reviewCanonicalForm(entry);
+  const canonicalMarkup = entry ? `${reviewCaseMarkup(entry, canonicalCase)}${technicalMarkup}` : '<div class="admin-empty">Case context is unavailable. Refresh the review queue.</div>';
+  knowledgeReviewWorkspace = { entry, canonicalCase, canonicalForm, canonicalMarkup, technicalMarkup, translations: new Map() };
+  adminEl("reviewWorkspaceCase").innerHTML = canonicalMarkup;
+  setReviewForm(canonicalForm);
+  const savedLanguage = entry?.candidate?.metadata?.mechanic_review?.review_language || "";
+  setKnowledgeField("reviewLanguage", savedLanguage);
   adminEl("knowledgeReviewStatus").textContent = ""; adminEl("knowledgeReviewModal").hidden = false;
+  if (savedLanguage && savedLanguage !== "en") changeKnowledgeReviewLanguage();
 }
 
 
 async function saveKnowledgeReview(event) {
   event.preventDefault();
-  const payload = { candidate_type: adminEl("reviewCandidateType").value, candidate_id: adminEl("reviewCandidateId").value, decision: adminEl("reviewDecision").value, review_language: adminEl("reviewLanguage")?.value || null, technical_comment: adminEl("reviewComment").value.trim() || null, normalized_symptoms: linesFromInput("reviewSymptoms"), confirmed_cause: adminEl("reviewCause").value.trim() || null, recommended_checks: linesFromInput("reviewChecks"), verification_note: adminEl("reviewVerification").value.trim() || null };
-  try { await adminFetch("/admin/knowledge/library/reviews", { method: "POST", body: JSON.stringify(payload) }); adminEl("knowledgeReviewModal").hidden = true; await loadKnowledgeReviewQueue(); }
+  const reviewLanguage = adminEl("reviewLanguage")?.value || "";
+  const authored = currentReviewForm();
+  const payload = { candidate_type: adminEl("reviewCandidateType").value, candidate_id: adminEl("reviewCandidateId").value, decision: adminEl("reviewDecision").value, review_language: reviewLanguage || null, ...authored };
+  try {
+    if (reviewLanguage === "ru") {
+      adminEl("knowledgeReviewStatus").textContent = "Normalizing review to canonical English…";
+      const translated = await translateReviewFields({
+        review_technical_comment: authored.technical_comment,
+        review_symptoms: authored.normalized_symptoms,
+        review_confirmed_cause: authored.confirmed_cause,
+        review_recommended_checks: authored.recommended_checks,
+        review_verification_note: authored.verification_note,
+      }, "en");
+      payload.technical_comment = translated.review_technical_comment || null;
+      payload.normalized_symptoms = translated.review_symptoms || [];
+      payload.confirmed_cause = translated.review_confirmed_cause || null;
+      payload.recommended_checks = translated.review_recommended_checks || [];
+      payload.verification_note = translated.review_verification_note || null;
+      payload.review_language_content = authored;
+    }
+    await adminFetch("/admin/knowledge/library/reviews", { method: "POST", body: JSON.stringify(payload) }); adminEl("knowledgeReviewModal").hidden = true; knowledgeReviewWorkspace = null; await loadKnowledgeReviewQueue();
+  }
   catch (error) { adminEl("knowledgeReviewStatus").textContent = error.message; adminEl("knowledgeReviewStatus").className = "admin-status knowledge-form-wide error"; }
 }
 
@@ -2707,7 +2885,8 @@ function initializeSidebar() {
 
 const liveFlowState = {
   traces: [], trace: null, events: [], index: -1, timer: null,
-  speed: 1, streamAbort: null, streamCursor: 0, mode: "trace", copyTimer: null
+  speed: 1, streamAbort: null, streamCursor: 0, mode: "trace", copyTimer: null,
+  followUsers: new Map(), followVehicles: new Map(), vehicleLookupTimer: null
 };
 
 
@@ -2736,6 +2915,79 @@ function renderFlowTraces() {
       <span>${escapeAdminHtml(trace.message_excerpt || "No excerpt")}</span>
       <small>${escapeAdminHtml(trace.started_at || "")} · ${Number(trace.duration_ms || 0)} ms</small>
     </button>`).join("") : '<div class="admin-empty">No traces found.</div>';
+}
+
+
+function shortFlowId(value) {
+  const text = String(value || "");
+  return text.length > 12 ? `${text.slice(0, 8)}…${text.slice(-4)}` : text;
+}
+
+
+function flowUserLabel(user) {
+  const id = String(user.user_id || user.id || "");
+  return `${user.email || user.full_name || user.name || "User"} · ${shortFlowId(id)}`;
+}
+
+
+function renderFlowUserOptions() {
+  const node = adminEl("flowUserOptions");
+  if (!node) return;
+  liveFlowState.followUsers = new Map();
+  node.innerHTML = adminUsers.map((user) => {
+    const id = String(user.user_id || user.id || "");
+    const label = flowUserLabel(user);
+    if (id) { liveFlowState.followUsers.set(label, id); liveFlowState.followUsers.set(id, id); }
+    return id ? `<option value="${escapeAdminHtml(label)}"></option>` : "";
+  }).join("");
+}
+
+
+function flowVehicleLabel(vehicle) {
+  const identity = [vehicle.make || vehicle.brand, vehicle.model, vehicle.year].filter(Boolean).join(" ") || "Vehicle";
+  const owner = vehicle.user?.email || vehicle.user?.full_name || vehicle.user?.name || (vehicle.user_id ? `owner ${shortFlowId(vehicle.user_id)}` : "owner unknown");
+  return `${identity} · ${shortFlowId(vehicle.id)} · ${owner}`;
+}
+
+
+async function loadFlowVehicleOptions(query = "") {
+  const node = adminEl("flowVehicleOptions");
+  if (!node) return;
+  try {
+    const params = new URLSearchParams({ limit: "25", offset: "0" });
+    if (query.trim()) params.set("q", query.trim());
+    const payload = await adminFetch(`/admin/knowledge/vehicles?${params}`);
+    const vehicles = Array.isArray(payload?.items) ? payload.items : [];
+    liveFlowState.followVehicles = new Map();
+    node.innerHTML = vehicles.map((vehicle) => {
+      const id = String(vehicle.id || "");
+      const label = flowVehicleLabel(vehicle);
+      if (id) { liveFlowState.followVehicles.set(label, id); liveFlowState.followVehicles.set(id, id); }
+      return id ? `<option value="${escapeAdminHtml(label)}"></option>` : "";
+    }).join("");
+  } catch (error) {
+    flowSetStatus(`Vehicle lookup failed: ${error.message}`, "error");
+  }
+}
+
+
+async function applyFlowFollow(kind) {
+  const input = adminEl(kind === "user" ? "flowFollowUser" : "flowFollowVehicle");
+  const map = kind === "user" ? liveFlowState.followUsers : liveFlowState.followVehicles;
+  const id = map.get(input?.value.trim());
+  if (!id) return;
+  setKnowledgeField("flowUser", kind === "user" ? id : "");
+  setKnowledgeField("flowVehicle", kind === "vehicle" ? id : "");
+  setKnowledgeField(kind === "user" ? "flowFollowVehicle" : "flowFollowUser", "");
+  flowSetStatus(`Following ${kind} ${shortFlowId(id)}.`);
+  await loadFlowTraces();
+}
+
+
+async function clearFlowFollow() {
+  ["flowFollowUser", "flowFollowVehicle", "flowUser", "flowVehicle"].forEach((id) => setKnowledgeField(id, ""));
+  flowSetStatus("");
+  await loadFlowTraces();
 }
 
 
@@ -3183,7 +3435,7 @@ async function selectAdminSection(section) {
     button.classList.toggle("is-active", button.dataset.adminSection === section);
   });
   if (knowledge) await selectInspectorTab(inspectorState.tab);
-  else if (flow) { window.history.replaceState(null, "", "#live-flow"); await loadFlowTraces(); }
+  else if (flow) { window.history.replaceState(null, "", "#live-flow"); renderFlowUserOptions(); await loadFlowVehicleOptions(); await loadFlowTraces(); }
   else window.history.replaceState(null, "", "#users");
 }
 
@@ -3231,6 +3483,7 @@ document.addEventListener(
     adminEl("reviewQueueRefresh")?.addEventListener("click", () => { knowledgeLibraryState.reviewOffset = 0; loadKnowledgeReviewQueue(); });
     adminEl("knowledgeMaterialForm")?.addEventListener("submit", saveKnowledgeMaterial);
     adminEl("knowledgeReviewForm")?.addEventListener("submit", saveKnowledgeReview);
+    adminEl("reviewLanguage")?.addEventListener("change", changeKnowledgeReviewLanguage);
     adminEl("generalSectionForm")?.addEventListener("submit", saveKnowledgeSection);
     adminEl("generalSectionCancel")?.addEventListener("click", resetKnowledgeSectionForm);
     adminEl("schemaGapRefresh")?.addEventListener("click", loadAdminSchemaGaps);
@@ -3239,7 +3492,17 @@ document.addEventListener(
     adminEl("flowCopyTrace")?.addEventListener("click", copyFlowTrace);
     adminEl("flowExportTrace")?.addEventListener("click", exportFlowTrace);
     adminEl("flowStatus")?.addEventListener("change", loadFlowTraces);
-    adminEl("flowSearch")?.addEventListener("click", loadFlowTraces);
+    adminEl("flowSearch")?.addEventListener("click", () => {
+      setKnowledgeField("flowFollowUser", ""); setKnowledgeField("flowFollowVehicle", ""); loadFlowTraces();
+    });
+    adminEl("flowFollowUser")?.addEventListener("change", () => applyFlowFollow("user"));
+    adminEl("flowFollowVehicle")?.addEventListener("change", () => applyFlowFollow("vehicle"));
+    adminEl("flowFollowVehicle")?.addEventListener("focus", () => loadFlowVehicleOptions(adminEl("flowFollowVehicle")?.value || ""));
+    adminEl("flowFollowVehicle")?.addEventListener("input", (event) => {
+      clearTimeout(liveFlowState.vehicleLookupTimer);
+      liveFlowState.vehicleLookupTimer = setTimeout(() => loadFlowVehicleOptions(event.target.value), 250);
+    });
+    adminEl("flowFollowClear")?.addEventListener("click", clearFlowFollow);
     [adminEl("flowUser"), adminEl("flowVehicle")].forEach((input) => input?.addEventListener("keydown", (event) => {
       if (event.key === "Enter") { event.preventDefault(); loadFlowTraces(); }
     }));

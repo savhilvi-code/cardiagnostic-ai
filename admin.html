@@ -428,7 +428,7 @@
               <input id="reviewCandidateType" type="hidden"><input id="reviewCandidateId" type="hidden">
               <label>Decision<select id="reviewDecision" class="admin-select"><option value="VERIFIED">Verified</option><option value="NEEDS_CLARIFICATION">Needs Clarification</option><option value="REJECTED">Rejected</option><option value="PENDING_REVIEW">Pending Review</option></select></label>
               <label>Review language<select id="reviewLanguage" class="admin-select"><option value="">Original language</option><option value="ru">Russian</option><option value="en">English</option></select></label>
-              <p class="admin-status knowledge-form-wide">The selected language is stored with the review. Automatic translation is not available in the current backend contract.</p>
+              <p class="admin-status knowledge-form-wide">Case context is translated for review; Sources remain in their original language. Reviewed semantic content is saved canonically in English.</p>
               <label class="knowledge-form-wide">Technical comment<textarea id="reviewComment" class="admin-search" rows="3"></textarea></label>
               <label class="knowledge-form-wide">Normalized symptoms<textarea id="reviewSymptoms" class="admin-search" rows="2" placeholder="One symptom per line"></textarea></label>
               <label>Confirmed cause<input id="reviewCause" class="admin-search"></label>
@@ -459,7 +459,13 @@
           </div>
           <div class="flow-layout">
             <aside class="flow-recent-panel">
-              <div class="inspector-toolbar flow-filters"><select id="flowStatus" class="admin-select"><option value="">All statuses</option><option value="RUNNING">LIVE</option><option value="COMPLETED">Completed</option><option value="FAILED">Failed</option></select><input id="flowUser" class="admin-search" placeholder="Paste User ID"><input id="flowVehicle" class="admin-search" placeholder="Paste Vehicle ID"><button id="flowSearch" class="admin-button" type="button">Search</button></div>
+              <div class="flow-follow-controls">
+                <strong>Follow</strong>
+                <label><span>User</span><input id="flowFollowUser" class="admin-search" list="flowUserOptions" placeholder="Search user"><datalist id="flowUserOptions"></datalist></label>
+                <label><span>Vehicle</span><input id="flowFollowVehicle" class="admin-search" list="flowVehicleOptions" placeholder="Search vehicle"><datalist id="flowVehicleOptions"></datalist></label>
+                <button id="flowFollowClear" class="admin-button" type="button">Clear</button>
+              </div>
+              <details class="flow-advanced-lookup"><summary>Advanced · direct ID lookup</summary><div class="inspector-toolbar flow-filters"><select id="flowStatus" class="admin-select"><option value="">All statuses</option><option value="RUNNING">LIVE</option><option value="COMPLETED">Completed</option><option value="FAILED">Failed</option></select><input id="flowUser" class="admin-search" placeholder="Paste User ID"><input id="flowVehicle" class="admin-search" placeholder="Paste Vehicle ID"><button id="flowSearch" class="admin-button" type="button">Search</button></div></details>
               <h2>Recent requests</h2><div id="flowTraceList" class="flow-trace-list"><div class="admin-empty">Loading traces…</div></div>
             </aside>
             <section class="flow-stage-panel">
