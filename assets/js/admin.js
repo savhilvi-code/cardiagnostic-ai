@@ -1995,6 +1995,25 @@ function knowledgeApplicabilityText(value) {
 
 
 function knowledgeCategoryCount(key) {
+  if (knowledgeLibraryState.scope === "vehicles" && knowledgeLibraryState.configurationInspector) {
+    const payload = knowledgeLibraryState.configurationInspector;
+    const material = (name) => Array.isArray(payload.materials?.[name]) ? payload.materials[name].length : 0;
+    const direct = {
+      configuration: payload.configuration ? 1 : 0,
+      "technical-data": Array.isArray(payload.technical_schema) ? payload.technical_schema.length : 0,
+      manuals: material("manuals"), specifications: material("specifications"),
+      procedures: material("procedures"), videos: material("videos"),
+      problems: Array.isArray(payload.problems) ? payload.problems.length : 0,
+      "research-evidence": Array.isArray(payload.research_evidence) ? payload.research_evidence.length : 0,
+      sources: Array.isArray(payload.sources) ? payload.sources.length : 0,
+      "successful-cases": Array.isArray(payload.successful_cases) ? payload.successful_cases.length : 0,
+      "schema-gaps": Array.isArray(payload.schema_gaps) ? payload.schema_gaps.length : 0,
+    };
+    if (Object.prototype.hasOwnProperty.call(direct, key)) return direct[key];
+    if (key === "overview") return material("manuals") + material("specifications")
+      + material("procedures") + material("videos") + direct.problems
+      + direct["research-evidence"] + direct.sources + direct["successful-cases"];
+  }
   const counts = knowledgeLibraryState.counts || {};
   const groups = {
     manuals: ["MANUAL", "MANUFACTURER_DOCUMENT", "TECHNICAL_BULLETIN"], specifications: ["SPECIFICATION"],
@@ -2013,7 +2032,7 @@ function renderKnowledgeCategories() {
     ["sources", "Sources"], ["successful-cases", "Successful Cases"],
     ["schema-gaps", "Schema Gaps"],
   ] : [["overview", "Folders & Sections"], ["all", "All Materials"]];
-  adminEl("knowledgeCategories").innerHTML = categories.map(([key, label]) => `<button type="button" class="knowledge-category ${knowledgeLibraryState.category === key ? "is-active" : ""}" data-knowledge-category="${key}">${escapeAdminHtml(label)}${key === "problems" ? "" : ` <span>${knowledgeCategoryCount(key)}</span>`}</button>`).join("");
+  adminEl("knowledgeCategories").innerHTML = categories.map(([key, label]) => `<button type="button" class="knowledge-category ${knowledgeLibraryState.category === key ? "is-active" : ""}" data-knowledge-category="${key}">${escapeAdminHtml(label)} <span>${knowledgeCategoryCount(key)}</span></button>`).join("");
 }
 
 
