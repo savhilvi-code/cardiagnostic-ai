@@ -2052,9 +2052,9 @@ function configurationLabel(item) {
 
 
 function configurationDimension(item, key) {
-  if (key === "year") return item.year_from || item.year_to ? `${item.year_from || "…"}–${item.year_to || "…"}` : "Year not recorded";
+  if (key === "year") return item.year_from || item.year_to ? `${item.year_from || "…"}–${item.year_to || "…"}` : "Missing";
   const aliases = { body: item.body_type || item.chassis_code, engine: item.engine || item.engine_code };
-  return aliases[key] || item[key] || `${key.replaceAll("_", " ")} not recorded`;
+  return aliases[key] || item[key] || "Missing";
 }
 
 
@@ -2074,24 +2074,17 @@ function configurationMatchesFilters(item) {
 
 function renderConfigurationBranch(items, dimensions, depth = 0) {
   if (!dimensions.length) return items.map((item) => `<button class="knowledge-configuration-option ${String(item.id) === String(knowledgeLibraryState.configurationId) ? "is-active" : ""}" type="button" data-configuration-id="${escapeAdminHtml(item.id)}"><strong>${escapeAdminHtml([configurationDimension(item, "fuel_type"), item.market].filter(Boolean).join(" · ") || "Open configuration")}</strong><small>${escapeAdminHtml(configurationLabel(item))}</small></button>`).join("");
-  const hasKnownValue = (item, key) => {
-    if (key === "year") return Boolean(item.year_from || item.year_to);
-    if (key === "body") return Boolean(item.body_type || item.chassis_code);
-    if (key === "engine") return Boolean(item.engine || item.engine_code);
-    return Boolean(item[key]);
-  };
-  if (!dimensions.some((dimension) => items.some((item) => hasKnownValue(item, dimension)))) {
-    return items.map((item) => `<button class="knowledge-configuration-option ${String(item.id) === String(knowledgeLibraryState.configurationId) ? "is-active" : ""}" type="button" data-configuration-id="${escapeAdminHtml(item.id)}"><strong>Open configuration</strong><small>${escapeAdminHtml(configurationLabel(item))}</small></button>`).join("");
-  }
   const [dimension, ...rest] = dimensions;
-  if (!items.some((item) => hasKnownValue(item, dimension))) return renderConfigurationBranch(items, rest, depth);
   const groups = new Map();
   items.forEach((item) => {
     const label = configurationDimension(item, dimension);
     if (!groups.has(label)) groups.set(label, []);
     groups.get(label).push(item);
   });
-  return [...groups.entries()].map(([label, rows]) => `<details class="configuration-tree-level depth-${depth}" ${depth < 2 ? "open" : ""}><summary><span>${escapeAdminHtml(dimension.replaceAll("_", " "))}</span><strong>${escapeAdminHtml(label)}</strong><small>${rows.length}</small></summary><div>${renderConfigurationBranch(rows, rest, depth + 1)}</div></details>`).join("");
+  return [...groups.entries()].map(([label, rows]) => {
+    const containsSelection = rows.some((item) => String(item.id) === String(knowledgeLibraryState.configurationId));
+    return `<details class="configuration-tree-level depth-${depth}" ${depth < 2 || containsSelection ? "open" : ""}><summary><span>${escapeAdminHtml(dimension.replaceAll("_", " "))}</span><strong>${escapeAdminHtml(label)}</strong><small>${rows.length}</small></summary><div>${renderConfigurationBranch(rows, rest, depth + 1)}</div></details>`;
+  }).join("");
 }
 
 
@@ -2277,8 +2270,10 @@ async function loadKnowledgeMaterials() {
   if (knowledgeLibraryState.scope === "vehicles") { await loadVehicleConfigurationInspector(); return; }
   if (knowledgeLibraryState.category === "problems") { await loadKnowledgeProblems(); return; }
   const params = new URLSearchParams({ limit: String(knowledgeLibraryState.limit), offset: String(knowledgeLibraryState.offset) });
-  if (knowledgeLibraryState.scope === "general") params.set("scope", "general");
-  else { params.set("make", knowledgeLibraryState.make); params.set("model", knowledgeLibraryState.model); }
+  if (knowledgeLibraryState.scope !== "general") {
+    params.set("make", knowledgeLibraryState.make);
+    params.set("model", knowledgeLibraryState.model);
+  }
   if (!["overview", "all"].includes(knowledgeLibraryState.category)) params.set("category", knowledgeLibraryState.category);
   const values = {
     knowledge_type: adminEl("libraryKnowledgeType")?.value, source_type: adminEl("librarySourceType")?.value,
@@ -2404,6 +2399,7 @@ function setKnowledgeField(id, value) { if (adminEl(id)) adminEl(id).value = val
 function openKnowledgeMaterialModal(item = null) {
   initializeKnowledgeLibraryControls(); adminEl("knowledgeMaterialForm").reset();
   const application = item?.applicability || {};
+  const hasVehicleApplicability = Boolean(application.make || application.model || application.id);
   setKnowledgeField("knowledgeEditId", item?.id); setKnowledgeField("materialTitle", item?.title); setKnowledgeField("materialType", item?.knowledge_type || "OTHER");
   setKnowledgeField("materialDescription", item?.summary || item?.metadata?.description); setKnowledgeField("materialStatus", item?.validation_status || "PENDING_REVIEW");
   setKnowledgeField("materialPageReference", item?.metadata?.page_reference); setKnowledgeField("materialNotes", item?.metadata?.notes);
@@ -2415,7 +2411,7 @@ function openKnowledgeMaterialModal(item = null) {
   adminEl("knowledgeMaterialTitle").textContent = item ? "Edit Material" : "Add Material";
   adminEl("knowledgeMaterialContext").textContent = knowledgeLibraryState.scope === "general" ? "General Knowledge · choose a section/folder after saving when needed." : `Vehicle Library · ${[knowledgeLibraryState.make, knowledgeLibraryState.model].filter(Boolean).join(" ") || "vehicle applicability"}`;
   adminEl("knowledgeMaterialStatus").textContent = "";
-  adminEl("knowledgeMaterialForm").querySelector(".knowledge-applicability").hidden = knowledgeLibraryState.scope === "general";
+  adminEl("knowledgeMaterialForm").querySelector(".knowledge-applicability").hidden = knowledgeLibraryState.scope === "general" && !hasVehicleApplicability;
   setKnowledgeMaterialMode(source?.url || !item ? "url" : "note");
   adminEl("knowledgeMaterialModal").hidden = false;
 }
@@ -2430,14 +2426,16 @@ function linesFromInput(id) { return String(adminEl(id)?.value || "").split("\n"
 async function saveKnowledgeMaterial(event) {
   event.preventDefault();
   const editId = adminEl("knowledgeEditId").value;
+  const editingItem = knowledgeLibraryState.items.get(String(editId));
   const mode = document.querySelector("[data-material-mode].is-active")?.dataset.materialMode || "note";
   const general = knowledgeLibraryState.scope === "general";
+  const preserveVehicleApplicability = Boolean(editingItem?.applicability);
   const payload = {
     title: adminEl("materialTitle").value.trim(), knowledge_type: adminEl("materialType").value,
     description: adminEl("materialDescription").value.trim(), validation_status: adminEl("materialStatus").value,
     url: adminEl("materialUrl").value.trim() || null, source_type: adminEl("materialSourceType").value || null,
     page_reference: adminEl("materialPageReference").value.trim() || null, notes: adminEl("materialNotes").value.trim() || null,
-    applicability: general ? null : {
+    applicability: general && !preserveVehicleApplicability ? null : {
       make: adminEl("materialMake").value.trim(), model: adminEl("materialModel").value.trim(), generation: adminEl("materialGeneration").value.trim() || null,
       year_from: adminEl("materialYearFrom").value || null, year_to: adminEl("materialYearTo").value || null, body_type: adminEl("materialBody").value.trim() || null,
       engine_code: adminEl("materialEngine").value.trim() || null, transmission: adminEl("materialTransmission").value.trim() || null,
