@@ -2480,6 +2480,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     let chatAttachmentVideoTimer = 0;
     let pendingChatAttachment = null;
     let activeChatAttachmentUploads = 0;
+    let chatAttachmentConversationPromise = null;
 
     function chatComposerCanSend() {
       const pending = pendingChatAttachment;
@@ -2525,6 +2526,31 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       pending.metadata = data?.message?.metadata || data?.metadata || null;
       pending.state = "ready";
       return pending;
+    }
+
+    async function ensureChatAttachmentConversation(context, owner) {
+      if (context?.conversation_id) return context;
+      if (!context?.vehicle_id) throw new Error(t("composer.attachmentStartChat"));
+      if (!chatAttachmentConversationPromise) {
+        chatAttachmentConversationPromise = (async () => {
+          const form = new FormData();
+          form.set("vehicle_id", context.vehicle_id);
+          const response = await fetch(`${API_BASE_URL}/api/chat/conversations`, {
+            method: "POST",
+            headers: await backendAuthHeaders(),
+            body: form,
+          });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok || !data.conversation_id) {
+            throw new Error(String(data?.detail || t("composer.attachmentStartChat")));
+          }
+          window.PulsChat.afterAttachment(owner, data);
+          return window.PulsChat.requestContext();
+        })().finally(() => {
+          chatAttachmentConversationPromise = null;
+        });
+      }
+      return chatAttachmentConversationPromise;
     }
 
     async function removePendingAttachment() {
@@ -3007,6 +3033,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           await restoreChatMessages();
           context = window.PulsChat.requestContext();
         }
+        context = await ensureChatAttachmentConversation(context, owner);
         ensureChatAttachmentStateVisible(uploadState);
         if (!context.conversation_id) {
           throw new Error(t("composer.attachmentStartChat"));
@@ -3037,7 +3064,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         uploadState.bubble.innerHTML = chatAttachmentBodyMarkup(data.file, { state: "saved", time: uploadState.time, messageId: data.message_id });
         if (uploadState.previewUrl) URL.revokeObjectURL(uploadState.previewUrl);
         void hydrateChatAttachmentImages(uploadState.bubble);
-        if (!pending) window.PulsChat.afterAttachment(owner);
+        window.PulsChat.afterAttachment(owner, data);
         toast(t("composer.attachmentSaved"));
         if (pending?.cancelRequested && pendingChatAttachment === pending) void removePendingAttachment();
       } catch (error) {

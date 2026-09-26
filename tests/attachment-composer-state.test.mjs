@@ -20,6 +20,53 @@ function productionFunction(name) {
 
 const completeUpload = vm.runInNewContext(`(${productionFunction("completePendingAttachmentUpload")})`);
 const canSendSource = productionFunction("chatComposerCanSend");
+const ensureConversationSource = productionFunction("ensureChatAttachmentConversation");
+
+test("concurrent first-message attachments share one canonical conversation initialization", async () => {
+  const runtime = { fetchCount: 0 };
+  const result = await vm.runInNewContext(
+    `(async () => {
+      let chatAttachmentConversationPromise = null;
+      ${ensureConversationSource}
+      return Promise.all([
+        ensureChatAttachmentConversation({ vehicle_id: "vehicle-1" }, "user-1"),
+        ensureChatAttachmentConversation({ vehicle_id: "vehicle-1" }, "user-1"),
+      ]);
+    })()`,
+    {
+      API_BASE_URL: "https://example.invalid",
+      FormData: class {
+        set() {}
+      },
+      backendAuthHeaders: async () => ({ Authorization: "Bearer test" }),
+      fetch: async () => {
+        runtime.fetchCount += 1;
+        return {
+          ok: true,
+          json: async () => ({ conversation_id: "conversation-1", vehicle_id: "vehicle-1" }),
+        };
+      },
+      runtime,
+      t: () => "error",
+      window: {
+        PulsChat: {
+          afterAttachment(_owner, data) {
+            this.context = { conversation_id: data.conversation_id, vehicle_id: data.vehicle_id };
+          },
+          requestContext() {
+            return this.context;
+          },
+        },
+      },
+    },
+  );
+
+  assert.deepEqual(Array.from(result, (item) => ({ ...item })), [
+    { conversation_id: "conversation-1", vehicle_id: "vehicle-1" },
+    { conversation_id: "conversation-1", vehicle_id: "vehicle-1" },
+  ]);
+  assert.equal(runtime.fetchCount, 1);
+});
 
 for (const [label, mimeType] of [["image", "image/jpeg"], ["PDF", "application/pdf"]]) {
   test(`${label} upload completion keeps the same pending attachment ready to send`, () => {

@@ -90,9 +90,18 @@ window.PulsChat = (() => {
       marker.lastActivity=lastActivity;store();
     }catch{ /* Keep the response visible; recover authoritative activity on refresh. */ }
   }
-  function afterAttachment(user){
-    if(user!==window.pulsCurrentUser?.id||owner!==user||!marker?.conversationId)return;
-    lastActivity=Date.now();marker.lastActivity=lastActivity;store();
+  function afterAttachment(user,attachment={}){
+    if(user!==window.pulsCurrentUser?.id||owner!==user)return;
+    const conversationId=attachment.conversation_id||marker?.conversationId;
+    if(!conversationId)return;
+    lastActivity=Date.now();
+    marker={
+      conversationId,
+      vehicleId:attachment.vehicle_id||marker?.vehicleId||null,
+      problemId:attachment.problem_id||marker?.problemId||null,
+      lastActivity
+    };
+    store();banner();
   }
   function continueProblem(vehicle,problem){
     authChanged();++version;restoring=null;
