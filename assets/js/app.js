@@ -2966,8 +2966,6 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         toast(t("composer.pdfTooLarge"));
         return;
       }
-      activeChatAttachmentUploads += 1;
-      syncPendingAttachmentComposer();
       const owner = window.pulsCurrentUser?.id;
       const uploadState = appendChatAttachmentUpload(file);
       const pendingCandidate = (isChatImage(file) || isChatPdf(file)) && !pendingChatAttachment;
@@ -2989,8 +2987,9 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       if (pending) {
         uploadState.bubble.hidden = true;
         pendingChatAttachment = pending;
-        syncPendingAttachmentComposer();
       }
+      activeChatAttachmentUploads += 1;
+      syncPendingAttachmentComposer();
       try {
         await window.PulsChat.beforeSend();
         let context = window.PulsChat.requestContext();
