@@ -2518,6 +2518,15 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       syncPendingAttachmentComposer();
     }
 
+    function completePendingAttachmentUpload(pending, data) {
+      pending.messageId = String(data?.message_id || "");
+      pending.fileId = String(data?.file?.id || "");
+      pending.file = { ...pending.file, ...(data?.file || {}) };
+      pending.metadata = data?.message?.metadata || data?.metadata || null;
+      pending.state = "ready";
+      return pending;
+    }
+
     async function removePendingAttachment() {
       const pending = pendingChatAttachment;
       if (!pending || window.PulsChat?.sending) return;
@@ -2990,6 +2999,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       }
       activeChatAttachmentUploads += 1;
       syncPendingAttachmentComposer();
+      let uploadCompleted = false;
       try {
         await window.PulsChat.beforeSend();
         let context = window.PulsChat.requestContext();
@@ -3018,33 +3028,32 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           if (uploadState.previewUrl) URL.revokeObjectURL(uploadState.previewUrl);
           return;
         }
-        uploadState.bubble.dataset.chatMessageId = String(data.message_id || "");
-        uploadState.bubble.innerHTML = chatAttachmentBodyMarkup(data.file, { state: "saved", time: uploadState.time, messageId: data.message_id });
+        uploadCompleted = true;
         if (pendingChatAttachment === pending) {
-          pending.messageId = String(data.message_id || "");
-          pending.fileId = String(data.file?.id || "");
-          pending.file = { ...pending.file, ...(data.file || {}) };
-          pending.metadata = data.message?.metadata || data.metadata || null;
-          pending.state = "ready";
+          completePendingAttachmentUpload(pending, data);
           syncPendingAttachmentComposer();
         }
+        uploadState.bubble.dataset.chatMessageId = String(data.message_id || "");
+        uploadState.bubble.innerHTML = chatAttachmentBodyMarkup(data.file, { state: "saved", time: uploadState.time, messageId: data.message_id });
         if (uploadState.previewUrl) URL.revokeObjectURL(uploadState.previewUrl);
         void hydrateChatAttachmentImages(uploadState.bubble);
         if (!pending) window.PulsChat.afterAttachment(owner);
         toast(t("composer.attachmentSaved"));
         if (pending?.cancelRequested && pendingChatAttachment === pending) void removePendingAttachment();
       } catch (error) {
-        console.error("Chat attachment upload failed:", error);
-        if (pending) {
+        console.error(uploadCompleted ? "Chat attachment post-upload UI failed:" : "Chat attachment upload failed:", error);
+        if (pending && !uploadCompleted) {
           uploadState.bubble.remove();
           if (uploadState.previewUrl) URL.revokeObjectURL(uploadState.previewUrl);
           if (pendingChatAttachment === pending) clearPendingAttachment();
-        } else {
+        } else if (!uploadCompleted) {
           ensureChatAttachmentStateVisible(uploadState);
           uploadState.bubble.hidden = false;
           uploadState.bubble.innerHTML = chatAttachmentBodyMarkup(file, { state: "failed", time: uploadState.time, previewUrl: uploadState.previewUrl });
+        } else if (pendingChatAttachment === pending) {
+          syncPendingAttachmentComposer();
         }
-        toast(String(error.message || t("composer.attachmentError")));
+        if (!uploadCompleted) toast(String(error.message || t("composer.attachmentError")));
       } finally {
         activeChatAttachmentUploads = Math.max(0, activeChatAttachmentUploads - 1);
         syncPendingAttachmentComposer();
