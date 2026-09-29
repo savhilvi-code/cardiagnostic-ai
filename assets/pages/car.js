@@ -4,7 +4,7 @@ window.PulsCar = (() => {
     myCar:['My Car','Мой автомобиль'], memory:['Your vehicle’s technical logbook','Техническая жизнь вашего автомобиля'], trash:['Trash','Корзина'],
     noCars:["You don't have any vehicles yet.",'У вас пока нет автомобилей.'], emptyHelp:['Add your vehicle so PULS can use its technical specifications, maintenance history and diagnostic context.','Добавьте автомобиль, чтобы PULS мог учитывать его характеристики, обслуживание и контекст диагностики.'],
     add:['+ Add vehicle','+ Добавить автомобиль'], addPlain:['Add vehicle','Добавить автомобиль'], settings:['⚙ Settings','⚙ Настройки'], edit:['Edit vehicle','Редактировать автомобиль'], deleteVehicle:['Delete vehicle','Удалить автомобиль'], moveTrash:['Move to Trash','Переместить в корзину'],
-    overview:['Overview','Обзор'], data:['Data','Данные'], history:['History','История'], problems:['Active Problems','Активные проблемы'], logbook:['Vehicle Log','Бортовой журнал'], addEntry:['+ Add entry','+ Добавить запись'], all:['All','Все'], maintenance:['Maintenance','Обслуживание'], repairs:['Repairs','Ремонт'],
+    overview:['Overview','Обзор'], data:['Data','Данные'], history:['History','История'], problems:['Active Problems','Активные проблемы'], logbook:['Vehicle Log','Бортовой журнал'], addEntry:['+ Add entry','+ Добавить запись'], all:['All','Все'], maintenance:['Maintenance','Обслуживание'], repairs:['Repairs','Ремонт'], year:['Year','Год'], engine:['Engine','Двигатель'], fuel:['Fuel','Топливо'], drivetrain:['Drivetrain','Привод'],
     vinMethod:['VIN / chassis · Recommended','VIN / номер кузова · Рекомендуется'], manualMethod:['Manual entry','Вручную'], generation:['Generation / chassis','Поколение / кузов'], cancel:['Cancel','Отмена'], close:['Close','Закрыть'], specifications:['Technical specifications (optional)','Технические характеристики (необязательно)'], fillMissing:['Find missing specifications','Найти недостающие характеристики'], preserveManual:['Existing values are kept. Review the draft and save explicitly.','Введённые значения сохраняются. Проверьте черновик и нажмите «Сохранить».'],
     saveError:['Could not save. Your draft is still here; please retry.','Не удалось сохранить. Черновик остаётся на экране; попробуйте снова.'], loading:['Loading…','Загрузка…'], loadError:['Could not load this data.','Не удалось загрузить данные.'], retry:['Retry','Повторить'], noProblems:['No active problems recorded for this vehicle.','Для этого автомобиля нет активных проблем.'], noEvents:['No technical entries recorded for this vehicle.','Для этого автомобиля пока нет технических записей.'], unavailable:['Not recorded','Нет данных'], mileage:['Mileage','Пробег'],
     mainSpecs:['Main specifications','Основные характеристики'], engineFluids:['Engine and fluids','Двигатель и жидкости'], consumables:['Filters and consumables','Фильтры и расходники'], wheels:['Wheels and pressure','Колёса и давление'], fuelCapacities:['Fuel and capacities','Топливо и объёмы'], electrical:['Electrical','Электрика'], dimensions:['Dimensions and weight','Размеры и масса'], service:['Service specifications / torque','Сервисные данные / моменты затяжки'], environment:['Environmental parameters','Экологические параметры'], recommended:['Recommended','Рекомендовано'], actual:['Used on this vehicle','Используется на автомобиле'],
@@ -59,13 +59,15 @@ window.PulsCar = (() => {
     el('carVehicle').hidden=!vehicle||editing;el('carEditor').hidden=!editing;
     if(!vehicle||editing)return;
     el('vehicleTitle').textContent=getVehicleLabel(vehicle);
-    el('vehicleIdentity').textContent=[vehicle.generation,vehicle.year,vehicle.engine,vehicle.fuel,vehicle.transmission,vehicle.drive].filter(Boolean).join(' · ');
-    el('vehicleVin').textContent=vehicle.vin?`VIN / chassis: ${vehicle.vin}`:'';
-    el('vehicleMileage').textContent=vehicle.mileage?`${text('mileage')}: ${vehicle.mileage} km`:'';
+    el('vehicleYear').textContent=vehicle.year||text('unavailable');
+    el('vehicleEngine').textContent=vehicle.engine||text('unavailable');
+    el('vehicleFuel').textContent=vehicle.fuel||text('unavailable');
+    el('vehicleDrive').textContent=vehicle.drive||text('unavailable');
+    el('vehicleVin').textContent=vehicle.vin||text('unavailable');
     const currentPhoto=el('vehicleCurrentPhoto');
     currentPhoto.classList.toggle('has-photo',Boolean(vehicle.photoUrl));
     currentPhoto.style.backgroundImage=vehicle.photoUrl?`url("${vehicle.photoUrl.replaceAll('"','%22')}")`:'';
-    document.querySelectorAll('[data-car-switch]').forEach(button=>button.disabled=vehicles.length<2);
+    document.querySelectorAll('[data-car-switch]').forEach(button=>{button.hidden=vehicles.length<2;button.disabled=vehicles.length<2;});
     setTab(tab);
     if(state.id!==vehicle.id||state.owner!==window.pulsCurrentUser?.id){void load(vehicle.id);return;}
     renderSections(vehicle);
