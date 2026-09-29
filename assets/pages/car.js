@@ -17,7 +17,7 @@ window.PulsCar = (() => {
   };
   const text = key => words[key]?.[getLanguage()==='ru'?1:0] || key;
   const el = id => document.getElementById(id), esc = v => escapeHtml(v ?? '');
-  let initialized=false, editing=false, tab='overview', filter='all', version=0, selectedProblem=null, busy=false, authOwner='';
+  let initialized=false, editing=false, tab='overview', filter='all', version=0, selectedProblem=null, busy=false, authOwner='', navigationCloseTimer=null;
   let state={id:'',owner:'',loading:false,detail:null,problems:[],events:[],errors:{}};
   const date = v => v && Number.isFinite(Date.parse(v)) ? new Date(v).toLocaleDateString(currentLocale()) : text('unavailable');
   function valueText(v) {
@@ -69,8 +69,10 @@ window.PulsCar = (() => {
     currentPhoto.classList.toggle('has-photo',Boolean(vehicle.photoUrl));
     currentPhoto.style.backgroundImage=vehicle.photoUrl?`url("${vehicle.photoUrl.replaceAll('"','%22')}")`:'';
     const dots=el('vehiclePositionDots');
-    dots.innerHTML=vehicles.map(item=>{const active=item.id===vehicle.id,label=getVehicleLabel(item);return `<button type="button" class="vehicle-primary-check ${active?'active':''}" data-car-vehicle="${esc(item.id)}" aria-pressed="${active}" aria-label="${esc(label)}" title="${esc(label)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 12.5 4 4L18 8.5"/></svg></button>`;}).join('');
-    dots.hidden=!vehicles.length;
+    dots.innerHTML=vehicles.length>1?vehicles.map(item=>`<span class="${item.id===vehicle.id?'active':''}"></span>`).join(''):'';
+    dots.hidden=vehicles.length<2;
+    const primaryControls=el('vehiclePrimaryControls');
+    primaryControls.innerHTML=vehicles.map(item=>{const active=item.id===vehicle.id,label=getVehicleLabel(item);return `<button type="button" class="vehicle-primary-check ${active?'active':''}" data-car-vehicle="${esc(item.id)}" aria-pressed="${active}" aria-label="${esc(label)}" title="${esc(label)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 12.5 4 4L18 8.5"/></svg></button>`;}).join('');
     document.querySelectorAll('[data-car-switch]').forEach(button=>{button.hidden=vehicles.length<2;button.disabled=vehicles.length<2;});
     setTab(tab);
     if(state.id!==vehicle.id||state.owner!==window.pulsCurrentUser?.id){void load(vehicle.id);return;}
@@ -266,7 +268,10 @@ window.PulsCar = (() => {
       modal(`<h2>${esc(text('trash'))}</h2>`+(rows.length?rows.map(v=>{const ok=Number.isFinite(Date.parse(v.restore_until))&&Date.parse(v.restore_until)>Date.now();return `<article class="trash-row"><strong>${esc([v.brand,v.model,v.year].filter(Boolean).join(' '))}</strong><p>${esc(text('restoreUntil'))}: ${esc(date(v.restore_until))}</p><button class="btn" type="button" data-car-restore="${esc(v.id)}" ${ok?'':'disabled'}>${esc(text(ok?'restore':'expired'))}</button></article>`;}).join(''):notice('noTrash')));
     }catch{if(owner===window.pulsCurrentUser?.id&&el('vehicleDialog').open)modal(notice('loadError'));}
   }
-  function closeNavigation(){document.body.classList.remove('navigation-open');el('mobileNavToggle')?.setAttribute('aria-expanded','false');if(el('mobileNavBackdrop'))el('mobileNavBackdrop').hidden=true;}
+  function clearNavigationTimer(){if(navigationCloseTimer!=null){clearTimeout(navigationCloseTimer);navigationCloseTimer=null;}}
+  function restartNavigationTimer(){clearNavigationTimer();if(document.body.classList.contains('navigation-open'))navigationCloseTimer=setTimeout(closeNavigation,10000);}
+  function closeNavigation(){clearNavigationTimer();document.body.classList.remove('navigation-open');el('mobileNavToggle')?.setAttribute('aria-expanded','false');if(el('mobileNavBackdrop'))el('mobileNavBackdrop').hidden=true;}
+  function toggleNavigation(){if(!window.matchMedia('(max-width: 1050px)').matches)return;const opened=document.body.classList.toggle('navigation-open');el('mobileNavToggle').setAttribute('aria-expanded',String(opened));el('mobileNavBackdrop').hidden=true;if(opened)restartNavigationTimer();else clearNavigationTimer();}
   function switchVehicle(direction){
     const vehicles=loadVehicleStore().vehicles.filter(v=>isBackendVehicleId(v.id)&&v.lifecycle_status!=='TRASHED');
     if(vehicles.length<2)return;
@@ -284,8 +289,11 @@ window.PulsCar = (() => {
     i18n.en['car.formMileage']='Mileage (km)';i18n.ru['car.formMileage']='Пробег (км)';
     for(const lang of ['en','ru'])for(const key of ['car.lookupNotFound','car.lookupError','car.lookupInvalid','car.lookupNeedVin'])i18n[lang][key]=words.vinFailed[lang==='ru'?1:0];
     el('carCancelEdit').addEventListener('click',()=>{if(busy)return;editing=false;++vehicleLookupRequestId;fillVehicleForm(loadVehicleProfile());render();});
-    el('mobileNavToggle').addEventListener('click',()=>{const opened=document.body.classList.toggle('navigation-open');el('mobileNavToggle').setAttribute('aria-expanded',String(opened));el('mobileNavBackdrop').hidden=!opened;});
+    el('mobileNavToggle').addEventListener('click',toggleNavigation);
     el('mobileNavBackdrop').addEventListener('click',closeNavigation);
+    el('mainNavigation').addEventListener('pointerdown',restartNavigationTimer,{passive:true});
+    el('mainNavigation').addEventListener('focusin',restartNavigationTimer);
+    document.addEventListener('pointerdown',event=>{if(document.body.classList.contains('navigation-open')&&!event.target.closest('#mainNavigation,#mobileNavToggle'))closeNavigation();},{passive:true});
     document.addEventListener('keydown',event=>{if(event.key==='Escape'){closeNavigation();document.querySelectorAll('.vehicle-record-actions[open],.vehicle-actions[open]').forEach(item=>item.removeAttribute('open'));}if(event.target.matches('.vehicle-event-card[data-car-event-open]')&&['Enter',' '].includes(event.key)){event.preventDefault();eventDetailModal(event.target.dataset.carEventOpen);return;}if(event.target.matches('[data-car-tab]')&&['ArrowLeft','ArrowRight','Home','End'].includes(event.key)){event.preventDefault();const tabs=['overview','data','history'],index=event.key==='Home'?0:event.key==='End'?2:(tabs.indexOf(tab)+(event.key==='ArrowRight'?1:2))%3;setTab(tabs[index]);el(`tab-${tabs[index]}`).focus();}});
     document.addEventListener('click',async event=>{
       const recordMenu=event.target.closest('.vehicle-record-actions'),openRecordMenus=[...document.querySelectorAll('.vehicle-record-actions[open]')];

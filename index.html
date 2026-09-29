@@ -38,7 +38,7 @@
     "logo": "https://pulscar.co/assets/img/puls-logo.png"
   }
   </script>
-  <link rel="stylesheet" href="assets/css/style.css?v=20260930-my-car-cleanup2">
+  <link rel="stylesheet" href="assets/css/style.css?v=20260930-mobile-navigation1">
 </head>
 <body class="puls-splash-active">
   <div class="puls-splash-screen" id="pulsSplashScreen" aria-hidden="true">
@@ -62,14 +62,14 @@
     ></button>
   </div>
   <div class="app" id="app">
-    <header class="topbar"><button id="mobileNavToggle" class="btn mobile-nav-toggle" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="mainNavigation">☰</button>
-      <div class="brand">
+    <header class="topbar">
+      <button id="mobileNavToggle" class="brand brand-nav-toggle" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="mainNavigation">
         <img class="brand-logo" src="assets/img/puls-logo.png" alt="PULS">
         <div>
           <div class="brand-title">CarDiagnostic <span>AI</span></div>
           <div class="brand-subtitle" data-i18n="brand.subtitle">Ваш AI-помощник для диагностики автомобиля</div>
         </div>
-      </div>
+      </button>
       <button class="system-pill" id="systemPill" type="button">Sign in / Register</button>
     </header>
 
@@ -124,12 +124,12 @@
             <div id="carEmpty" class="car-empty" hidden><h2 data-v2="noCars">You don't have any vehicles yet.</h2><p data-v2="emptyHelp">Add your vehicle so PULS can use its technical specifications, maintenance history and diagnostic context.</p><button class="btn blue" data-car-action="add" data-v2="add">+ Add vehicle</button></div>
             <div id="carVehicle" hidden>
               <div class="vehicle-identity">
-                <h2 id="vehicleTitle"></h2>
+                <div class="vehicle-card-heading"><h2 id="vehicleTitle"></h2><div class="vehicle-primary-controls" id="vehiclePrimaryControls" role="group" aria-label="Current vehicle"></div></div>
                 <div class="vehicle-photo-stage">
                   <button class="vehicle-switch-control vehicle-switch-previous" type="button" data-car-switch="previous" aria-label="Previous vehicle">‹</button>
                   <div class="vehicle-current-photo" id="vehicleCurrentPhoto" aria-hidden="true"></div>
                   <button class="vehicle-switch-control vehicle-switch-next" type="button" data-car-switch="next" aria-label="Next vehicle">›</button>
-                  <div class="vehicle-position-dots" id="vehiclePositionDots" role="group" aria-label="Vehicle selection"></div>
+                  <div class="vehicle-position-dots" id="vehiclePositionDots" aria-hidden="true"></div>
                 </div>
                 <dl class="vehicle-card-facts">
                   <div><dt><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4m8-4v4M4 10h16"/></svg><span data-v2="year">Year</span></dt><dd id="vehicleYear"></dd></div>
@@ -504,7 +504,7 @@
   <script src="assets/js/auth.js?v=20260917-block41"></script>
   <script src="assets/js/config.js?v=20260706-01"></script>
   <script src="assets/js/chat-session.js?v=20260927-attachment-first1"></script>
-  <script src="assets/pages/car.js?v=20260930-my-car-cleanup2"></script>
+  <script src="assets/pages/car.js?v=20260930-mobile-navigation1"></script>
   <script src="assets/js/app.js?v=20260930-my-car-cleanup1"></script>
 </body>
 </html>
