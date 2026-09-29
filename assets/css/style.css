@@ -2782,7 +2782,7 @@ body {
 }
 
 .brand-subtitle {
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .system-pill {
@@ -3363,7 +3363,7 @@ body.assistant-mode.chat-active .bubble small { display:block; float:none; margi
   .topbar { position:sticky; top:0; z-index:1120; width:100vw; margin-left:calc(50% - 50vw); box-sizing:border-box; padding:10px max(12px,env(safe-area-inset-right)) 10px max(12px,env(safe-area-inset-left)); align-items:center; gap:8px; background:#02070d; }
   .brand-nav-toggle { flex:1 1 auto; max-width:min(62vw,420px); gap:10px; cursor:pointer; }
   .brand-nav-toggle > div { min-width:0; }
-  .brand-subtitle { display:block; overflow:hidden; font-size:11px; line-height:1.25; white-space:nowrap; text-overflow:ellipsis; }
+  .brand-subtitle { display:block; overflow:hidden; font-size:10px; line-height:1.25; white-space:nowrap; text-overflow:ellipsis; }
   .brand-title { overflow:hidden; font-size:16px; white-space:nowrap; text-overflow:ellipsis; }
   .system-pill { display:block !important; align-self:center; flex:0 1 auto; min-width:0; max-width:38vw; margin-left:auto; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
   body .side, body.page-mode .side, body.assistant-mode .side { display:block !important; position:relative !important; top:auto !important; left:auto !important; bottom:auto; width:auto; min-width:0; height:max-content !important; max-height:calc(100dvh - 84px) !important; box-sizing:border-box; border:0; border-radius:0; background:transparent; padding:0; z-index:1; opacity:0; visibility:hidden; overflow:hidden; pointer-events:none; transition:opacity .16s ease; }
@@ -3460,7 +3460,7 @@ body.assistant-mode.chat-active .bubble small { display:block; float:none; margi
 .vehicle-primary-check.active { border-color:#50d890; background:#0d2a24; color:#50d890; box-shadow:0 0 9px rgba(80,216,144,.34); cursor:default; }
 .vehicle-primary-check:focus-visible { outline:2px solid var(--cyan); outline-offset:2px; }
 .vehicle-primary-check svg { width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
-#car .vehicle-actions { position:absolute; top:16px; right:16px; z-index:8; margin:0; }
+#car .vehicle-actions { position:absolute; top:16px; right:16px; z-index:8; margin:0; transform:translateY(-5px); }
 #car .vehicle-actions summary { width:44px; height:44px; padding:0; display:grid; place-items:center; overflow:hidden; font-size:20px; }
 #car .vehicle-actions button { display:flex; align-items:center; gap:9px; }
 #car .vehicle-actions button svg { width:16px; height:16px; flex:0 0 16px; fill:none; stroke:#58b7df; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; }
