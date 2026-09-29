@@ -1152,7 +1152,8 @@ html { scroll-behavior: smooth; }
 
     .service-dialog {
       width: min(780px, 100%);
-      border-top: 2px solid var(--service-semantic, #32b6df);
+      border: 1px solid var(--service-semantic, #32b6df);
+      border-top-width: 2px;
     }
 
     .service-modal[data-event-semantic="repair"] { --service-semantic:#e26470; --service-semantic-bg:rgba(182,55,70,.13); }
@@ -3500,8 +3501,8 @@ body.assistant-mode.chat-active .bubble small { display:block; float:none; margi
   #car-history .vehicle-filters { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; width:100%; }
   #car-history .vehicle-filters button { min-width:0; min-height:42px; padding:8px 6px; font-size:11px; line-height:1.2; white-space:normal; }
   .vehicle-record-actions > div { max-width:calc(100vw - 40px); }
-  .active-problem-actions > div { position:fixed; z-index:140; left:50%; right:auto; bottom:max(12px,env(safe-area-inset-bottom)); width:min(320px,calc(100vw - 24px)); min-width:0; max-width:none; padding:7px; border-radius:12px; box-shadow:0 18px 44px #000c; transform:translateX(-50%); }
-  .active-problem-actions > div button { min-height:40px; padding:8px 10px; font-size:13px; line-height:1.2; text-align:center; }
+  .active-problem-actions > div { top:34px; right:0; left:auto; width:min(220px,calc(100vw - 48px)); min-width:0; max-width:calc(100vw - 48px); padding:6px; border-radius:9px; box-shadow:0 12px 28px #000a; }
+  .active-problem-actions > div button { min-height:36px; padding:8px 9px; font-size:12px; line-height:1.2; white-space:normal; }
   .service-file-picker { align-items:flex-start; flex-direction:column; gap:8px; }
   .active-problem-card { grid-template-columns:28px minmax(0,1fr); gap:9px; min-height:116px; padding:13px 42px 13px 13px; }
   .active-problem-icon { width:26px; height:26px; }
