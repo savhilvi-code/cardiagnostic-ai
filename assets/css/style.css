@@ -3199,8 +3199,8 @@ body.assistant-mode .bubble:last-child {
 .vehicle-tabs button, .vehicle-filters button { color:var(--muted); background:transparent; border:1px solid var(--line); padding:12px 18px; border-radius:7px; }
 .vehicle-tabs button[aria-selected="true"], .vehicle-filters button[aria-pressed="true"] { color:var(--cyan); border-color:var(--cyan); background:#0d2434; }
 .vehicle-filters [data-car-filter="problems"] { display:inline-flex; align-items:center; justify-content:center; gap:6px; }
-.vehicle-filters [data-car-filter="problems"] svg { width:15px; height:15px; fill:none; stroke:#ed6672; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
-.vehicle-filters [data-car-filter="problems"] b { display:grid; place-items:center; min-width:18px; height:18px; padding:0 5px; border-radius:999px; background:#9e2634; color:#fff; font-size:10px; line-height:1; }
+.vehicle-filters [data-car-filter="problems"] svg { width:15px; height:15px; fill:none; stroke:#e9a23b; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.vehicle-filters [data-car-filter="problems"] b { display:grid; place-items:center; min-width:18px; height:18px; padding:0 5px; border-radius:999px; background:#9b681f; color:#fff4dd; font-size:10px; line-height:1; }
 .vehicle-overview { display:grid; grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr); gap:32px; padding:4px 0 24px; }
 .vehicle-overview h3 { margin-top:8px; }
 .vehicle-empty-note { color:var(--muted); line-height:1.65; padding:12px 0; }
@@ -3220,17 +3220,23 @@ body.assistant-mode .bubble:last-child {
 .vehicle-record-actions button:hover,
 .vehicle-record-actions button:focus-visible { background:#153047; }
 .active-problem-list { display:grid; gap:14px; margin:16px 0 24px; }
-.active-problem-card { display:grid; grid-template-columns:36px minmax(0,1fr); gap:12px; padding:18px; border:1px solid #57313c; border-left:3px solid #d95160; border-radius:11px; background:linear-gradient(135deg,rgba(74,21,31,.24),rgba(8,23,35,.88)); }
-.active-problem-icon { display:grid; place-items:center; width:32px; height:32px; border-radius:8px; background:rgba(180,38,55,.14); }
-.active-problem-icon svg { width:20px; height:20px; fill:none; stroke:#ef6675; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.active-problem-card { display:grid; grid-template-columns:36px minmax(0,1fr); gap:12px; min-height:142px; padding:16px; border:1px solid #594725; border-left:3px solid #d69231; border-radius:11px; background:linear-gradient(135deg,rgba(86,58,14,.2),rgba(8,23,35,.88)); cursor:pointer; }
+.active-problem-card:hover,.active-problem-card:focus-visible { border-color:#b47b2c; outline:none; box-shadow:0 0 0 1px rgba(226,156,52,.16); }
+.active-problem-icon { display:grid; place-items:center; width:32px; height:32px; border-radius:8px; background:rgba(194,127,28,.14); }
+.active-problem-icon svg { width:20px; height:20px; fill:none; stroke:#e9a23b; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
 .active-problem-content { min-width:0; }
 .active-problem-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; }
-.active-problem-heading button { min-width:0; padding:0; border:0; background:none; color:var(--text); font:inherit; font-weight:700; text-align:left; overflow-wrap:anywhere; cursor:pointer; }
-.active-problem-heading > span { flex:0 0 auto; padding:5px 8px; border:1px solid rgba(230,83,100,.4); border-radius:999px; color:#ff9da8; font-size:11px; }
+.active-problem-heading strong { min-width:0; color:var(--text); overflow-wrap:anywhere; }
 .active-problem-dates { margin-top:8px; color:var(--muted); font-size:12px; }
-.active-problem-card p { margin:14px 0 0; color:var(--soft); line-height:1.55; white-space:pre-wrap; }
-.active-problem-card dl { display:grid; grid-template-columns:auto minmax(0,1fr); gap:8px 12px; margin:14px 0 0; }
-.active-problem-card dt { color:var(--muted); }.active-problem-card dd { min-width:0; margin:0; overflow-wrap:anywhere; }
+.active-problem-card p { display:-webkit-box; margin:12px 0 0; overflow:hidden; color:var(--soft); line-height:1.45; white-space:pre-wrap; -webkit-box-orient:vertical; -webkit-line-clamp:3; }
+.problem-context-indicators { display:flex; flex-wrap:wrap; gap:7px; margin-top:12px; }
+.problem-context-indicators span { display:inline-flex; align-items:center; gap:5px; min-height:25px; padding:4px 7px; border:1px solid rgba(201,143,54,.27); border-radius:999px; background:rgba(116,77,18,.14); color:#d7b77e; font-size:11px; }
+.problem-context-indicators svg { width:14px; height:14px; fill:none; stroke:#dfa047; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+.problem-context-indicators i { font-style:normal; }.problem-context-indicators b { color:#ffe2a6; font-size:11px; }
+.active-problem-expanded > header { display:grid; grid-template-columns:38px minmax(0,1fr); gap:12px; padding-bottom:16px; border-bottom:1px solid #594725; }
+.active-problem-expanded > header h2 { margin:0 0 7px; }.active-problem-expanded > header p { color:var(--muted); font-size:12px; }
+.active-problem-expanded .problem-detail { border-color:#4b3e25; }
+.active-problem-continue { border-color:#c4862f !important; background:#8a5c1d !important; color:#fff5e2 !important; }
 .vehicle-spec-parameters { display:grid; gap:8px; margin:14px 0 4px; }
 .vehicle-spec-parameter { position:relative; min-width:0; padding:12px 48px 12px 14px; border:1px solid #1d3c52; border-radius:8px; background:rgba(7,26,39,.58); }
 .vehicle-spec-parameter > div:first-child { display:grid; grid-template-columns:minmax(130px,1.2fr) minmax(120px,1fr) minmax(120px,1fr); align-items:center; gap:12px; min-width:0; }
@@ -3423,11 +3429,13 @@ body.assistant-mode.chat-active .bubble small { display:block; float:none; margi
   #car-history .vehicle-filters button { min-width:0; padding:8px 2px; font-size:10px; line-height:1.15; white-space:nowrap; }
   .vehicle-record-actions > div { max-width:calc(100vw - 40px); }
   .service-file-picker { align-items:flex-start; flex-direction:column; gap:8px; }
-  .active-problem-card { grid-template-columns:28px minmax(0,1fr); gap:9px; padding:13px; }
+  .active-problem-card { grid-template-columns:28px minmax(0,1fr); gap:9px; min-height:116px; padding:13px; }
   .active-problem-icon { width:26px; height:26px; }
-  .active-problem-heading { display:grid; gap:8px; }
-  .active-problem-heading > span { width:max-content; max-width:100%; }
-  .active-problem-card dl { grid-template-columns:1fr; gap:4px; }
+  .active-problem-card p { margin-top:8px; -webkit-line-clamp:2; }
+  .problem-context-indicators { gap:5px; margin-top:9px; }
+  .problem-context-indicators span { min-height:23px; padding:3px 6px; }
+  .active-problem-card .problem-context-indicators i { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+  .active-problem-expanded > header { grid-template-columns:30px minmax(0,1fr); gap:9px; }
   .vehicle-spec-parameter > div:first-child { grid-template-columns:1fr; gap:5px; }
 }
 
