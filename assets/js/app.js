@@ -196,6 +196,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "service.chooseFiles": "Choose files",
         "service.noFileSelected": "No file selected",
         "service.description": "Description",
+        "service.partsConsumables": "Parts / Consumables",
+        "service.partsPlaceholder": "Oil filter · Mobil 1 5W-30",
         "service.date": "Date",
         "service.mileage": "Mileage",
         "service.photo": "Photo / sticker",
@@ -500,6 +502,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "service.chooseFiles": "Выбрать файлы",
         "service.noFileSelected": "Файл не выбран",
         "service.description": "Описание",
+        "service.partsConsumables": "Запчасти / расходники",
+        "service.partsPlaceholder": "Масляный фильтр · Mobil 1 5W-30",
         "service.date": "Дата",
         "service.mileage": "Пробег",
         "service.photo": "Фото / стикер",
@@ -3376,6 +3380,18 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     }
 
     let serviceModalFiles = [];
+    let serviceModalEventData = {};
+
+    function syncServiceSemantic() {
+      const modal = $("#serviceModal");
+      const icon = $("#serviceSemanticIcon");
+      const isRepair = String($("#serviceTypeInput")?.value || "SERVICE").toUpperCase() === "REPAIR";
+      if (!modal || !icon) return;
+      modal.dataset.eventSemantic = isRepair ? "repair" : "maintenance";
+      icon.innerHTML = isRepair
+        ? '<svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5-5L11 4 8 7 5.3 5.7a4 4 0 0 0 5 5L4 17l3 3 6.3-6.3a4 4 0 0 0 5-5L16 11l-3-3z"/></svg>'
+        : '<svg viewBox="0 0 24 24"><path d="M12 3s6 6.4 6 11a6 6 0 0 1-12 0c0-4.6 6-11 6-11zM9 15a3 3 0 0 0 3 2"/></svg>';
+    }
 
     function autoGrowServiceTitle() {
       const input = $("#serviceTitleInput");
@@ -3408,6 +3424,11 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       $("#serviceTypeInput").value = String(event?.event_type || "SERVICE").toUpperCase();
       $("#serviceTitleInput").value = event?.title || "";
       $("#serviceDescriptionInput").value = event?.description || "";
+      serviceModalEventData = event?.event_data && typeof event.event_data === "object" ? {...event.event_data} : {};
+      const persistedParts = serviceModalEventData.parts;
+      $("#servicePartsInput").value = Array.isArray(persistedParts)
+        ? persistedParts.map((item) => typeof item === "string" ? item : (item?.name || item?.title || item?.label || item?.part_number || "")).filter(Boolean).join(" · ")
+        : String(persistedParts || "");
       $("#serviceMileageInput").value = event?.mileage ?? "";
       const photoInput = $("#servicePhotoInput");
       if (photoInput) photoInput.value = "";
@@ -3420,6 +3441,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       const status = $("#serviceFormStatus");
       if (status) status.textContent = "";
       updateServicePreview();
+      syncServiceSemantic();
       const modalTitle = $("#serviceModalTitle");
       const modalTitleKey = event ? "service.editTitle" : "service.addTitle";
       modalTitle.dataset.i18n = modalTitleKey;
@@ -3508,6 +3530,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       const date = String($("#serviceDateInput")?.value || "").trim();
       const mileageText = String($("#serviceMileageInput")?.value || "").trim();
       const mileage = Number(mileageText.replace(/[^0-9]/g, ""));
+      const parts = String($("#servicePartsInput")?.value || "").trim();
       const attachments = Array.from($("#servicePhotoInput")?.files || []);
 
       if (!vehicleId) {
@@ -3521,9 +3544,12 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         return;
       }
 
+      const eventData = {...serviceModalEventData};
+      if (parts) eventData.parts = parts;
+      else delete eventData.parts;
       const payload = {
         event_type: eventType, title, description,
-        event_date: `${date}T00:00:00Z`, mileage, event_data: {}
+        event_date: `${date}T00:00:00Z`, mileage, event_data: eventData
       };
       const path = eventId
         ? `/api/vehicle-events/${encodeURIComponent(eventId)}`
@@ -4089,8 +4115,9 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         void removeCarPhoto();
       });
       $("#serviceForm")?.addEventListener("submit", saveServiceRecord);
+      $("#serviceTypeInput")?.addEventListener("change", syncServiceSemantic);
       $("#supportForm")?.addEventListener("submit", submitSupportRequest);
-      ["#serviceTitleInput", "#serviceDescriptionInput", "#serviceDateInput", "#serviceMileageInput"].forEach((selector) => {
+      ["#serviceTitleInput", "#serviceDescriptionInput", "#servicePartsInput", "#serviceDateInput", "#serviceMileageInput"].forEach((selector) => {
         $(selector)?.addEventListener("input", () => updateServicePreview($("#servicePhotoInput")?.dataset.previewUrl || ""));
       });
       $("#serviceTitleInput")?.addEventListener("input", autoGrowServiceTitle);

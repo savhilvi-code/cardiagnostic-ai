@@ -1152,7 +1152,15 @@ html { scroll-behavior: smooth; }
 
     .service-dialog {
       width: min(780px, 100%);
+      border-top: 2px solid var(--service-semantic, #32b6df);
     }
+
+    .service-modal[data-event-semantic="repair"] { --service-semantic:#e26470; --service-semantic-bg:rgba(182,55,70,.13); }
+    .service-modal[data-event-semantic="maintenance"] { --service-semantic:#32b6df; --service-semantic-bg:rgba(34,158,199,.13); }
+    .service-semantic-header { padding-bottom:14px; border-bottom:1px solid rgba(50,182,223,.42); }
+    .service-modal[data-event-semantic="repair"] .service-semantic-header { border-bottom-color:rgba(226,100,112,.42); }
+    .service-semantic-icon { display:grid; place-items:center; width:38px; height:38px; flex:0 0 38px; border-radius:9px; background:var(--service-semantic-bg,rgba(34,158,199,.13)); }
+    .service-semantic-icon svg { width:21px; height:21px; fill:none; stroke:var(--service-semantic,#32b6df); stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
 
     .service-form {
       display: grid;
@@ -3241,6 +3249,9 @@ body.assistant-mode .bubble:last-child {
 .vehicle-event-parts-empty { visibility:hidden; }
 .vehicle-event-content .vehicle-event-files { grid-row:auto; margin-top:8px; }
 .vehicle-event-card .vehicle-record-actions { top:10px; right:10px; }
+.vehicle-event-card .vehicle-record-actions summary { border-color:transparent; background:transparent; }
+.vehicle-event-card .vehicle-record-actions summary:hover,
+.vehicle-event-card .vehicle-record-actions summary:focus-visible { background:rgba(70,111,137,.15); }
 .vehicle-log-editable { padding-right:46px !important; }
 .vehicle-record-actions { position:absolute; top:0; right:0; z-index:4; }
 .vehicle-record-actions summary { display:grid; place-items:center; width:32px; height:32px; padding:0; border:1px solid var(--line); border-radius:8px; background:#081622; color:var(--soft); font-size:22px; line-height:1; cursor:pointer; list-style:none; }
@@ -3455,8 +3466,8 @@ body.assistant-mode.chat-active .bubble small { display:block; float:none; margi
   #car .vehicle-actions { top:12px; right:12px; }
   .vehicle-tabs { gap:5px; }
   .vehicle-tabs button { font-size:12px; padding:10px 4px; }
-  #car-history .vehicle-filters { display:grid; grid-template-columns:.62fr 1.15fr .88fr 1.55fr; gap:4px; width:100%; }
-  #car-history .vehicle-filters button { min-width:0; padding:8px 2px; font-size:10px; line-height:1.15; white-space:nowrap; }
+  #car-history .vehicle-filters { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; width:100%; }
+  #car-history .vehicle-filters button { min-width:0; min-height:42px; padding:8px 6px; font-size:11px; line-height:1.2; white-space:normal; }
   .vehicle-record-actions > div { max-width:calc(100vw - 40px); }
   .service-file-picker { align-items:flex-start; flex-direction:column; gap:8px; }
   .active-problem-card { grid-template-columns:28px minmax(0,1fr); gap:9px; min-height:116px; padding:13px; }
