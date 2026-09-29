@@ -38,7 +38,7 @@
     "logo": "https://pulscar.co/assets/img/puls-logo.png"
   }
   </script>
-  <link rel="stylesheet" href="assets/css/style.css?v=20260929-vehicle-card-polish1">
+  <link rel="stylesheet" href="assets/css/style.css?v=20260929-my-car-final1">
 </head>
 <body class="puls-splash-active">
   <div class="puls-splash-screen" id="pulsSplashScreen" aria-hidden="true">
@@ -155,10 +155,10 @@
                 </dl>
                 <p class="vehicle-card-vin"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v10H4zM8 10h1m2 0h1m2 0h2M8 14h8"/></svg>VIN / chassis</span><strong id="vehicleVin"></strong></p>
                 <details class="vehicle-actions"><summary aria-label="Vehicle settings">⚙</summary><div>
-                  <button type="button" data-car-action="edit" data-v2="edit">Edit vehicle</button>
-                  <button type="button" data-car-action="add" data-v2="addPlain">Add vehicle</button>
-                  <button type="button" data-car-action="trash-list" data-v2="trash">Trash</button>
-                  <button type="button" data-car-action="trash" class="danger-btn" data-v2="deleteVehicle">Delete vehicle</button>
+                  <button type="button" data-car-action="edit"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 20 4.5-1 10-10a2.1 2.1 0 0 0-3-3l-10 10zM14 7l3 3"/></svg><span data-v2="edit">Edit vehicle</span></button>
+                  <button type="button" data-car-action="add"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span data-v2="addPlain">Add vehicle</span></button>
+                  <button type="button" data-car-action="trash-list"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14m-9-3h4l1 3M7 7l1 13h8l1-13M10 11v5m4-5v5"/></svg><span data-v2="trash">Trash</span></button>
+                  <button type="button" data-car-action="trash" class="danger-btn"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6m0-6-6 6"/></svg><span data-v2="deleteVehicle">Delete vehicle</span></button>
                 </div></details>
               </div>
               <div class="vehicle-tabs" role="tablist" aria-label="Vehicle sections"><button id="tab-overview" type="button" role="tab" data-car-tab="overview" aria-controls="car-overview" data-v2="logbook">Vehicle Log</button><button id="tab-data" type="button" role="tab" data-car-tab="data" aria-controls="car-data" data-v2="data">Data</button><button id="tab-history" type="button" role="tab" data-car-tab="history" aria-controls="car-history" data-v2="history">History</button></div>
@@ -409,8 +409,8 @@
       <button class="request-close" id="serviceCloseBtn" type="button" aria-label="Закрыть" data-i18n-aria-label="common.close">×</button>
       <div class="request-header">
         <div>
-          <h2 id="serviceModalTitle">Добавить запись ТО</h2>
-          <p id="serviceModalMeta">Укажите дату, пробег и короткое описание работ.</p>
+          <h2 id="serviceModalTitle" data-i18n="service.addTitle">Add service / repair</h2>
+          <p id="serviceModalMeta" data-i18n="service.modalHelp">Enter the date, mileage and a short description of the work.</p>
         </div>
       </div>
       <form class="service-form" id="serviceForm">
@@ -418,15 +418,15 @@
         <input id="serviceVehicleId" type="hidden">
         <label>
           <span data-i18n="service.type">Record type</span>
-          <select id="serviceTypeInput"><option value="SERVICE">Service</option><option value="REPAIR">Repair</option></select>
+          <select id="serviceTypeInput"><option value="SERVICE" data-i18n="service.typeService">Service</option><option value="REPAIR" data-i18n="service.typeRepair">Repair</option></select>
         </label>
         <label>
           <span data-i18n="service.title">Название записи</span>
-          <input id="serviceTitleInput" type="text" placeholder="Замена масла" required>
+          <input id="serviceTitleInput" type="text" data-i18n-placeholder="service.titlePlaceholder" placeholder="Oil change" required>
         </label>
         <label class="service-wide">
           <span data-i18n="service.description">Описание</span>
-          <textarea id="serviceDescriptionInput" rows="4" placeholder="Поменял масло и фильтр"></textarea>
+          <textarea id="serviceDescriptionInput" rows="4" data-i18n-placeholder="service.descriptionPlaceholder" placeholder="Changed the oil and filter"></textarea>
         </label>
         <label>
           <span data-i18n="service.date">Дата</span>
@@ -434,7 +434,7 @@
         </label>
         <label>
           <span data-i18n="service.mileage">Пробег</span>
-          <input id="serviceMileageInput" type="text" placeholder="98 500 км" required>
+          <input id="serviceMileageInput" type="text" data-i18n-placeholder="service.mileagePlaceholder" placeholder="98,500 km" required>
         </label>
         <label class="service-wide">
           <span data-i18n="service.attachments">Attachments</span>
@@ -511,7 +511,7 @@
   <script src="assets/js/auth.js?v=20260917-block41"></script>
   <script src="assets/js/config.js?v=20260706-01"></script>
   <script src="assets/js/chat-session.js?v=20260927-attachment-first1"></script>
-  <script src="assets/pages/car.js?v=20260929-vehicle-card-polish1"></script>
-  <script src="assets/js/app.js?v=20260929-my-car-cleanup1"></script>
+  <script src="assets/pages/car.js?v=20260929-my-car-final1"></script>
+  <script src="assets/js/app.js?v=20260929-my-car-final1"></script>
 </body>
 </html>

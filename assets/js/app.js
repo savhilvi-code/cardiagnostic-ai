@@ -183,7 +183,15 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "spec.tank": "Fuel tank:",
         "spec.tankValue": "Auto-filled after car selection",
         "service.title": "Record title",
+        "service.addTitle": "Add service / repair",
+        "service.editTitle": "Edit service / repair",
+        "service.modalHelp": "Enter the date, mileage and a short description of the work.",
         "service.type": "Record type",
+        "service.typeService": "Service",
+        "service.typeRepair": "Repair",
+        "service.titlePlaceholder": "Oil change",
+        "service.descriptionPlaceholder": "Changed the oil and filter",
+        "service.mileagePlaceholder": "98,500 km",
         "service.attachments": "Photo, video or document",
         "service.description": "Description",
         "service.date": "Date",
@@ -477,7 +485,15 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "spec.tank": "Объем бака:",
         "spec.tankValue": "Заполнится автоматически после выбора авто",
         "service.title": "Название записи",
+        "service.addTitle": "Добавить обслуживание / ремонт",
+        "service.editTitle": "Изменить обслуживание / ремонт",
+        "service.modalHelp": "Укажите дату, пробег и короткое описание работ.",
         "service.type": "Тип записи",
+        "service.typeService": "Обслуживание",
+        "service.typeRepair": "Ремонт",
+        "service.titlePlaceholder": "Замена масла",
+        "service.descriptionPlaceholder": "Поменял масло и фильтр",
+        "service.mileagePlaceholder": "98 500 км",
         "service.attachments": "Фото, видео или документ",
         "service.description": "Описание",
         "service.date": "Дата",
@@ -3379,9 +3395,10 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       const status = $("#serviceFormStatus");
       if (status) status.textContent = "";
       updateServicePreview();
-      $("#serviceModalTitle").textContent = event
-        ? (getLanguage() === "en" ? "Edit service / repair" : "Изменить обслуживание / ремонт")
-        : (getLanguage() === "en" ? "Add service / repair" : "Добавить обслуживание / ремонт");
+      const modalTitle = $("#serviceModalTitle");
+      const modalTitleKey = event ? "service.editTitle" : "service.addTitle";
+      modalTitle.dataset.i18n = modalTitleKey;
+      modalTitle.textContent = t(modalTitleKey);
       modal.classList.add("show");
       modal.setAttribute("aria-hidden", "false");
     }

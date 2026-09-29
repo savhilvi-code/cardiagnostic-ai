@@ -113,6 +113,20 @@ window.PulsCar = (() => {
   }
   function attachmentMarkup(files=[]){return files.length?`<div class="vehicle-event-files">${files.map(file=>`<button class="btn" type="button" data-car-file-download="${esc(file.id)}" data-car-file-name="${esc(file.original_filename||'attachment')}">📎 ${esc(file.original_filename||'Attachment')}</button>`).join('')}</div>`:'';}
   function logMarkup(rows){return rows.length?`<ol class="vehicle-log">${rows.map(e=>`<li><div class="log-meta">${esc(date(e.time))}${e.mileage!=null?` · ${esc(e.mileage)} km`:''}</div>${e.problem_id?`<button class="log-problem" type="button" data-car-problem="${esc(e.problem_id)}">${esc(e.title||e.event_type)}</button>`:`<strong>${esc(e.title||e.event_type)}</strong>`}${e.description?`<p>${esc(e.description)}</p>`:''}${Object.keys(e.event_data||{}).length?`<p>${esc(valueText(e.event_data))}</p>`:''}${attachmentMarkup(e.attachments)}${e.recordKind==='event'&&['SERVICE','REPAIR'].includes(String(e.event_type||'').toUpperCase())?`<button class="btn" type="button" data-car-event-edit="${esc(e.id)}">${esc(text('editEntry'))}</button>`:''}</li>`).join('')}</ol>`:notice('noEvents');}
+  function dataHeadingIcon(key){
+    const paths={
+      mainSpecs:'<path d="M4 17V9l3-4h10l3 4v8M6 17h12M7 13h10"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/>',
+      engineFluids:'<path d="M5 9h11l3 3v6H5zM8 9V6h6v3m-9 4H2"/><path d="M19 5s2 2.3 2 3.7a2 2 0 0 1-4 0C17 7.3 19 5 19 5z"/>',
+      consumables:'<path d="M4 5h16l-6 7v6l-4 2v-8z"/>',
+      wheels:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 4v5m0 6v5M4 12h5m6 0h5"/>',
+      fuelCapacities:'<path d="M5 21V4h9v17M5 9h9M3 21h13M14 7h3l3 3v7a2 2 0 0 1-4 0v-5"/>',
+      electrical:'<rect x="4" y="7" width="16" height="12" rx="2"/><path d="M9 4v3m6-3v3m-8 6h4m6-2v4m-2-2h4"/>',
+      dimensions:'<path d="M4 7h16M4 17h16M7 4 4 7l3 3m10-6 3 3-3 3M7 14l-3 3 3 3m10-6 3 3-3 3"/>',
+      service:'<path d="M14 6a4 4 0 0 0-5 5L4 16l4 4 5-5a4 4 0 0 0 5-5l-3 3-4-4z"/>',
+      environment:'<path d="M12 21c5-3 7-7 7-14-7 0-11 3-12 8 0 3 2 5 5 6zM7 18c2-3 5-5 9-7"/>'
+    };
+    return `<svg class="vehicle-data-heading-icon" viewBox="0 0 24 24" aria-hidden="true">${paths[key]||paths.mainSpecs}</svg>`;
+  }
   function renderSections(v){
     if(state.loading){['vehicleRecentLog','vehicleHistory','vehicleData'].forEach(id=>el(id).innerHTML=notice('loading'));return;}
     const rows=timeline(), warning=state.errors.events||state.errors.problems?errorBlock():'';
@@ -122,7 +136,7 @@ window.PulsCar = (() => {
     if(state.errors.detail){el('vehicleData').innerHTML=errorBlock();return;}
     const rawSpecs=state.detail?.specs||{},s=specValues(rawSpecs),wheelRows=specRows(rawSpecs);
     const groups=[['mainSpecs',[['Make',v.brand],['Model',v.model],[text('generation'),v.generation],['Year',v.year],['VIN / chassis',v.vin],[text('mileage'),v.mileage?`${v.mileage} km`:'']]],['engineFluids',[['Engine',v.engine],['Transmission',v.transmission],['Drivetrain',v.drive],['Displacement',s.displacement],['Power',s.power],['Torque',s.torque],['Engine type',s.engine_type],['Cylinders',s.cylinders]]],['consumables',[]],['wheels',[]],['fuelCapacities',[['Fuel',v.fuel],['Tank',s.tank]]],['electrical',[]],['dimensions',[]],['service',[]],['environment',[['Emissions',s.emissions]]]];
-    el('vehicleData').innerHTML=groups.map(([key,entries],i)=>`<details class="vehicle-data-group" ${i===0?'open':''}><summary>${esc(text(key))}</summary>${key==='wheels'?`<div class="vehicle-values"><div><h4>${esc(text('recommended'))}</h4>${specValueList(wheelRows,'recommended_value')}</div><div><h4>${esc(text('actual'))}</h4>${specValueList(wheelRows,'actual_value')}</div></div>`:entries.some(([,x])=>x!=null&&x!=='')?`<dl class="vehicle-data-list">${entries.filter(([,x])=>x!=null&&x!=='').map(([k,x])=>`<dt>${esc(k)}</dt><dd>${esc(valueText(x))}</dd>`).join('')}</dl>`:notice('unavailable')}${key==='consumables'?`<div class="vehicle-values"><div><h4>${esc(text('recommended'))}</h4>${notice('unavailable')}</div><div><h4>${esc(text('actual'))}</h4>${notice('unavailable')}</div></div>`:''}</details>`).join('');
+    el('vehicleData').innerHTML=groups.map(([key,entries],i)=>`<details class="vehicle-data-group" ${i===0?'open':''}><summary>${dataHeadingIcon(key)}<span>${esc(text(key))}</span></summary>${key==='wheels'?`<div class="vehicle-values"><div><h4>${esc(text('recommended'))}</h4>${specValueList(wheelRows,'recommended_value')}</div><div><h4>${esc(text('actual'))}</h4>${specValueList(wheelRows,'actual_value')}</div></div>`:entries.some(([,x])=>x!=null&&x!=='')?`<dl class="vehicle-data-list">${entries.filter(([,x])=>x!=null&&x!=='').map(([k,x])=>`<dt>${esc(k)}</dt><dd>${esc(valueText(x))}</dd>`).join('')}</dl>`:notice('unavailable')}${key==='consumables'?`<div class="vehicle-values"><div><h4>${esc(text('recommended'))}</h4>${notice('unavailable')}</div><div><h4>${esc(text('actual'))}</h4>${notice('unavailable')}</div></div>`:''}</details>`).join('');
   }
   function modal(content){el('vehicleDialogContent').innerHTML=content;if(!el('vehicleDialog').open)el('vehicleDialog').showModal();}
   function close(){el('vehicleDialog').close();selectedProblem=null;}

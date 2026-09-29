@@ -3242,7 +3242,7 @@ body.assistant-mode.chat-active .bubble small { display:block; float:none; margi
   background:#0c1722;
   touch-action:pan-y;
 }
-.vehicle-identity > h2 { grid-area:title; margin:0; font-size:26px; line-height:1.2; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.vehicle-identity > h2 { grid-area:title; margin:0; padding-right:54px; font-size:26px; line-height:1.2; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
 .vehicle-photo-stage { grid-area:photo; position:relative; width:300px; height:170px; align-self:center; }
 .vehicle-current-photo {
   width:100%;
@@ -3284,11 +3284,14 @@ body.assistant-mode.chat-active .bubble small { display:block; float:none; margi
 .vehicle-photo-stage:hover .vehicle-switch-control,
 .vehicle-switch-control:focus-visible { opacity:.72; }
 .vehicle-switch-control:hover { opacity:1; background:rgba(5,18,29,.28); }
-.vehicle-position-dots { position:absolute; left:50%; bottom:-9px; z-index:3; display:flex; gap:6px; transform:translateX(-50%); }
+.vehicle-position-dots { position:absolute; left:50%; bottom:-14px; z-index:3; display:flex; gap:6px; transform:translateX(-50%); }
 .vehicle-position-dots span { width:6px; height:6px; border-radius:50%; background:rgba(128,166,188,.38); box-shadow:0 0 0 1px rgba(128,190,218,.14); }
 .vehicle-position-dots span.active { background:var(--cyan); box-shadow:0 0 8px rgba(17,162,255,.72); }
-#car .vehicle-actions { grid-area:settings; align-self:start; justify-self:end; margin:0; }
+#car .vehicle-actions { position:absolute; top:16px; right:16px; z-index:8; margin:0; }
 #car .vehicle-actions summary { width:44px; height:44px; padding:0; display:grid; place-items:center; overflow:hidden; font-size:20px; }
+#car .vehicle-actions button { display:flex; align-items:center; gap:9px; }
+#car .vehicle-actions button svg { width:16px; height:16px; flex:0 0 16px; fill:none; stroke:#58b7df; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; }
+#car .vehicle-actions .danger-btn svg { stroke:#de7890; }
 .vehicle-card-facts { grid-area:facts; display:grid; grid-template-columns:repeat(4,minmax(100px,1fr)); gap:10px; margin:0; align-self:center; }
 .vehicle-card-facts div { min-width:0; padding:10px 12px; border:1px solid #1d3c52; border-radius:8px; background:rgba(7,26,39,.7); }
 .vehicle-card-facts dt { display:flex; align-items:center; gap:6px; color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.05em; }
@@ -3303,6 +3306,8 @@ body.assistant-mode.chat-active .bubble small { display:block; float:none; margi
 .car-edit-photo-actions { display:flex; flex-direction:column; align-items:stretch; gap:10px; }
 .car-edit-photo-actions .btn { margin:0; white-space:nowrap; }
 .vehicle-logbook { min-width:0; }
+.vehicle-data-group summary { display:flex; align-items:center; gap:9px; }
+.vehicle-data-heading-icon { width:18px; height:18px; flex:0 0 18px; fill:none; stroke:#58b7df; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; }
 
 @media(max-width:1050px) {
   #car .vehicle-identity {
@@ -3323,8 +3328,8 @@ body.assistant-mode.chat-active .bubble small { display:block; float:none; margi
     grid-template-columns:1fr;
     grid-template-rows:30px 190px 126px 28px;
     grid-template-areas:"title" "photo" "facts" "vin";
-    gap:10px;
-    height:438px;
+    gap:18px;
+    height:456px;
     padding:14px;
   }
   .vehicle-identity > h2 { padding-right:50px; font-size:21px; }
@@ -3335,9 +3340,11 @@ body.assistant-mode.chat-active .bubble small { display:block; float:none; margi
   .vehicle-card-facts div { padding:7px 9px; }
   .vehicle-card-facts dd { min-height:2.5em; margin-top:3px; font-size:13px; }
   .vehicle-card-vin { grid-template-columns:auto minmax(0,1fr); align-items:center; }
-  #car .vehicle-actions { position:absolute; top:12px; right:12px; }
+  #car .vehicle-actions { top:12px; right:12px; }
   .vehicle-tabs { gap:5px; }
   .vehicle-tabs button { font-size:12px; padding:10px 4px; }
+  #car-history .vehicle-filters { display:grid; grid-template-columns:.62fr 1.15fr .88fr 1.55fr; gap:4px; width:100%; }
+  #car-history .vehicle-filters button { min-width:0; padding:8px 2px; font-size:10px; line-height:1.15; white-space:nowrap; }
 }
 
 @media(max-width:480px) {
