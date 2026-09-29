@@ -4321,6 +4321,14 @@ body.assistant-mode .composer-shell.is-expanded .composer-actions {
   margin: 0 auto;
 }
 
+#mainNavigation .nav button.active,
+#mainNavigation .nav button:hover {
+  border-color: var(--blue);
+  background: linear-gradient(90deg, #0766f2, #07386f);
+  box-shadow: inset 0 0 0 1px var(--blue), 0 0 22px rgba(8, 125, 255, .22);
+  color: white;
+}
+
 @media (max-width: 1050px) {
   body.assistant-mode .composer {
     left: 8px !important;
@@ -4334,14 +4342,20 @@ body.assistant-mode .composer-shell.is-expanded .composer-actions {
 .workspace,
 body.page-mode .workspace,
 body.assistant-mode .workspace {
+  display: block !important;
   position: relative;
   grid-template-columns: minmax(0, 1fr) !important;
   gap: 0 !important;
 }
 
-body .side,
-body.page-mode .side,
-body.assistant-mode .side {
+.workspace > .content {
+  width: 100%;
+  margin: 0;
+}
+
+#mainNavigation,
+body.page-mode #mainNavigation,
+body.assistant-mode #mainNavigation {
   position: fixed !important;
   top: 106px !important;
   left: max(20px, env(safe-area-inset-left)) !important;
@@ -4359,9 +4373,9 @@ body.assistant-mode .side {
   transition: transform .2s ease, opacity .16s ease, visibility 0s linear .2s;
 }
 
-body.navigation-open .side,
-body.navigation-open.page-mode .side,
-body.navigation-open.assistant-mode .side {
+body.navigation-open #mainNavigation,
+body.navigation-open.page-mode #mainNavigation,
+body.navigation-open.assistant-mode #mainNavigation {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
@@ -4384,9 +4398,9 @@ body.assistant-mode .topbar {
 }
 
 @media (max-width: 1050px) {
-  body .side,
-  body.page-mode .side,
-  body.assistant-mode .side {
+  #mainNavigation,
+  body.page-mode #mainNavigation,
+  body.assistant-mode #mainNavigation {
     top: 116px !important;
     left: max(12px, env(safe-area-inset-left)) !important;
     width: min(240px, 72vw) !important;
@@ -4402,9 +4416,9 @@ body.assistant-mode .topbar {
 }
 
 @media (max-width: 480px) {
-  body .side,
-  body.page-mode .side,
-  body.assistant-mode .side {
+  #mainNavigation,
+  body.page-mode #mainNavigation,
+  body.assistant-mode #mainNavigation {
     top: 78px !important;
     max-height: calc(100dvh - 90px) !important;
   }
