@@ -72,7 +72,7 @@ window.PulsCar = (() => {
     dots.innerHTML=vehicles.length>1?vehicles.map(item=>`<span class="${item.id===vehicle.id?'active':''}"></span>`).join(''):'';
     dots.hidden=vehicles.length<2;
     const primaryControls=el('vehiclePrimaryControls');
-    primaryControls.innerHTML=vehicles.map(item=>{const active=item.id===vehicle.id,label=getVehicleLabel(item);return `<button type="button" class="vehicle-primary-check ${active?'active':''}" data-car-vehicle="${esc(item.id)}" aria-pressed="${active}" aria-label="${esc(label)}" title="${esc(label)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 12.5 4 4L18 8.5"/></svg></button>`;}).join('');
+    primaryControls.innerHTML=`<span class="vehicle-primary-check active" title="${esc(getVehicleLabel(vehicle))}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 12.5 4 4L18 8.5"/></svg></span>`;
     document.querySelectorAll('[data-car-switch]').forEach(button=>{button.hidden=vehicles.length<2;button.disabled=vehicles.length<2;});
     setTab(tab);
     if(state.id!==vehicle.id||state.owner!==window.pulsCurrentUser?.id){void load(vehicle.id);return;}
@@ -271,7 +271,7 @@ window.PulsCar = (() => {
   function clearNavigationTimer(){if(navigationCloseTimer!=null){clearTimeout(navigationCloseTimer);navigationCloseTimer=null;}}
   function restartNavigationTimer(){clearNavigationTimer();if(document.body.classList.contains('navigation-open'))navigationCloseTimer=setTimeout(closeNavigation,10000);}
   function closeNavigation(){clearNavigationTimer();document.body.classList.remove('navigation-open');el('mobileNavToggle')?.setAttribute('aria-expanded','false');if(el('mobileNavBackdrop'))el('mobileNavBackdrop').hidden=true;}
-  function toggleNavigation(){if(!window.matchMedia('(max-width: 1050px)').matches)return;const opened=document.body.classList.toggle('navigation-open');el('mobileNavToggle').setAttribute('aria-expanded',String(opened));el('mobileNavBackdrop').hidden=true;if(opened)restartNavigationTimer();else clearNavigationTimer();}
+  function toggleNavigation(){const opened=document.body.classList.toggle('navigation-open');el('mobileNavToggle').setAttribute('aria-expanded',String(opened));el('mobileNavBackdrop').hidden=true;if(opened)restartNavigationTimer();else clearNavigationTimer();}
   function switchVehicle(direction){
     const vehicles=loadVehicleStore().vehicles.filter(v=>isBackendVehicleId(v.id)&&v.lifecycle_status!=='TRASHED');
     if(vehicles.length<2)return;
@@ -286,6 +286,7 @@ window.PulsCar = (() => {
   function authChanged(){const next=window.pulsCurrentUser?.id||'';if(next===authOwner)return;authOwner=next;++version;state={id:'',owner:'',loading:false,detail:null,problems:[],events:[],errors:{}};editing=false;selectedProblem=null;serverVehicleStore=null;++vehicleLookupRequestId;if(el('vehicleDialog')?.open)close();render();}
   function init(){
     if(initialized)return;initialized=true;authOwner=window.pulsCurrentUser?.id||'';
+    if(window.matchMedia('(min-width: 1051px)').matches){document.body.classList.add('navigation-open');el('mobileNavToggle').setAttribute('aria-expanded','true');restartNavigationTimer();}
     i18n.en['car.formMileage']='Mileage (km)';i18n.ru['car.formMileage']='Пробег (км)';
     for(const lang of ['en','ru'])for(const key of ['car.lookupNotFound','car.lookupError','car.lookupInvalid','car.lookupNeedVin'])i18n[lang][key]=words.vinFailed[lang==='ru'?1:0];
     el('carCancelEdit').addEventListener('click',()=>{if(busy)return;editing=false;++vehicleLookupRequestId;fillVehicleForm(loadVehicleProfile());render();});
