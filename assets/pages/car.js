@@ -11,7 +11,7 @@ window.PulsCar = (() => {
     continue:['Continue discussion','Продолжить обсуждение'], sources:['Sources used','Использованные материалы'], sourceCount:['Sources','Источники'], eventCount:['Context events','События контекста'], symptoms:['Symptoms','Симптомы'], conditions:['Conditions','Условия'], confirmed_facts:['Confirmed facts','Подтверждённые факты'], checks_summary:['Already checked','Что проверено'], hypotheses:['Hypotheses','Гипотезы'], actions_summary:['Actions taken','Выполненные действия'], current_conclusion:['Current conclusion','Текущий вывод'], next_step:['Next step','Следующий шаг'], confirmation:['Confirmed result','Подтверждённый результат'], started:['Started','Начало'],
     OPEN:['Open','Открыта'], IN_PROGRESS:['Diagnosis in progress','Диагностика в процессе'], SOLVED:['Solved','Решена'], CLOSED:['Closed','Закрыта'], ARCHIVED:['Archived','В архиве'],
     editEntry:['Edit','Редактировать'], editProblem:['Edit problem','Редактировать проблему'], deleteAction:['Delete','Удалить'], deleteEventQuestion:['Delete record?','Удалить запись?'], deleteProblemQuestion:['Delete problem?','Удалить проблему?'], deleteUnavailable:['Deletion is not available until the server deletion contract is implemented.','Удаление пока недоступно до реализации серверного контракта.'], recordActions:['Record actions','Действия с записью'], problem:['Problem','Проблема'], created:['Created','Создана'], updated:['Updated','Обновлена'], problemSummary:['Problem summary','Описание проблемы'], partsConsumables:['Parts / Consumables','Запчасти / расходники'], workPerformed:['Work performed','Выполненные работы'], notes:['Notes','Примечания'], problemTitle:['Problem title','Название проблемы'], problemSymptoms:['Symptoms (one per line)','Симптомы (по одному в строке)'],
-    save:['Save','Сохранить'], parameter:['Parameter','Параметр'],
+    save:['Save','Сохранить'], parameter:['Parameter','Параметр'], primaryVehicle:['Primary vehicle','Основной автомобиль'], setPrimary:['Make primary','Сделать основным'],
     deleteTitle:['Delete vehicle?','Удалить автомобиль?'], deleteHelp:['The vehicle will be moved to Trash. Its technical history and photo will be retained; it can be restored during the recovery period shown in Trash.','Автомобиль будет перемещён в корзину. Техническая история и фото сохранятся. Восстановление доступно в течение срока, указанного в корзине.'], restore:['Restore','Восстановить'], restoreUntil:['Restore until','Восстановить до'], expired:['Recovery period has expired','Срок восстановления истёк'], noTrash:['No deleted vehicles.','Нет удалённых автомобилей.'],
     vinFailed:['Could not automatically identify the vehicle. Please complete the main vehicle information manually.','Не удалось автоматически определить автомобиль. Заполните основные данные вручную.'], signIn:['Sign in to load your vehicles.','Войдите, чтобы загрузить свои автомобили.']
   };
@@ -50,11 +50,14 @@ window.PulsCar = (() => {
     tab=['overview','data','history'].includes(next)?next:'overview';
     document.querySelectorAll('[data-car-tab]').forEach(b=>{const selected=b.dataset.carTab===tab;b.setAttribute('aria-selected',String(selected));b.tabIndex=selected?0:-1;el(`car-${b.dataset.carTab}`).hidden=!selected;});
   }
+  function displayedVehicle(vehicles=loadVehicleStore().vehicles.filter(v=>isBackendVehicleId(v.id)&&v.lifecycle_status!=='TRASHED')){
+    return vehicles.find(v=>v.id===state.id)||vehicles.find(v=>v.id===loadVehicleStore().activeId)||vehicles[0];
+  }
   function render(){
     if(!initialized)return;
     translate();
     const vehicles=loadVehicleStore().vehicles.filter(v=>isBackendVehicleId(v.id)&&v.lifecycle_status!=='TRASHED');
-    const vehicle=vehicles.find(v=>v.id===loadVehicleProfile().id)||vehicles[0];
+    const vehicle=displayedVehicle(vehicles);
     el('carV2Status').innerHTML=vehicleSyncError?errorBlock():!isSignedIn()?notice('signIn'):'';
     el('carEmpty').hidden=!!vehicles.length||editing||!!vehicleSyncError;
     el('carVehicle').hidden=!vehicle||editing;el('carEditor').hidden=!editing;
@@ -72,7 +75,8 @@ window.PulsCar = (() => {
     dots.innerHTML=vehicles.length>1?vehicles.map(item=>`<span class="${item.id===vehicle.id?'active':''}"></span>`).join(''):'';
     dots.hidden=vehicles.length<2;
     const primaryControls=el('vehiclePrimaryControls');
-    primaryControls.innerHTML=`<span class="vehicle-primary-check active" title="${esc(getVehicleLabel(vehicle))}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 12.5 4 4L18 8.5"/></svg></span>`;
+    const isPrimary=vehicle.id===loadVehicleStore().activeId;
+    primaryControls.innerHTML=`<button type="button" class="vehicle-primary-check${isPrimary?' active':''}" data-car-primary="${esc(vehicle.id)}" aria-pressed="${String(isPrimary)}" aria-label="${esc(text(isPrimary?'primaryVehicle':'setPrimary'))}" title="${esc(text(isPrimary?'primaryVehicle':'setPrimary'))}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 12.5 4 4L18 8.5"/></svg></button>`;
     document.querySelectorAll('[data-car-switch]').forEach(button=>{button.hidden=vehicles.length<2;button.disabled=vehicles.length<2;});
     setTab(tab);
     if(state.id!==vehicle.id||state.owner!==window.pulsCurrentUser?.id){void load(vehicle.id);return;}
@@ -81,9 +85,9 @@ window.PulsCar = (() => {
   async function load(id){
     const request=++version,owner=window.pulsCurrentUser?.id;
     state={id,owner,loading:true,detail:null,problems:[],events:[],errors:{}};selectedProblem=null;
-    renderSections(loadVehicleProfile());
+    render();
     const results=await Promise.allSettled([api(`/api/vehicles/${encodeURIComponent(id)}`),api(`/api/vehicles/${encodeURIComponent(id)}/problems?status=all`),api(`/api/vehicles/${encodeURIComponent(id)}/timeline`)]);
-    if(request!==version||owner!==window.pulsCurrentUser?.id||loadVehicleProfile().id!==id)return;
+    if(request!==version||owner!==window.pulsCurrentUser?.id||state.id!==id)return;
     ['detail','problems','events'].forEach((key,i)=>{
       const r=results[i];if(r.status==='rejected')state.errors[key]=true;
       else if(key==='detail'){if(r.value.vehicle?.id!==id)state.errors[key]=true;else state.detail=r.value;}
@@ -92,12 +96,12 @@ window.PulsCar = (() => {
     if(!state.errors.events){
       const relevant=state.events.filter(row=>['SERVICE','REPAIR'].includes(String(row.event_type||'').toUpperCase()));
       const attached=await Promise.allSettled(relevant.map(row=>api(`/api/storage/vehicle-events/${encodeURIComponent(row.id)}/files`)));
-      if(request!==version||owner!==window.pulsCurrentUser?.id||loadVehicleProfile().id!==id)return;
+      if(request!==version||owner!==window.pulsCurrentUser?.id||state.id!==id)return;
       relevant.forEach((row,index)=>{if(attached[index].status==='fulfilled')row.attachments=attached[index].value.files||[];});
     }
     if(state.detail){
       const detail=state.detail;
-      saveVehicleProfile(vehicleFromApi({...detail.vehicle,...specValues(detail.specs||{}),id:detail.vehicle.id}));
+      saveVehicleProfile(vehicleFromApi({...detail.vehicle,...specValues(detail.specs||{}),id:detail.vehicle.id}),{activate:false});
     }
     state.loading=false;render();
   }
@@ -211,7 +215,7 @@ window.PulsCar = (() => {
   async function saveSpec(parameterKey,button){
     const row=specRows(state.detail?.specs||{}).find(item=>String(item.parameter_key)===String(parameterKey));if(!row)return;
     button.disabled=true;
-    try{const result=await api(`/api/vehicles/${encodeURIComponent(state.id)}/specs/${encodeURIComponent(parameterKey)}`,{method:'PUT',body:JSON.stringify({actual_value:el('vehicleSpecActualInput')?.value||'',actual_unit:row.actual_unit||null})});const saved=result.spec;if(saved){const items=specRows(state.detail.specs),index=items.findIndex(item=>String(item.parameter_key)===String(parameterKey));items[index]=saved;}close();renderSections(loadVehicleProfile());}catch{button.disabled=false;toast(text('saveError'));}
+    try{const result=await api(`/api/vehicles/${encodeURIComponent(state.id)}/specs/${encodeURIComponent(parameterKey)}`,{method:'PUT',body:JSON.stringify({actual_value:el('vehicleSpecActualInput')?.value||'',actual_unit:row.actual_unit||null})});const saved=result.spec;if(saved){const items=specRows(state.detail.specs),index=items.findIndex(item=>String(item.parameter_key)===String(parameterKey));items[index]=saved;}close();renderSections(displayedVehicle());}catch{button.disabled=false;toast(text('saveError'));}
   }
   function sourceMarkup(relations){
     const seen=new Set(),sources=[];
@@ -240,14 +244,14 @@ window.PulsCar = (() => {
     if(!title){el('vehicleProblemTitleInput')?.focus();return;}
     button.disabled=true;
     const payload={vehicle_id:p.vehicle_id,title,problem_class:p.problem_class||'OTHER',component:p.component||'',status:p.status||'OPEN',symptoms,conditions:p.conditions||{},confirmed_facts:p.confirmed_facts||[],hypotheses:p.hypotheses||[],checks_summary:p.checks_summary||'',actions_summary:p.actions_summary||'',current_conclusion:p.current_conclusion||'',next_step:p.next_step||'',mileage:p.mileage??null,confirmation:p.confirmation||{}};
-    try{const data=await api(`/api/problems/${encodeURIComponent(id)}`,{method:'PUT',body:JSON.stringify(payload)});const saved=data.problem;if(saved){const index=state.problems.findIndex(item=>String(item.id)===String(id));if(index>=0)state.problems[index]=saved;}close();renderSections(loadVehicleProfile());}catch{button.disabled=false;toast(text('saveError'));}
+    try{const data=await api(`/api/problems/${encodeURIComponent(id)}`,{method:'PUT',body:JSON.stringify(payload)});const saved=data.problem;if(saved){const index=state.problems.findIndex(item=>String(item.id)===String(id));if(index>=0)state.problems[index]=saved;}close();renderSections(displayedVehicle());}catch{button.disabled=false;toast(text('saveError'));}
   }
-  function continueProblem(p){if(!p)return;window.PulsChat.continueProblem(loadVehicleProfile(),p);close();showView('assistant');el('promptInput').focus();}
+  function continueProblem(p){if(!p)return;window.PulsChat.continueProblem(displayedVehicle(),p);close();showView('assistant');el('promptInput').focus();}
   async function problem(id){
-    const vehicleId=loadVehicleProfile().id,owner=window.pulsCurrentUser?.id,request=version;
+    const vehicleId=state.id,owner=window.pulsCurrentUser?.id,request=version;
     selectedProblem=null;modal(notice('loading'));
     try{const data=await api(`/api/problems/${encodeURIComponent(id)}`);
-      if(!el('vehicleDialog').open||request!==version||owner!==window.pulsCurrentUser?.id||vehicleId!==loadVehicleProfile().id)return;
+      if(!el('vehicleDialog').open||request!==version||owner!==window.pulsCurrentUser?.id||vehicleId!==state.id)return;
       if(data.problem?.vehicle_id!==vehicleId)throw Error('Vehicle mismatch');
       const p=selectedProblem=data.problem;
       modal(`<div class="active-problem-expanded"><header><span class="active-problem-icon">${warningIcon()}</span><div><h2>${esc(p.title)}</h2><p>${esc(text('created'))} ${esc(date(p.first_seen_at||p.created_at))}${p.updated_at||p.last_seen_at?` · ${esc(text('updated'))} ${esc(date(p.updated_at||p.last_seen_at))}`:''}${p.mileage!=null?` · ${esc(p.mileage)} km`:''}</p></div></header>${problemIndicators(p,{sources:(data.sources||[]).length,events:(data.events||[]).length})}${['symptoms','conditions','confirmed_facts','checks_summary','hypotheses','actions_summary','current_conclusion','next_step','confirmation'].filter(k=>p[k]&&(typeof p[k]!=='object'||Object.keys(p[k]).length)).map(k=>`<section class="problem-detail"><h3>${esc(text(k))}</h3><p>${esc(valueText(p[k]))}</p></section>`).join('')}${sourceMarkup(data.sources)}<button type="button" class="btn active-problem-continue" data-car-action="continue">${esc(text('continue'))}</button></div>`);
@@ -275,13 +279,13 @@ window.PulsCar = (() => {
   function switchVehicle(direction){
     const vehicles=loadVehicleStore().vehicles.filter(v=>isBackendVehicleId(v.id)&&v.lifecycle_status!=='TRASHED');
     if(vehicles.length<2)return;
-    const current=vehicles.findIndex(v=>v.id===loadVehicleProfile().id);
+    const current=vehicles.findIndex(v=>v.id===displayedVehicle(vehicles)?.id);
     const step=direction==='previous'?-1:1;
     const next=vehicles[(Math.max(0,current)+step+vehicles.length)%vehicles.length];
-    editing=false;++vehicleLookupRequestId;fillVehicleForm(setActiveVehicleProfile(next.id));tab='overview';filter='all';render();
+    editing=false;++vehicleLookupRequestId;fillVehicleForm(next);tab='overview';filter='all';void load(next.id);
   }
   function invalidate(){++version;state.id='';}
-  function eventSaved(saved){if(!saved?.id||String(saved.vehicle_id)!==String(state.id))return;const index=state.events.findIndex(row=>String(row.id)===String(saved.id));if(index>=0)state.events[index]=saved;else state.events.unshift(saved);renderSections(loadVehicleProfile());}
+  function eventSaved(saved){if(!saved?.id||String(saved.vehicle_id)!==String(state.id))return;const index=state.events.findIndex(row=>String(row.id)===String(saved.id));if(index>=0)state.events[index]=saved;else state.events.unshift(saved);renderSections(displayedVehicle());}
   async function downloadFile(id,name){try{const response=await fetch(`${API_BASE_URL}/api/storage/files/${encodeURIComponent(id)}/download`,{headers:await backendAuthHeaders()});if(!response.ok)throw Error(`HTTP ${response.status}`);const url=URL.createObjectURL(await response.blob()),link=document.createElement('a');link.href=url;link.download=name||'attachment';document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}catch{toast(text('loadError'));}}
   function authChanged(){const next=window.pulsCurrentUser?.id||'';if(next===authOwner)return;authOwner=next;++version;state={id:'',owner:'',loading:false,detail:null,problems:[],events:[],errors:{}};editing=false;selectedProblem=null;serverVehicleStore=null;++vehicleLookupRequestId;if(el('vehicleDialog')?.open)close();render();}
   function init(){
@@ -289,7 +293,7 @@ window.PulsCar = (() => {
     if(window.matchMedia('(min-width: 1051px)').matches){document.body.classList.add('navigation-open');el('mobileNavToggle').setAttribute('aria-expanded','true');restartNavigationTimer();}
     i18n.en['car.formMileage']='Mileage (km)';i18n.ru['car.formMileage']='Пробег (км)';
     for(const lang of ['en','ru'])for(const key of ['car.lookupNotFound','car.lookupError','car.lookupInvalid','car.lookupNeedVin'])i18n[lang][key]=words.vinFailed[lang==='ru'?1:0];
-    el('carCancelEdit').addEventListener('click',()=>{if(busy)return;editing=false;++vehicleLookupRequestId;fillVehicleForm(loadVehicleProfile());render();});
+    el('carCancelEdit').addEventListener('click',()=>{if(busy)return;editing=false;++vehicleLookupRequestId;fillVehicleForm(displayedVehicle());render();});
     el('mobileNavToggle').addEventListener('click',toggleNavigation);
     el('mobileNavBackdrop').addEventListener('click',closeNavigation);
     el('mainNavigation').addEventListener('pointerdown',restartNavigationTimer,{passive:true});
@@ -302,10 +306,11 @@ window.PulsCar = (() => {
       const vehicleMenu=event.target.closest('.vehicle-actions'),openVehicleMenu=document.querySelector('.vehicle-actions[open]');
       if(openVehicleMenu&&!vehicleMenu){openVehicleMenu.removeAttribute('open');event.preventDefault();return;}
       if(recordMenu&&!event.target.closest('[data-car-event-edit],[data-car-event-delete],[data-car-problem-edit],[data-car-problem-continue],[data-car-problem-delete],[data-car-spec-edit]'))return;
-      const b=event.target.closest('[data-car-action],[data-car-tab],[data-car-filter],[data-car-problem],[data-car-problem-edit],[data-car-problem-save],[data-car-problem-continue],[data-car-problem-delete],[data-car-event-open],[data-car-event-edit],[data-car-event-delete],[data-car-delete-unavailable],[data-car-spec-edit],[data-car-spec-save],[data-car-file-download],[data-car-vehicle],[data-car-restore],[data-car-switch]');if(!b||b.disabled||busy)return;const d=b.dataset;
+      const b=event.target.closest('[data-car-action],[data-car-tab],[data-car-filter],[data-car-problem],[data-car-problem-edit],[data-car-problem-save],[data-car-problem-continue],[data-car-problem-delete],[data-car-event-open],[data-car-event-edit],[data-car-event-delete],[data-car-delete-unavailable],[data-car-spec-edit],[data-car-spec-save],[data-car-file-download],[data-car-vehicle],[data-car-primary],[data-car-restore],[data-car-switch]');if(!b||b.disabled||busy)return;const d=b.dataset;
       if(d.carSwitch){switchVehicle(d.carSwitch);return;}
+      if(d.carPrimary){setActiveVehicleProfile(d.carPrimary);render();return;}
       if(d.carTab)return setTab(d.carTab);
-      if(d.carFilter){filter=d.carFilter;renderSections(loadVehicleProfile());return;}
+      if(d.carFilter){filter=d.carFilter;renderSections(displayedVehicle());return;}
       if(d.carProblem)return problem(d.carProblem);
       if(d.carProblemEdit){document.querySelectorAll('.vehicle-record-actions[open]').forEach(item=>item.removeAttribute('open'));editProblem(d.carProblemEdit);return;}
       if(d.carProblemSave){await saveProblem(d.carProblemSave,b);return;}
@@ -332,7 +337,7 @@ window.PulsCar = (() => {
         case 'close':close();break;
         case 'continue':continueProblem(selectedProblem);break;
         case 'trash':modal(`<h2>${esc(text('deleteTitle'))}</h2>${notice('deleteHelp')}<div class="profile-actions"><button type="button" class="btn" data-car-action="close">${esc(text('cancel'))}</button><button type="button" class="btn danger-btn" data-car-action="confirm-trash">${esc(text('moveTrash'))}</button></div>`);break;
-        case 'confirm-trash':b.disabled=true;try{await deleteVehicleFromBackend(loadVehicleProfile());close();await syncVehicleStoreFromBackend();invalidate();render();}catch{b.disabled=false;toast(text('loadError'));}break;
+        case 'confirm-trash':b.disabled=true;try{await deleteVehicleFromBackend(displayedVehicle());close();await syncVehicleStoreFromBackend();invalidate();render();}catch{b.disabled=false;toast(text('loadError'));}break;
       }
     });
     let swipeStartX=null,swipeStartY=null;
@@ -340,5 +345,5 @@ window.PulsCar = (() => {
     el('carVehicle').addEventListener('pointerup',event=>{if(swipeStartX==null)return;const dx=event.clientX-swipeStartX,dy=event.clientY-swipeStartY;swipeStartX=swipeStartY=null;if(Math.abs(dx)>=55&&Math.abs(dx)>Math.abs(dy)*1.4)switchVehicle(dx>0?'previous':'next');},{passive:true});
     render();
   }
-  return {init,render,translate,text,closeNavigation,authChanged,invalidate,eventSaved,isEditing(){return editing;},setBusy(value){busy=value;},photoReady(){return !busy&&!state.loading&&!state.errors.detail&&state.detail?.vehicle?.id===loadVehicleProfile().id;},saved(){editing=false;invalidate();render();}};
+  return {init,render,translate,text,closeNavigation,authChanged,invalidate,eventSaved,isEditing(){return editing;},setBusy(value){busy=value;},photoReady(){return !busy&&!state.loading&&!state.errors.detail&&state.detail?.vehicle?.id===state.id;},saved(){editing=false;invalidate();render();}};
 })();
