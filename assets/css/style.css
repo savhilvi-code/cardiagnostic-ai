@@ -3238,7 +3238,7 @@ body.assistant-mode .bubble:last-child {
 .vehicle-timeline-maintenance .vehicle-timeline-dot { background:#28acd6; box-shadow:0 0 0 1px #2388ac,0 0 10px rgba(40,172,214,.25); }
 .vehicle-timeline-meta { min-width:0; padding-top:11px; }
 .vehicle-timeline-meta time { display:block; color:var(--text); font-size:13px; font-weight:650; line-height:1.35; }
-.vehicle-timeline-type { display:block; margin-top:4px; font-size:11px; font-weight:650; line-height:1.25; }
+.vehicle-timeline-type { display:block; margin-top:4px; font-size:11px; font-weight:650; line-height:1.25; white-space:nowrap; word-break:normal; overflow-wrap:normal; }
 .vehicle-timeline-repairs .vehicle-timeline-type { color:#e26470; }.vehicle-timeline-maintenance .vehicle-timeline-type { color:#32b6df; }
 .vehicle-timeline-meta small { display:block; margin-top:5px; color:var(--muted); font-size:11px; line-height:1.3; }
 .vehicle-event-card { position:relative; display:grid; grid-template-columns:38px minmax(0,1fr); gap:12px; min-width:0; min-height:122px; padding:14px 48px 14px 14px; border:1px solid #29475a; border-left:3px solid #607d90; border-radius:10px; background:rgba(7,25,38,.76); }
@@ -3270,6 +3270,8 @@ body.assistant-mode .bubble:last-child {
 .vehicle-record-actions button { width:100%; padding:9px 11px; border:0; border-radius:6px; background:transparent; color:var(--text); text-align:left; cursor:pointer; }
 .vehicle-record-actions button:hover,
 .vehicle-record-actions button:focus-visible { background:#153047; }
+.vehicle-event-direct-edit { position:absolute; top:10px; right:10px; z-index:4; display:grid; place-items:center; width:32px; height:32px; padding:0; border:0; border-radius:8px; background:transparent; color:var(--soft); font-size:22px; line-height:1; cursor:pointer; }
+.vehicle-event-direct-edit:hover,.vehicle-event-direct-edit:focus-visible { background:rgba(70,111,137,.15); outline:none; }
 .active-problem-list { display:grid; gap:14px; margin:16px 0 24px; }
 .active-problem-card { position:relative; display:grid; grid-template-columns:36px minmax(0,1fr); gap:12px; min-height:142px; padding:16px 52px 16px 16px; border:1px solid #594725; border-left:3px solid #d69231; border-radius:11px; background:linear-gradient(135deg,rgba(86,58,14,.2),rgba(8,23,35,.88)); }
 .active-problem-card:hover,.active-problem-card:focus-visible { border-color:#b47b2c; outline:none; box-shadow:0 0 0 1px rgba(226,156,52,.16); }
@@ -3301,6 +3303,8 @@ body.assistant-mode .bubble:last-child {
 .vehicle-event-detail-parts h3 { display:flex; align-items:center; gap:7px; }.vehicle-event-detail-parts h3 svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
 .vehicle-event-expanded-repairs .vehicle-event-detail-parts h3 { color:#e88a94; }.vehicle-event-expanded-maintenance .vehicle-event-detail-parts h3 { color:#60c7e7; }
 .vehicle-problem-edit { display:grid; gap:16px; margin-top:18px; }.vehicle-problem-edit label { display:grid; gap:7px; color:var(--muted); }.vehicle-problem-edit input,.vehicle-problem-edit textarea { width:100%; min-height:44px; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:#061522; color:var(--text); resize:vertical; }
+.vehicle-problem-edit .profile-actions { align-items:stretch; }
+.vehicle-problem-edit .profile-actions .btn { display:inline-flex; align-items:center; justify-content:center; min-height:44px; margin:0; padding:10px 16px; font-size:14px; font-weight:650; line-height:1.2; }
 .vehicle-spec-parameters { display:grid; gap:8px; margin:14px 0 4px; }
 .vehicle-spec-parameter { position:relative; min-width:0; padding:12px 48px 12px 14px; border:1px solid #1d3c52; border-radius:8px; background:rgba(7,26,39,.58); }
 .vehicle-spec-parameter > div:first-child { display:grid; grid-template-columns:minmax(130px,1.2fr) minmax(120px,1fr) minmax(120px,1fr); align-items:center; gap:12px; min-width:0; }
@@ -3370,7 +3374,7 @@ body.assistant-mode.chat-active .bubble small { display:block; float:none; margi
     "photo vin settings";
   align-items:start;
   gap:12px 28px;
-  height:250px;
+  height:210px;
   box-sizing:border-box;
   padding:20px;
   margin:16px 0 24px;
@@ -3496,10 +3500,8 @@ body.assistant-mode.chat-active .bubble small { display:block; float:none; margi
   #car-history .vehicle-filters { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; width:100%; }
   #car-history .vehicle-filters button { min-width:0; min-height:42px; padding:8px 6px; font-size:11px; line-height:1.2; white-space:normal; }
   .vehicle-record-actions > div { max-width:calc(100vw - 40px); }
-  .vehicle-event-card .vehicle-record-actions > div,
-  .active-problem-actions > div { position:fixed; z-index:140; inset:auto 12px max(12px,env(safe-area-inset-bottom)) 12px; width:auto; min-width:0; max-width:none; padding:8px; border-radius:12px; box-shadow:0 18px 44px #000c; }
-  .vehicle-event-card .vehicle-record-actions > div button,
-  .active-problem-actions > div button { min-height:44px; text-align:center; }
+  .active-problem-actions > div { position:fixed; z-index:140; left:50%; right:auto; bottom:max(12px,env(safe-area-inset-bottom)); width:min(320px,calc(100vw - 24px)); min-width:0; max-width:none; padding:7px; border-radius:12px; box-shadow:0 18px 44px #000c; transform:translateX(-50%); }
+  .active-problem-actions > div button { min-height:40px; padding:8px 10px; font-size:13px; line-height:1.2; text-align:center; }
   .service-file-picker { align-items:flex-start; flex-direction:column; gap:8px; }
   .active-problem-card { grid-template-columns:28px minmax(0,1fr); gap:9px; min-height:116px; padding:13px 42px 13px 13px; }
   .active-problem-icon { width:26px; height:26px; }
@@ -3512,11 +3514,11 @@ body.assistant-mode.chat-active .bubble small { display:block; float:none; margi
   .vehicle-spec-parameter > div:first-child { grid-template-columns:1fr; gap:5px; }
   .vehicle-event-timeline { gap:13px; }
   .vehicle-event-timeline::before { left:6px; }
-  .vehicle-timeline-row { grid-template-columns:14px 76px minmax(0,1fr); gap:8px; }
+  .vehicle-timeline-row { grid-template-columns:14px 88px minmax(0,1fr); gap:7px; }
   .vehicle-timeline-dot { width:10px; height:10px; margin-left:1px; border-width:2px; }
   .vehicle-timeline-meta { padding-top:9px; }
   .vehicle-timeline-meta time { font-size:11px; overflow-wrap:anywhere; }
-  .vehicle-timeline-type { margin-top:3px; font-size:10px; overflow-wrap:anywhere; }
+  .vehicle-timeline-type { margin-top:3px; font-size:clamp(9px,2.6vw,10px); white-space:nowrap; word-break:normal; overflow-wrap:normal; }
   .vehicle-timeline-meta small { margin-top:3px; font-size:10px; overflow-wrap:anywhere; }
   .vehicle-event-card { grid-template-columns:28px minmax(0,1fr); gap:8px; min-height:106px; padding:10px 40px 10px 9px; }
   .vehicle-event-icon { width:27px; height:27px; border-radius:7px; }
@@ -3527,6 +3529,7 @@ body.assistant-mode.chat-active .bubble small { display:block; float:none; margi
   .vehicle-event-parts { min-height:1.35em; margin-top:2px; font-size:10px; line-height:1.3; }
   .vehicle-event-parts span { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
   .vehicle-event-card .vehicle-record-actions { top:7px; right:6px; }
+  .vehicle-event-direct-edit { top:7px; right:6px; width:30px; height:30px; font-size:20px; }
 }
 
 @media(max-width:650px) {

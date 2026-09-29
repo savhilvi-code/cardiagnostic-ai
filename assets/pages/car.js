@@ -127,7 +127,7 @@ window.PulsCar = (() => {
   }
   function recordActionsMarkup(row){
     if(row.recordKind!=='event'||!['SERVICE','REPAIR'].includes(String(row.event_type||'').toUpperCase()))return '';
-    return `<details class="vehicle-record-actions"><summary aria-label="${esc(text('recordActions'))}">⋮</summary><div role="menu"><button type="button" role="menuitem" data-car-event-edit="${esc(row.id)}">${esc(text('editEntry'))}</button></div></details>`;
+    return `<button type="button" class="vehicle-event-direct-edit" data-car-event-edit="${esc(row.id)}" aria-label="${esc(text('editEntry'))}">⋮</button>`;
   }
   function problemActionsMarkup(problemId){
     return `<details class="vehicle-record-actions active-problem-actions"><summary aria-label="${esc(text('recordActions'))}">⋮</summary><div role="menu"><button type="button" role="menuitem" data-car-problem-edit="${esc(problemId)}">${esc(text('editEntry'))}</button><button type="button" role="menuitem" data-car-problem-continue="${esc(problemId)}">${esc(text('continue'))}</button></div></details>`;

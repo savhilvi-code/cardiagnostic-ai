@@ -185,6 +185,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "service.title": "Record title",
         "service.addTitle": "Add maintenance / repair",
         "service.editTitle": "Edit maintenance / repair",
+        "service.editMaintenanceTitle": "Edit maintenance",
+        "service.editRepairTitle": "Edit repair",
         "service.modalHelp": "Enter the date, mileage and a short description of the work.",
         "service.type": "Record type",
         "service.typeService": "Maintenance",
@@ -491,6 +493,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "service.title": "Название записи",
         "service.addTitle": "Добавить обслуживание / ремонт",
         "service.editTitle": "Изменить обслуживание / ремонт",
+        "service.editMaintenanceTitle": "Изменить обслуживание",
+        "service.editRepairTitle": "Изменить ремонт",
         "service.modalHelp": "Укажите дату, пробег и короткое описание работ.",
         "service.type": "Тип записи",
         "service.typeService": "Обслуживание",
@@ -3421,7 +3425,9 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       if (form) form.reset();
       $("#serviceEventId").value = event?.id || "";
       $("#serviceVehicleId").value = vehicleId || event?.vehicle_id || "";
-      $("#serviceTypeInput").value = String(event?.event_type || "SERVICE").toUpperCase();
+      const editingType = String(event?.event_type || "SERVICE").toUpperCase();
+      $("#serviceTypeInput").value = editingType === "MAINTENANCE" ? "SERVICE" : editingType;
+      $("#serviceTypeField").hidden = Boolean(event);
       $("#serviceTitleInput").value = event?.title || "";
       $("#serviceDescriptionInput").value = event?.description || "";
       serviceModalEventData = event?.event_data && typeof event.event_data === "object" ? {...event.event_data} : {};
@@ -3443,7 +3449,9 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       updateServicePreview();
       syncServiceSemantic();
       const modalTitle = $("#serviceModalTitle");
-      const modalTitleKey = event ? "service.editTitle" : "service.addTitle";
+      const modalTitleKey = event
+        ? (editingType === "REPAIR" ? "service.editRepairTitle" : "service.editMaintenanceTitle")
+        : "service.addTitle";
       modalTitle.dataset.i18n = modalTitleKey;
       modalTitle.textContent = t(modalTitleKey);
       modal.classList.add("show");
