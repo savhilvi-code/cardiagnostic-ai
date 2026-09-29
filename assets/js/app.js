@@ -1361,21 +1361,20 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     function setCarPhotoPreview(photoUrl = "") {
       const box = $(".car-photo-upload");
       const actions = $("#carPhotoActions");
-      const menu = $("#carPhotoMenu");
-      const menuButton = $("#carPhotoMenuBtn");
+      const removeButton = $("#removeCarPhotoBtn");
       if (!box) return;
       if (!photoUrl) {
         box.style.removeProperty("--car-photo-image");
         box.classList.remove("has-photo");
-        if (actions) actions.hidden = true;
-        if (menu) menu.hidden = true;
-        if (menuButton) menuButton.setAttribute("aria-expanded", "false");
+        if (actions) actions.hidden = false;
+        if (removeButton) removeButton.disabled = true;
         return;
       }
 
       box.style.setProperty("--car-photo-image", `url("${photoUrl}")`);
       box.classList.add("has-photo");
       if (actions) actions.hidden = false;
+      if (removeButton) removeButton.disabled = false;
     }
 
     function getVehicleFormValues() {
@@ -1536,15 +1535,9 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       if ($("#carPhotoActions")) return;
 
       photoBox.insertAdjacentHTML("afterend", `
-        <div class="car-photo-actions" id="carPhotoActions" hidden>
-          <button class="car-photo-menu-btn" id="carPhotoMenuBtn" type="button" aria-haspopup="menu" aria-expanded="false">
-            <span data-i18n="car.photoMenu">${escapeHtml(t("car.photoMenu"))}</span>
-            <span class="car-photo-menu-arrow" aria-hidden="true">▾</span>
-          </button>
-          <div class="car-photo-menu" id="carPhotoMenu" hidden>
-            <button type="button" id="replaceCarPhotoBtn" data-i18n="car.photoReplace">${escapeHtml(t("car.photoReplace"))}</button>
-            <button type="button" id="removeCarPhotoBtn" data-i18n="car.photoDelete">${escapeHtml(t("car.photoDelete"))}</button>
-          </div>
+        <div class="car-photo-actions car-edit-photo-actions" id="carPhotoActions">
+          <button class="btn" type="button" id="replaceCarPhotoBtn" data-i18n="car.photoReplace">${escapeHtml(t("car.photoReplace"))}</button>
+          <button class="btn" type="button" id="removeCarPhotoBtn" data-i18n="car.photoDelete">${escapeHtml(t("car.photoDelete"))}</button>
         </div>
       `);
     }
