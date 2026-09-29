@@ -114,6 +114,7 @@ window.PulsCar = (() => {
   }
   function attachmentMarkup(files=[]){return files.length?`<div class="vehicle-event-files">${files.map(file=>`<button class="btn" type="button" data-car-file-download="${esc(file.id)}" data-car-file-name="${esc(file.original_filename||'attachment')}">📎 ${esc(file.original_filename||'Attachment')}</button>`).join('')}</div>`:'';}
   const warningIcon = () => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2.8 20h18.4z"/><path d="M12 9v5m0 3h.01"/></svg>';
+  function eventTypeIcon(category){if(category==='repairs')return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 6a4 4 0 0 0-5 5L4 16l4 4 5-5a4 4 0 0 0 5-5l-3 3-4-4z"/></svg>';if(category==='maintenance')return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3s6 7 6 12a6 6 0 0 1-12 0c0-5 6-12 6-12z"/><path d="M9 16c.5 1.2 1.5 2 3 2"/></svg>';return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h12v16H6zM9 8h6m-6 4h6m-6 4h4"/></svg>';}
   function contextIcon(kind){const paths={symptoms:'<path d="M4 12h3l2-5 4 10 2-5h5"/>',checks:'<path d="m5 12 4 4L19 6"/>',hypotheses:'<path d="M9 18h6m-5 3h4M8 14a6 6 0 1 1 8 0c-1 1-1.5 2-1.5 4h-5c0-2-.5-3-1.5-4z"/>',next:'<path d="M5 12h14m-5-5 5 5-5 5"/>',sources:'<path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/>',events:'<path d="M6 4v3m12-3v3M4 9h16M5 6h14v14H5z"/>'};return `<svg viewBox="0 0 24 24" aria-hidden="true">${paths[kind]||paths.symptoms}</svg>`;}
   function problemIndicators(p,extra={}){
     const indicators=[];
@@ -129,15 +130,14 @@ window.PulsCar = (() => {
     if(row.recordKind!=='event'||!['SERVICE','REPAIR'].includes(String(row.event_type||'').toUpperCase()))return '';
     return `<details class="vehicle-record-actions"><summary aria-label="${esc(text('recordActions'))}">⋮</summary><div role="menu"><button type="button" role="menuitem" data-car-event-edit="${esc(row.id)}">${esc(text('editEntry'))}</button></div></details>`;
   }
-  function logMarkup(rows){return rows.length?`<ol class="vehicle-log">${rows.map(e=>{const actions=recordActionsMarkup(e);return `<li class="${actions?'vehicle-log-editable':''}">${actions}<div class="log-meta">${esc(date(e.time))}${e.mileage!=null?` · ${esc(e.mileage)} km`:''}</div>${e.problem_id?`<button class="log-problem" type="button" data-car-problem="${esc(e.problem_id)}">${esc(e.title||e.event_type)}</button>`:`<strong>${esc(e.title||e.event_type)}</strong>`}${e.description?`<p>${esc(e.description)}</p>`:''}${Object.keys(e.event_data||{}).length?`<p>${esc(valueText(e.event_data))}</p>`:''}${attachmentMarkup(e.attachments)}</li>`;}).join('')}</ol>`:notice('noEvents');}
+  function logMarkup(rows){return rows.length?`<ol class="vehicle-event-timeline">${rows.map(e=>{const actions=recordActionsMarkup(e),semantic=e.category==='repairs'?'repairs':e.category==='maintenance'?'maintenance':'neutral';return `<li class="vehicle-timeline-row vehicle-timeline-${semantic}"><span class="vehicle-timeline-dot" aria-hidden="true"></span><div class="vehicle-timeline-meta"><time>${esc(date(e.time))}</time>${e.mileage!=null?`<small>${esc(e.mileage)} km</small>`:''}</div><article class="vehicle-event-card"><span class="vehicle-event-icon">${eventTypeIcon(semantic)}</span><div class="vehicle-event-content">${e.problem_id?`<button class="log-problem" type="button" data-car-problem="${esc(e.problem_id)}">${esc(e.title||e.event_type)}</button>`:`<strong>${esc(e.title||e.event_type)}</strong>`}${e.description?`<p>${esc(e.description)}</p>`:''}${Object.keys(e.event_data||{}).length?`<p>${esc(valueText(e.event_data))}</p>`:''}${attachmentMarkup(e.attachments)}</div>${actions}</article></li>`;}).join('')}</ol>`:notice('noEvents');}
   function problemCardsMarkup(rows){
     if(!rows.length)return notice('noProblems');
     return `<div class="active-problem-list">${rows.map(row=>{const p=state.problems.find(item=>item.id===row.id)||row;const summary=((Array.isArray(p.symptoms)?p.symptoms.join('; '):'')||p.current_conclusion||p.checks_summary||'').slice(0,300);return `<article class="active-problem-card" data-car-problem="${esc(p.id)}" role="button" tabindex="0"><div class="active-problem-icon">${warningIcon()}</div><div class="active-problem-content"><div class="active-problem-heading"><strong>${esc(p.title||text('problem'))}</strong></div><div class="active-problem-dates">${esc(text('created'))} ${esc(date(p.first_seen_at||p.created_at))}${p.updated_at||p.last_seen_at?` · ${esc(text('updated'))} ${esc(date(p.updated_at||p.last_seen_at))}`:''}</div>${summary?`<p>${esc(summary)}</p>`:''}${problemIndicators(p)}</div></article>`;}).join('')}</div>`;
   }
-  function renderProblemFilter(rows){
-    const button=document.querySelector('[data-car-filter="problems"]'),count=rows.filter(row=>row.recordKind==='problem'&&row.active).length;
-    if(!button)return;
-    button.innerHTML=`${warningIcon()}<span data-v2="problems">${esc(text('problems'))}</span>${count?`<b>${count}</b>`:''}`;
+  function renderHistoryFilters(rows){
+    const values={maintenance:rows.filter(row=>row.recordKind==='event'&&row.category==='maintenance').length,repairs:rows.filter(row=>row.recordKind==='event'&&row.category==='repairs').length,problems:rows.filter(row=>row.recordKind==='problem'&&row.active).length};
+    for(const key of ['maintenance','repairs','problems']){const button=document.querySelector(`[data-car-filter="${key}"]`);if(!button)continue;button.innerHTML=`${key==='problems'?warningIcon():eventTypeIcon(key)}<span data-v2="${key}">${esc(text(key))}</span><b>${values[key]}</b>`;}
   }
   function specDisplayValue(row,kind){const value=row?.[`${kind}_value`],unit=row?.[`${kind}_unit`];return value!=null&&value!==''?[value,unit].filter(Boolean).join(' '):text('unavailable');}
   function specGroupKey(row){
@@ -170,9 +170,9 @@ window.PulsCar = (() => {
     return `<svg class="vehicle-data-heading-icon" viewBox="0 0 24 24" aria-hidden="true">${paths[key]||paths.mainSpecs}</svg>`;
   }
   function renderSections(v){
-    if(state.loading){renderProblemFilter([]);['vehicleRecentLog','vehicleHistory','vehicleData'].forEach(id=>el(id).innerHTML=notice('loading'));return;}
+    if(state.loading){renderHistoryFilters([]);['vehicleRecentLog','vehicleHistory','vehicleData'].forEach(id=>el(id).innerHTML=notice('loading'));return;}
     const rows=timeline(), warning=state.errors.events||state.errors.problems?errorBlock():'';
-    renderProblemFilter(rows);
+    renderHistoryFilters(rows);
     el('vehicleRecentLog').innerHTML=warning+logMarkup(rows.filter(row=>row.recordKind==='event'));
     const visible=rows.filter(matchesHistoryFilter),problemRows=visible.filter(row=>row.recordKind==='problem'),activeProblems=problemRows.filter(row=>row.active),timelineRows=visible.filter(row=>row.recordKind==='event'||(row.recordKind==='problem'&&!row.active));
     el('vehicleHistory').innerHTML=warning+(filter==='problems'?problemCardsMarkup(activeProblems):`${timelineRows.length?logMarkup(timelineRows):''}${activeProblems.length?problemCardsMarkup(activeProblems):''}${!visible.length?notice('noEvents'):''}`);

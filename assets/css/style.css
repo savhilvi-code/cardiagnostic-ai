@@ -3198,9 +3198,14 @@ body.assistant-mode .bubble:last-child {
 .vehicle-tabs, .vehicle-filters { display:flex; gap:8px; margin:22px 0; }
 .vehicle-tabs button, .vehicle-filters button { color:var(--muted); background:transparent; border:1px solid var(--line); padding:12px 18px; border-radius:7px; }
 .vehicle-tabs button[aria-selected="true"], .vehicle-filters button[aria-pressed="true"] { color:var(--cyan); border-color:var(--cyan); background:#0d2434; }
-.vehicle-filters [data-car-filter="problems"] { display:inline-flex; align-items:center; justify-content:center; gap:6px; }
-.vehicle-filters [data-car-filter="problems"] svg { width:15px; height:15px; fill:none; stroke:#e9a23b; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
-.vehicle-filters [data-car-filter="problems"] b { display:grid; place-items:center; min-width:18px; height:18px; padding:0 5px; border-radius:999px; background:#9b681f; color:#fff4dd; font-size:10px; line-height:1; }
+.vehicle-filters [data-car-filter="maintenance"],.vehicle-filters [data-car-filter="repairs"],.vehicle-filters [data-car-filter="problems"] { display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+.vehicle-filters [data-car-filter] svg { width:15px; height:15px; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.vehicle-filters [data-car-filter="maintenance"] svg { stroke:#32b6df; }
+.vehicle-filters [data-car-filter="repairs"] svg { stroke:#e26470; }
+.vehicle-filters [data-car-filter="problems"] svg { stroke:#e9a23b; }
+.vehicle-filters [data-car-filter] b { display:grid; place-items:center; min-width:18px; height:18px; padding:0 5px; border-radius:999px; background:#17364d; color:#dbefff; font-size:10px; line-height:1; }
+.vehicle-filters [data-car-filter="repairs"] b { background:#603039; color:#ffdce0; }
+.vehicle-filters [data-car-filter="problems"] b { background:#6f5124; color:#fff4dd; }
 .vehicle-overview { display:grid; grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr); gap:32px; padding:4px 0 24px; }
 .vehicle-overview h3 { margin-top:8px; }
 .vehicle-empty-note { color:var(--muted); line-height:1.65; padding:12px 0; }
@@ -3211,6 +3216,26 @@ body.assistant-mode .bubble:last-child {
 .vehicle-log li::before { content:''; width:8px; height:8px; border-radius:50%; background:var(--cyan); position:absolute; left:-23px; top:5px; }
 .vehicle-log p, .problem-detail p { white-space:pre-wrap; color:var(--muted); line-height:1.6; }
 .log-meta { color:var(--muted); font-size:12px; margin-bottom:10px; }
+.vehicle-event-timeline { position:relative; display:grid; gap:16px; margin:18px 0 26px; padding:0; list-style:none; }
+.vehicle-event-timeline::before { content:''; position:absolute; top:8px; bottom:8px; left:8px; width:2px; background:#28485e; }
+.vehicle-timeline-row { position:relative; display:grid; grid-template-columns:18px 118px minmax(0,1fr); gap:14px; align-items:start; min-width:0; }
+.vehicle-timeline-dot { position:relative; z-index:2; width:12px; height:12px; margin:17px 0 0 3px; border:3px solid #091722; border-radius:50%; background:#718697; box-shadow:0 0 0 1px #416175; }
+.vehicle-timeline-repairs .vehicle-timeline-dot { background:#d95261; box-shadow:0 0 0 1px #ab4350,0 0 10px rgba(217,82,97,.25); }
+.vehicle-timeline-maintenance .vehicle-timeline-dot { background:#28acd6; box-shadow:0 0 0 1px #2388ac,0 0 10px rgba(40,172,214,.25); }
+.vehicle-timeline-meta { min-width:0; padding-top:11px; }
+.vehicle-timeline-meta time { display:block; color:var(--text); font-size:13px; font-weight:650; line-height:1.35; }
+.vehicle-timeline-meta small { display:block; margin-top:5px; color:var(--muted); font-size:11px; line-height:1.3; }
+.vehicle-event-card { position:relative; display:grid; grid-template-columns:38px minmax(0,1fr); gap:12px; min-width:0; min-height:76px; padding:14px 48px 14px 14px; border:1px solid #29475a; border-left:3px solid #607d90; border-radius:10px; background:rgba(7,25,38,.76); }
+.vehicle-timeline-repairs .vehicle-event-card { border-color:#58323a; border-left-color:#d95261; box-shadow:inset 0 0 24px rgba(141,38,51,.05); }
+.vehicle-timeline-maintenance .vehicle-event-card { border-color:#235066; border-left-color:#28acd6; box-shadow:inset 0 0 24px rgba(24,133,170,.06); }
+.vehicle-event-icon { display:grid; place-items:center; width:34px; height:34px; border-radius:9px; background:rgba(93,120,138,.13); }
+.vehicle-event-icon svg { width:19px; height:19px; fill:none; stroke:#8ca8b8; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+.vehicle-timeline-repairs .vehicle-event-icon { background:rgba(182,55,70,.13); }.vehicle-timeline-repairs .vehicle-event-icon svg { stroke:#e26470; }
+.vehicle-timeline-maintenance .vehicle-event-icon { background:rgba(34,158,199,.13); }.vehicle-timeline-maintenance .vehicle-event-icon svg { stroke:#32b6df; }
+.vehicle-event-content { min-width:0; padding-top:5px; }
+.vehicle-event-content > strong,.vehicle-event-content > .log-problem { display:block; color:var(--text); font-weight:700; overflow-wrap:anywhere; }
+.vehicle-event-content > p { display:-webkit-box; margin:7px 0 0; overflow:hidden; color:var(--muted); line-height:1.45; white-space:pre-wrap; -webkit-box-orient:vertical; -webkit-line-clamp:2; }
+.vehicle-event-card .vehicle-record-actions { top:10px; right:10px; }
 .vehicle-log-editable { padding-right:46px !important; }
 .vehicle-record-actions { position:absolute; top:0; right:0; z-index:4; }
 .vehicle-record-actions summary { display:grid; place-items:center; width:32px; height:32px; padding:0; border:1px solid var(--line); border-radius:8px; background:#081622; color:var(--soft); font-size:22px; line-height:1; cursor:pointer; list-style:none; }
@@ -3437,6 +3462,19 @@ body.assistant-mode.chat-active .bubble small { display:block; float:none; margi
   .active-problem-card .problem-context-indicators i { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
   .active-problem-expanded > header { grid-template-columns:30px minmax(0,1fr); gap:9px; }
   .vehicle-spec-parameter > div:first-child { grid-template-columns:1fr; gap:5px; }
+  .vehicle-event-timeline { gap:13px; }
+  .vehicle-event-timeline::before { left:6px; }
+  .vehicle-timeline-row { grid-template-columns:14px 76px minmax(0,1fr); gap:8px; }
+  .vehicle-timeline-dot { width:10px; height:10px; margin-left:1px; border-width:2px; }
+  .vehicle-timeline-meta { padding-top:9px; }
+  .vehicle-timeline-meta time { font-size:11px; overflow-wrap:anywhere; }
+  .vehicle-timeline-meta small { margin-top:3px; font-size:10px; overflow-wrap:anywhere; }
+  .vehicle-event-card { grid-template-columns:28px minmax(0,1fr); gap:8px; min-height:68px; padding:11px 40px 11px 10px; }
+  .vehicle-event-icon { width:27px; height:27px; border-radius:7px; }
+  .vehicle-event-icon svg { width:16px; height:16px; }
+  .vehicle-event-content { padding-top:2px; }
+  .vehicle-event-content > p { margin-top:5px; -webkit-line-clamp:2; font-size:12px; }
+  .vehicle-event-card .vehicle-record-actions { top:7px; right:6px; }
 }
 
 @media(max-width:480px) {
