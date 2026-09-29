@@ -193,6 +193,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "service.descriptionPlaceholder": "Changed the oil and filter",
         "service.mileagePlaceholder": "98,500 km",
         "service.attachments": "Photo, video or document",
+        "service.chooseFiles": "Choose files",
+        "service.noFileSelected": "No file selected",
         "service.description": "Description",
         "service.date": "Date",
         "service.mileage": "Mileage",
@@ -495,6 +497,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "service.descriptionPlaceholder": "Поменял масло и фильтр",
         "service.mileagePlaceholder": "98 500 км",
         "service.attachments": "Фото, видео или документ",
+        "service.chooseFiles": "Выбрать файлы",
+        "service.noFileSelected": "Файл не выбран",
         "service.description": "Описание",
         "service.date": "Дата",
         "service.mileage": "Пробег",
@@ -3373,6 +3377,26 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
     let serviceModalFiles = [];
 
+    function autoGrowServiceTitle() {
+      const input = $("#serviceTitleInput");
+      if (!input) return;
+      input.style.height = "auto";
+      input.style.height = `${Math.min(input.scrollHeight, 160)}px`;
+    }
+
+    function updateServiceFileSelection(files = []) {
+      const name = $("#serviceFileSelection");
+      if (!name) return;
+      const selected = Array.from(files || []);
+      if (selected.length) {
+        name.removeAttribute("data-i18n");
+        name.textContent = selected.map((file) => file.name).join(", ");
+      } else {
+        name.dataset.i18n = "service.noFileSelected";
+        name.textContent = t("service.noFileSelected");
+      }
+    }
+
     function openServiceModal({ vehicleId = "", event = null } = {}) {
       const modal = $("#serviceModal");
       if (!modal) return;
@@ -3387,6 +3411,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       $("#serviceMileageInput").value = event?.mileage ?? "";
       const photoInput = $("#servicePhotoInput");
       if (photoInput) photoInput.value = "";
+      updateServiceFileSelection();
       serviceModalFiles = Array.isArray(event?.attachments) ? event.attachments : [];
       renderServiceAttachments(serviceModalFiles);
       const now = new Date();
@@ -3401,6 +3426,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       modalTitle.textContent = t(modalTitleKey);
       modal.classList.add("show");
       modal.setAttribute("aria-hidden", "false");
+      requestAnimationFrame(autoGrowServiceTitle);
     }
 
     function closeServiceModal() {
@@ -3535,6 +3561,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         closeServiceModal();
       } catch (error) {
         if ($("#servicePhotoInput")) $("#servicePhotoInput").value = "";
+        updateServiceFileSelection();
         renderServiceAttachments(serviceModalFiles);
         if (status) status.textContent = String(error.message || t("service.saveError"));
       } finally {
@@ -4066,7 +4093,10 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       ["#serviceTitleInput", "#serviceDescriptionInput", "#serviceDateInput", "#serviceMileageInput"].forEach((selector) => {
         $(selector)?.addEventListener("input", () => updateServicePreview($("#servicePhotoInput")?.dataset.previewUrl || ""));
       });
+      $("#serviceTitleInput")?.addEventListener("input", autoGrowServiceTitle);
+      $("#serviceChooseFilesBtn")?.addEventListener("click", () => $("#servicePhotoInput")?.click());
       $("#servicePhotoInput")?.addEventListener("change", async (event) => {
+        updateServiceFileSelection(event.target.files);
         renderServiceAttachments(serviceModalFiles, Array.from(event.target.files || []));
       });
       $("#languageSelect")?.addEventListener("input", handleLanguageSelectChange);

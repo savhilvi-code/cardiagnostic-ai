@@ -420,9 +420,9 @@
           <span data-i18n="service.type">Record type</span>
           <select id="serviceTypeInput"><option value="SERVICE" data-i18n="service.typeService">Service</option><option value="REPAIR" data-i18n="service.typeRepair">Repair</option></select>
         </label>
-        <label>
+        <label class="service-wide">
           <span data-i18n="service.title">Название записи</span>
-          <input id="serviceTitleInput" type="text" data-i18n-placeholder="service.titlePlaceholder" placeholder="Oil change" required>
+          <textarea id="serviceTitleInput" class="service-title-input" rows="2" data-i18n-placeholder="service.titlePlaceholder" placeholder="Oil change" required></textarea>
         </label>
         <label class="service-wide">
           <span data-i18n="service.description">Описание</span>
@@ -436,10 +436,14 @@
           <span data-i18n="service.mileage">Пробег</span>
           <input id="serviceMileageInput" type="text" data-i18n-placeholder="service.mileagePlaceholder" placeholder="98,500 km" required>
         </label>
-        <label class="service-wide">
+        <div class="service-wide service-file-field">
           <span data-i18n="service.attachments">Attachments</span>
-          <input id="servicePhotoInput" type="file" accept="image/*,video/*,.pdf,.txt,.csv,.json,.doc,.docx,.xls,.xlsx" multiple>
-        </label>
+          <span class="service-file-picker">
+            <input id="servicePhotoInput" class="service-native-file-input" type="file" accept="image/*,video/*,.pdf,.txt,.csv,.json,.doc,.docx,.xls,.xlsx" multiple tabindex="-1" aria-hidden="true">
+            <button id="serviceChooseFilesBtn" class="btn" type="button" data-i18n="service.chooseFiles">Choose files</button>
+            <span id="serviceFileSelection" class="service-file-selection" data-i18n="service.noFileSelected">No file selected</span>
+          </span>
+        </div>
         <div id="serviceAttachmentList" class="support-file-list service-wide"></div>
         <div class="service-preview service-wide" id="servicePreview">
           <span class="service-preview-icon" aria-hidden="true">🛠</span>
@@ -511,7 +515,7 @@
   <script src="assets/js/auth.js?v=20260917-block41"></script>
   <script src="assets/js/config.js?v=20260706-01"></script>
   <script src="assets/js/chat-session.js?v=20260927-attachment-first1"></script>
-  <script src="assets/pages/car.js?v=20260929-my-car-final1"></script>
-  <script src="assets/js/app.js?v=20260929-my-car-final1"></script>
+  <script src="assets/pages/car.js?v=20260929-record-polish1"></script>
+  <script src="assets/js/app.js?v=20260929-record-polish1"></script>
 </body>
 </html>
