@@ -10,7 +10,8 @@ window.PulsCar = (() => {
     mainSpecs:['Main specifications','Основные характеристики'], engineFluids:['Engine and fluids','Двигатель и жидкости'], consumables:['Filters and consumables','Фильтры и расходники'], wheels:['Wheels and pressure','Колёса и давление'], fuelCapacities:['Fuel and capacities','Топливо и объёмы'], electrical:['Electrical','Электрика'], dimensions:['Dimensions and weight','Размеры и масса'], service:['Service specifications / torque','Сервисные данные / моменты затяжки'], environment:['Environmental parameters','Экологические параметры'], recommended:['Recommended','Рекомендовано'], actual:['Used on this vehicle','Используется на автомобиле'],
     continue:['Continue discussion in PULS','Продолжить обсуждение в PULS'], sources:['Sources used','Использованные материалы'], symptoms:['Symptoms','Симптомы'], conditions:['Conditions','Условия'], confirmed_facts:['Confirmed facts','Подтверждённые факты'], checks_summary:['Already checked','Что проверено'], hypotheses:['Hypotheses','Гипотезы'], actions_summary:['Actions taken','Выполненные действия'], current_conclusion:['Current conclusion','Текущий вывод'], next_step:['Next step','Следующий шаг'], confirmation:['Confirmed result','Подтверждённый результат'], started:['Started','Начало'],
     OPEN:['Open','Открыта'], IN_PROGRESS:['Diagnosis in progress','Диагностика в процессе'], SOLVED:['Solved','Решена'], CLOSED:['Closed','Закрыта'], ARCHIVED:['Archived','В архиве'],
-    editEntry:['Edit','Редактировать'], recordActions:['Record actions','Действия с записью'],
+    editEntry:['Edit','Редактировать'], recordActions:['Record actions','Действия с записью'], problem:['Problem','Проблема'], created:['Created','Создана'], updated:['Updated','Обновлена'], problemSummary:['Problem summary','Описание проблемы'],
+    save:['Save','Сохранить'], parameter:['Parameter','Параметр'],
     deleteTitle:['Delete vehicle?','Удалить автомобиль?'], deleteHelp:['The vehicle will be moved to Trash. Its technical history and photo will be retained; it can be restored during the recovery period shown in Trash.','Автомобиль будет перемещён в корзину. Техническая история и фото сохранятся. Восстановление доступно в течение срока, указанного в корзине.'], restore:['Restore','Восстановить'], restoreUntil:['Restore until','Восстановить до'], expired:['Recovery period has expired','Срок восстановления истёк'], noTrash:['No deleted vehicles.','Нет удалённых автомобилей.'],
     vinFailed:['Could not automatically identify the vehicle. Please complete the main vehicle information manually.','Не удалось автоматически определить автомобиль. Заполните основные данные вручную.'], signIn:['Sign in to load your vehicles.','Войдите, чтобы загрузить свои автомобили.']
   };
@@ -112,11 +113,37 @@ window.PulsCar = (() => {
     return row.recordKind==='event'&&row.category===filter;
   }
   function attachmentMarkup(files=[]){return files.length?`<div class="vehicle-event-files">${files.map(file=>`<button class="btn" type="button" data-car-file-download="${esc(file.id)}" data-car-file-name="${esc(file.original_filename||'attachment')}">📎 ${esc(file.original_filename||'Attachment')}</button>`).join('')}</div>`:'';}
+  const warningIcon = () => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2.8 20h18.4z"/><path d="M12 9v5m0 3h.01"/></svg>';
   function recordActionsMarkup(row){
     if(row.recordKind!=='event'||!['SERVICE','REPAIR'].includes(String(row.event_type||'').toUpperCase()))return '';
     return `<details class="vehicle-record-actions"><summary aria-label="${esc(text('recordActions'))}">⋮</summary><div role="menu"><button type="button" role="menuitem" data-car-event-edit="${esc(row.id)}">${esc(text('editEntry'))}</button></div></details>`;
   }
   function logMarkup(rows){return rows.length?`<ol class="vehicle-log">${rows.map(e=>{const actions=recordActionsMarkup(e);return `<li class="${actions?'vehicle-log-editable':''}">${actions}<div class="log-meta">${esc(date(e.time))}${e.mileage!=null?` · ${esc(e.mileage)} km`:''}</div>${e.problem_id?`<button class="log-problem" type="button" data-car-problem="${esc(e.problem_id)}">${esc(e.title||e.event_type)}</button>`:`<strong>${esc(e.title||e.event_type)}</strong>`}${e.description?`<p>${esc(e.description)}</p>`:''}${Object.keys(e.event_data||{}).length?`<p>${esc(valueText(e.event_data))}</p>`:''}${attachmentMarkup(e.attachments)}</li>`;}).join('')}</ol>`:notice('noEvents');}
+  function problemCardsMarkup(rows){
+    if(!rows.length)return notice('noProblems');
+    return `<div class="active-problem-list">${rows.map(row=>{const p=state.problems.find(item=>item.id===row.id)||row;const summary=(Array.isArray(p.symptoms)?p.symptoms.join('; '):'')||p.current_conclusion||p.checks_summary||'';return `<article class="active-problem-card"><div class="active-problem-icon">${warningIcon()}</div><div class="active-problem-content"><div class="active-problem-heading"><button type="button" data-car-problem="${esc(p.id)}">${esc(p.title||text('problem'))}</button><span>${esc(text(p.status))}</span></div><div class="active-problem-dates">${esc(text('created'))} ${esc(date(p.first_seen_at||p.created_at))}${p.updated_at||p.last_seen_at?` · ${esc(text('updated'))} ${esc(date(p.updated_at||p.last_seen_at))}`:''}</div>${summary?`<p>${esc(summary)}</p>`:''}${p.next_step?`<dl><dt>${esc(text('next_step'))}</dt><dd>${esc(p.next_step)}</dd></dl>`:''}</div></article>`;}).join('')}</div>`;
+  }
+  function renderProblemFilter(rows){
+    const button=document.querySelector('[data-car-filter="problems"]'),count=rows.filter(row=>row.recordKind==='problem'&&row.active).length;
+    if(!button)return;
+    button.innerHTML=`${warningIcon()}<span data-v2="problems">${esc(text('problems'))}</span>${count?`<b>${count}</b>`:''}`;
+  }
+  function specDisplayValue(row,kind){const value=row?.[`${kind}_value`],unit=row?.[`${kind}_unit`];return value!=null&&value!==''?[value,unit].filter(Boolean).join(' '):text('unavailable');}
+  function specGroupKey(row){
+    const category=String(row.category||'').toLowerCase(),key=String(row.parameter_key||'').toLowerCase();
+    if(category.includes('wheel')||category.includes('tire'))return 'wheels';
+    if(category.includes('filter')||category.includes('consum'))return 'consumables';
+    if(category.includes('electric'))return 'electrical';
+    if(category.includes('dimension')||category.includes('weight'))return 'dimensions';
+    if(category.includes('service')||category.includes('torque'))return 'service';
+    if(category.includes('environment')||key.includes('emission'))return 'environment';
+    if(category.includes('fuel')||category.includes('capacity')||key==='tank')return 'fuelCapacities';
+    if(category.includes('fluid')||category.includes('engine')||['displacement','power','torque','engine_type','cylinders'].includes(key))return 'engineFluids';
+    return 'mainSpecs';
+  }
+  function specParameterMarkup(rows){
+    return rows.map(row=>`<div class="vehicle-spec-parameter"><div><strong>${esc(row.parameter_name||row.parameter_key)}</strong><small>${esc(text('recommended'))}: ${esc(specDisplayValue(row,'recommended'))}</small><small>${esc(text('actual'))}: ${esc(specDisplayValue(row,'actual'))}</small></div><details class="vehicle-record-actions vehicle-spec-actions"><summary aria-label="${esc(text('recordActions'))}">⋮</summary><div role="menu"><button type="button" role="menuitem" data-car-spec-edit="${esc(row.parameter_key)}">${esc(text('editEntry'))}</button></div></details></div>`).join('');
+  }
   function dataHeadingIcon(key){
     const paths={
       mainSpecs:'<path d="M4 17V9l3-4h10l3 4v8M6 17h12M7 13h10"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/>',
@@ -132,18 +159,30 @@ window.PulsCar = (() => {
     return `<svg class="vehicle-data-heading-icon" viewBox="0 0 24 24" aria-hidden="true">${paths[key]||paths.mainSpecs}</svg>`;
   }
   function renderSections(v){
-    if(state.loading){['vehicleRecentLog','vehicleHistory','vehicleData'].forEach(id=>el(id).innerHTML=notice('loading'));return;}
+    if(state.loading){renderProblemFilter([]);['vehicleRecentLog','vehicleHistory','vehicleData'].forEach(id=>el(id).innerHTML=notice('loading'));return;}
     const rows=timeline(), warning=state.errors.events||state.errors.problems?errorBlock():'';
+    renderProblemFilter(rows);
     el('vehicleRecentLog').innerHTML=warning+logMarkup(rows.filter(row=>row.recordKind==='event'));
-    el('vehicleHistory').innerHTML=warning+logMarkup(rows.filter(matchesHistoryFilter));
+    const visible=rows.filter(matchesHistoryFilter),eventRows=visible.filter(row=>row.recordKind==='event'),problemRows=visible.filter(row=>row.recordKind==='problem');
+    el('vehicleHistory').innerHTML=warning+(filter==='problems'?problemCardsMarkup(problemRows):`${eventRows.length?logMarkup(eventRows):''}${problemRows.length?problemCardsMarkup(problemRows):''}${!visible.length?notice('noEvents'):''}`);
     document.querySelectorAll('[data-car-filter]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.carFilter===filter)));
     if(state.errors.detail){el('vehicleData').innerHTML=errorBlock();return;}
-    const rawSpecs=state.detail?.specs||{},s=specValues(rawSpecs),wheelRows=specRows(rawSpecs);
-    const groups=[['mainSpecs',[['Make',v.brand],['Model',v.model],[text('generation'),v.generation],['Year',v.year],['VIN / chassis',v.vin],[text('mileage'),v.mileage?`${v.mileage} km`:'']]],['engineFluids',[['Engine',v.engine],['Transmission',v.transmission],['Drivetrain',v.drive],['Displacement',s.displacement],['Power',s.power],['Torque',s.torque],['Engine type',s.engine_type],['Cylinders',s.cylinders]]],['consumables',[]],['wheels',[]],['fuelCapacities',[['Fuel',v.fuel],['Tank',s.tank]]],['electrical',[]],['dimensions',[]],['service',[]],['environment',[['Emissions',s.emissions]]]];
-    el('vehicleData').innerHTML=groups.map(([key,entries],i)=>`<details class="vehicle-data-group" ${i===0?'open':''}><summary>${dataHeadingIcon(key)}<span>${esc(text(key))}</span></summary>${key==='wheels'?`<div class="vehicle-values"><div><h4>${esc(text('recommended'))}</h4>${specValueList(wheelRows,'recommended_value')}</div><div><h4>${esc(text('actual'))}</h4>${specValueList(wheelRows,'actual_value')}</div></div>`:entries.some(([,x])=>x!=null&&x!=='')?`<dl class="vehicle-data-list">${entries.filter(([,x])=>x!=null&&x!=='').map(([k,x])=>`<dt>${esc(k)}</dt><dd>${esc(valueText(x))}</dd>`).join('')}</dl>`:notice('unavailable')}${key==='consumables'?`<div class="vehicle-values"><div><h4>${esc(text('recommended'))}</h4>${notice('unavailable')}</div><div><h4>${esc(text('actual'))}</h4>${notice('unavailable')}</div></div>`:''}</details>`).join('');
+    const rawSpecs=state.detail?.specs||{},items=specRows(rawSpecs);
+    const groups=[['mainSpecs',[['Make',v.brand],['Model',v.model],[text('generation'),v.generation],['Year',v.year],['VIN / chassis',v.vin],[text('mileage'),v.mileage?`${v.mileage} km`:'']]],['engineFluids',[['Engine',v.engine],['Transmission',v.transmission],['Drivetrain',v.drive]]],['consumables',[]],['wheels',[]],['fuelCapacities',[['Fuel',v.fuel]]],['electrical',[]],['dimensions',[]],['service',[]],['environment',[]]];
+    el('vehicleData').innerHTML=groups.map(([key,entries],i)=>{const parameters=items.filter(row=>specGroupKey(row)===key),base=entries.some(([,x])=>x!=null&&x!=='')?`<dl class="vehicle-data-list">${entries.filter(([,x])=>x!=null&&x!=='').map(([k,x])=>`<dt>${esc(k)}</dt><dd>${esc(valueText(x))}</dd>`).join('')}</dl>`:'';return `<details class="vehicle-data-group" ${i===0?'open':''}><summary>${dataHeadingIcon(key)}<span>${esc(text(key))}</span></summary>${base}${parameters.length?`<div class="vehicle-spec-parameters">${specParameterMarkup(parameters)}</div>`:base?'':notice('unavailable')}</details>`;}).join('');
   }
   function modal(content){el('vehicleDialogContent').innerHTML=content;if(!el('vehicleDialog').open)el('vehicleDialog').showModal();}
   function close(){el('vehicleDialog').close();selectedProblem=null;}
+  function editSpec(parameterKey){
+    const row=specRows(state.detail?.specs||{}).find(item=>String(item.parameter_key)===String(parameterKey));if(!row)return;
+    modal(`<h2>${esc(text('editEntry'))}</h2><div class="vehicle-spec-edit"><label><span>${esc(text('parameter'))}</span><strong>${esc(row.parameter_name||row.parameter_key)}</strong></label><label><span>${esc(text('recommended'))}</span><strong>${esc(specDisplayValue(row,'recommended'))}</strong></label><label><span>${esc(text('actual'))}</span><input id="vehicleSpecActualInput" value="${esc(row.actual_value||'')}" autocomplete="off"></label><div class="profile-actions"><button type="button" class="btn" data-car-action="close">${esc(text('cancel'))}</button><button type="button" class="btn blue" data-car-spec-save="${esc(row.parameter_key)}">${esc(text('save'))}</button></div></div>`);
+    el('vehicleSpecActualInput')?.focus();
+  }
+  async function saveSpec(parameterKey,button){
+    const row=specRows(state.detail?.specs||{}).find(item=>String(item.parameter_key)===String(parameterKey));if(!row)return;
+    button.disabled=true;
+    try{const result=await api(`/api/vehicles/${encodeURIComponent(state.id)}/specs/${encodeURIComponent(parameterKey)}`,{method:'PUT',body:JSON.stringify({actual_value:el('vehicleSpecActualInput')?.value||'',actual_unit:row.actual_unit||null})});const saved=result.spec;if(saved){const items=specRows(state.detail.specs),index=items.findIndex(item=>String(item.parameter_key)===String(parameterKey));items[index]=saved;}close();renderSections(loadVehicleProfile());}catch{button.disabled=false;toast(text('saveError'));}
+  }
   function sourceMarkup(relations){
     const seen=new Set(),sources=[];
     for(const relation of Array.isArray(relations)?relations:[]){
@@ -202,13 +241,15 @@ window.PulsCar = (() => {
     document.addEventListener('keydown',event=>{if(event.key==='Escape')closeNavigation();if(event.target.matches('[data-car-tab]')&&['ArrowLeft','ArrowRight','Home','End'].includes(event.key)){event.preventDefault();const tabs=['overview','data','history'],index=event.key==='Home'?0:event.key==='End'?2:(tabs.indexOf(tab)+(event.key==='ArrowRight'?1:2))%3;setTab(tabs[index]);el(`tab-${tabs[index]}`).focus();}});
     document.addEventListener('click',async event=>{
       if(!event.target.closest('.vehicle-record-actions'))document.querySelectorAll('.vehicle-record-actions[open]').forEach(item=>item.removeAttribute('open'));
-      const b=event.target.closest('[data-car-action],[data-car-tab],[data-car-filter],[data-car-problem],[data-car-event-edit],[data-car-file-download],[data-car-vehicle],[data-car-restore],[data-car-switch]');if(!b||b.disabled||busy)return;const d=b.dataset;
+      const b=event.target.closest('[data-car-action],[data-car-tab],[data-car-filter],[data-car-problem],[data-car-event-edit],[data-car-spec-edit],[data-car-spec-save],[data-car-file-download],[data-car-vehicle],[data-car-restore],[data-car-switch]');if(!b||b.disabled||busy)return;const d=b.dataset;
       if(d.carSwitch){switchVehicle(d.carSwitch);return;}
       if(d.carTab)return setTab(d.carTab);
       if(d.carFilter){filter=d.carFilter;renderSections(loadVehicleProfile());return;}
       if(d.carProblem)return problem(d.carProblem);
       if(d.carFileDownload){await downloadFile(d.carFileDownload,d.carFileName);return;}
       if(d.carEventEdit){document.querySelectorAll('.vehicle-record-actions[open]').forEach(item=>item.removeAttribute('open'));const row=state.events.find(item=>item.id===d.carEventEdit);if(row)window.PulsService.open({vehicleId:state.id,event:row});return;}
+      if(d.carSpecEdit){document.querySelectorAll('.vehicle-record-actions[open]').forEach(item=>item.removeAttribute('open'));editSpec(d.carSpecEdit);return;}
+      if(d.carSpecSave){await saveSpec(d.carSpecSave,b);return;}
       if(d.carVehicle){editing=false;++vehicleLookupRequestId;fillVehicleForm(setActiveVehicleProfile(d.carVehicle));tab='overview';filter='all';render();return;}
       if(d.carRestore){b.disabled=true;try{await api(`/api/vehicles/${encodeURIComponent(d.carRestore)}/restore`,{method:'POST'});close();await syncVehicleStoreFromBackend();invalidate();render();}catch{b.disabled=false;toast(text('loadError'));}return;}
       document.querySelectorAll('.vehicle-actions[open]').forEach(n=>n.open=false);

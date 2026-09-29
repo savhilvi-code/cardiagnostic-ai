@@ -38,7 +38,7 @@
     "logo": "https://pulscar.co/assets/img/puls-logo.png"
   }
   </script>
-  <link rel="stylesheet" href="assets/css/style.css?v=20260929-mobile-card-cleanup1">
+  <link rel="stylesheet" href="assets/css/style.css?v=20260929-spec-overrides1">
 </head>
 <body class="puls-splash-active">
   <div class="puls-splash-screen" id="pulsSplashScreen" aria-hidden="true">
@@ -164,7 +164,7 @@
               <div class="vehicle-tabs" role="tablist" aria-label="Vehicle sections"><button id="tab-overview" type="button" role="tab" data-car-tab="overview" aria-controls="car-overview" data-v2="logbook">Vehicle Log</button><button id="tab-data" type="button" role="tab" data-car-tab="data" aria-controls="car-data" data-v2="data">Data</button><button id="tab-history" type="button" role="tab" data-car-tab="history" aria-controls="car-history" data-v2="history">History</button></div>
               <section id="car-overview" role="tabpanel" aria-labelledby="tab-overview"><section class="vehicle-logbook"><div class="head"><h3 data-v2="logbook">Vehicle Log</h3><button class="btn" type="button" data-car-action="entry" data-v2="addEntry">+ Add entry</button></div><div id="vehicleRecentLog"></div></section></section>
               <section id="car-data" role="tabpanel" aria-labelledby="tab-data" hidden><div id="vehicleData"></div></section>
-              <section id="car-history" role="tabpanel" aria-labelledby="tab-history" hidden><div class="head"><h3 data-v2="history">History</h3><button class="btn" type="button" data-car-action="entry" data-v2="addEntry">+ Add entry</button></div><div class="vehicle-filters" aria-label="History filters"><button type="button" data-car-filter="all" data-v2="all">All</button><button type="button" data-car-filter="maintenance" data-v2="maintenance">Maintenance</button><button type="button" data-car-filter="repairs" data-v2="repairs">Repairs</button><button type="button" data-car-filter="problems" data-v2="problems">Active Problems</button></div><div id="vehicleHistory"></div></section>
+              <section id="car-history" role="tabpanel" aria-labelledby="tab-history" hidden><div class="head"><h3 data-v2="history">History</h3><button class="btn" type="button" data-car-action="entry" data-v2="addEntry">+ Add entry</button></div><div class="vehicle-filters" aria-label="History filters"><button type="button" data-car-filter="all" data-v2="all">All</button><button type="button" data-car-filter="maintenance" data-v2="maintenance">Maintenance</button><button type="button" data-car-filter="repairs" data-v2="repairs">Repairs</button><button type="button" data-car-filter="problems"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2.8 20h18.4z"/><path d="M12 9v5m0 3h.01"/></svg><span data-v2="problems">Active Problems</span></button></div><div id="vehicleHistory"></div></section>
             </div>
             <section id="carEditor" class="card car-form-card" hidden><h2 id="carEditorTitle" data-v2="add">+ Add vehicle</h2><div class="vehicle-entry-methods"><button class="btn" type="button" data-car-action="method-vin" data-v2="vinMethod">VIN / chassis · Recommended</button><button class="btn" type="button" data-car-action="method-manual" data-v2="manualMethod">Manual entry</button></div>
                   <form id="carForm" class="car-form">
@@ -515,7 +515,7 @@
   <script src="assets/js/auth.js?v=20260917-block41"></script>
   <script src="assets/js/config.js?v=20260706-01"></script>
   <script src="assets/js/chat-session.js?v=20260927-attachment-first1"></script>
-  <script src="assets/pages/car.js?v=20260929-record-polish1"></script>
+  <script src="assets/pages/car.js?v=20260929-spec-overrides1"></script>
   <script src="assets/js/app.js?v=20260929-record-polish1"></script>
 </body>
 </html>
