@@ -4289,6 +4289,8 @@ body.assistant-mode .composer-shell.is-expanded .composer-actions {
 
 /* Navigation overlay exposes only its three individual actions. */
 #mainNavigation .nav {
+  position: relative;
+  z-index: 1;
   display: flex !important;
   flex-direction: column;
   gap: 8px;
@@ -4297,6 +4299,16 @@ body.assistant-mode .composer-shell.is-expanded .composer-actions {
   border-radius: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
+}
+
+#mainNavigation::before {
+  content: "";
+  position: absolute;
+  inset: -24px;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(0, 7, 13, .84) 0%, rgba(0, 7, 13, .58) 48%, rgba(0, 7, 13, 0) 78%);
+  filter: blur(8px);
 }
 
 #mainNavigation .nav button {
@@ -4364,10 +4376,10 @@ body.assistant-mode #mainNavigation {
   height: max-content !important;
   max-height: calc(100dvh - 118px) !important;
   z-index: 1000;
+  isolation: isolate;
   opacity: 0;
   visibility: hidden;
-  overflow-x: hidden !important;
-  overflow-y: auto !important;
+  overflow: visible !important;
   pointer-events: none;
   transform: translateX(calc(-100% - 16px));
   transition: transform .2s ease, opacity .16s ease, visibility 0s linear .2s;
@@ -4391,10 +4403,20 @@ body.assistant-mode .topbar {
   max-width: none !important;
   margin-left: calc(50% - 50vw) !important;
   box-sizing: border-box;
-  padding-left: max(20px, env(safe-area-inset-left)) !important;
-  padding-right: max(20px, env(safe-area-inset-right)) !important;
+  padding-left: max(12px, env(safe-area-inset-left)) !important;
+  padding-right: max(12px, env(safe-area-inset-right)) !important;
   align-items: center;
+  isolation: isolate;
   z-index: 1200;
+}
+
+.topbar::before {
+  content: "";
+  position: absolute;
+  inset: 0 -100vmax;
+  z-index: -1;
+  pointer-events: none;
+  background: inherit;
 }
 
 @media (max-width: 1050px) {
@@ -4410,8 +4432,8 @@ body.assistant-mode .topbar {
   .topbar,
   body.page-mode .topbar,
   body.assistant-mode .topbar {
-    padding-left: max(12px, env(safe-area-inset-left)) !important;
-    padding-right: max(12px, env(safe-area-inset-right)) !important;
+    padding-left: max(6px, env(safe-area-inset-left)) !important;
+    padding-right: max(6px, env(safe-area-inset-right)) !important;
   }
 }
 
