@@ -3429,9 +3429,11 @@ body.assistant-mode.chat-active .bubble small { display:block; float:none; margi
 .vehicle-photo-stage:hover .vehicle-switch-control,
 .vehicle-switch-control:focus-visible { opacity:.72; }
 .vehicle-switch-control:hover { opacity:1; background:rgba(5,18,29,.28); }
-.vehicle-position-dots { position:absolute; left:50%; bottom:-14px; z-index:3; display:flex; gap:6px; transform:translateX(-50%); }
-.vehicle-position-dots span { width:6px; height:6px; border-radius:50%; background:rgba(128,166,188,.38); box-shadow:0 0 0 1px rgba(128,190,218,.14); }
-.vehicle-position-dots span.active { background:var(--cyan); box-shadow:0 0 8px rgba(17,162,255,.72); }
+.vehicle-position-dots { position:absolute; left:50%; bottom:-16px; z-index:3; display:flex; flex-wrap:wrap; justify-content:center; gap:7px; max-width:calc(100% - 16px); transform:translateX(-50%); }
+.vehicle-primary-check { display:grid; place-items:center; width:26px; height:26px; padding:0; border:1px solid rgba(128,166,188,.3); border-radius:50%; background:#0b1823; color:rgba(156,188,204,.42); cursor:pointer; opacity:.7; }
+.vehicle-primary-check svg { width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+.vehicle-primary-check:hover,.vehicle-primary-check:focus-visible { color:#a8cad8; border-color:#59859b; opacity:1; }
+.vehicle-primary-check.active { color:#50d890; border-color:#50d890; background:#0d2a24; box-shadow:0 0 9px rgba(80,216,144,.34); opacity:1; }
 #car .vehicle-actions { position:absolute; top:16px; right:16px; z-index:8; margin:0; }
 #car .vehicle-actions summary { width:44px; height:44px; padding:0; display:grid; place-items:center; overflow:hidden; font-size:20px; }
 #car .vehicle-actions button { display:flex; align-items:center; gap:9px; }

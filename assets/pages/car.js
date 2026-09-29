@@ -69,8 +69,8 @@ window.PulsCar = (() => {
     currentPhoto.classList.toggle('has-photo',Boolean(vehicle.photoUrl));
     currentPhoto.style.backgroundImage=vehicle.photoUrl?`url("${vehicle.photoUrl.replaceAll('"','%22')}")`:'';
     const dots=el('vehiclePositionDots');
-    dots.innerHTML=vehicles.length>1?vehicles.map(item=>`<span class="${item.id===vehicle.id?'active':''}"></span>`).join(''):'';
-    dots.hidden=vehicles.length<2;
+    dots.innerHTML=vehicles.map(item=>{const active=item.id===vehicle.id,label=getVehicleLabel(item);return `<button type="button" class="vehicle-primary-check ${active?'active':''}" data-car-vehicle="${esc(item.id)}" aria-pressed="${active}" aria-label="${esc(label)}" title="${esc(label)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 12.5 4 4L18 8.5"/></svg></button>`;}).join('');
+    dots.hidden=!vehicles.length;
     document.querySelectorAll('[data-car-switch]').forEach(button=>{button.hidden=vehicles.length<2;button.disabled=vehicles.length<2;});
     setTab(tab);
     if(state.id!==vehicle.id||state.owner!==window.pulsCurrentUser?.id){void load(vehicle.id);return;}
