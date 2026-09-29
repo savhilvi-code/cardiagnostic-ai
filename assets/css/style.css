@@ -1184,7 +1184,8 @@ html { scroll-behavior: smooth; }
     }
 
     .service-form input,
-    .service-form textarea {
+    .service-form textarea,
+    .service-form select {
       width: 100%;
       min-height: 46px;
       border: 1px solid var(--line);
@@ -1196,8 +1197,11 @@ html { scroll-behavior: smooth; }
       resize: vertical;
     }
 
+    .service-form select { appearance:auto; color-scheme:dark; cursor:pointer; }
+    .service-form select option { background:#071725; color:var(--text); }
     .service-form input:focus,
-    .service-form textarea:focus {
+    .service-form textarea:focus,
+    .service-form select:focus {
       border-color: var(--blue);
     }
 
@@ -3261,13 +3265,16 @@ body.assistant-mode .bubble:last-child {
 .vehicle-record-actions button:hover,
 .vehicle-record-actions button:focus-visible { background:#153047; }
 .active-problem-list { display:grid; gap:14px; margin:16px 0 24px; }
-.active-problem-card { display:grid; grid-template-columns:36px minmax(0,1fr); gap:12px; min-height:142px; padding:16px; border:1px solid #594725; border-left:3px solid #d69231; border-radius:11px; background:linear-gradient(135deg,rgba(86,58,14,.2),rgba(8,23,35,.88)); cursor:pointer; }
+.active-problem-card { position:relative; display:grid; grid-template-columns:36px minmax(0,1fr); gap:12px; min-height:142px; padding:16px 52px 16px 16px; border:1px solid #594725; border-left:3px solid #d69231; border-radius:11px; background:linear-gradient(135deg,rgba(86,58,14,.2),rgba(8,23,35,.88)); }
 .active-problem-card:hover,.active-problem-card:focus-visible { border-color:#b47b2c; outline:none; box-shadow:0 0 0 1px rgba(226,156,52,.16); }
 .active-problem-icon { display:grid; place-items:center; width:32px; height:32px; border-radius:8px; background:rgba(194,127,28,.14); }
 .active-problem-icon svg { width:20px; height:20px; fill:none; stroke:#e9a23b; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
 .active-problem-content { min-width:0; }
 .active-problem-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; }
-.active-problem-heading strong { min-width:0; color:var(--text); overflow-wrap:anywhere; }
+.active-problem-heading button { min-width:0; padding:0; border:0; background:transparent; color:var(--text); font:inherit; font-weight:700; text-align:left; overflow-wrap:anywhere; cursor:pointer; }
+.active-problem-heading button:hover,.active-problem-heading button:focus-visible { color:#ffe2a6; outline:none; text-decoration:underline; text-underline-offset:4px; }
+.active-problem-actions { top:10px; right:10px; }
+.active-problem-actions summary { border-color:transparent; background:transparent; }
 .active-problem-dates { margin-top:8px; color:var(--muted); font-size:12px; }
 .active-problem-card p { display:-webkit-box; margin:12px 0 0; overflow:hidden; color:var(--soft); line-height:1.45; white-space:pre-wrap; -webkit-box-orient:vertical; -webkit-line-clamp:3; }
 .problem-context-indicators { display:flex; flex-wrap:wrap; gap:7px; margin-top:12px; }
@@ -3278,6 +3285,18 @@ body.assistant-mode .bubble:last-child {
 .active-problem-expanded > header h2 { margin:0 0 7px; }.active-problem-expanded > header p { color:var(--muted); font-size:12px; }
 .active-problem-expanded .problem-detail { border-color:#4b3e25; }
 .active-problem-continue { border-color:#c4862f !important; background:#8a5c1d !important; color:#fff5e2 !important; }
+.vehicle-event-open { padding:0; border:0; background:transparent; text-align:left; cursor:pointer; }
+.vehicle-event-open:hover,.vehicle-event-open:focus-visible { color:var(--cyan); outline:none; text-decoration:underline; text-underline-offset:4px; }
+.vehicle-event-expanded > header { display:grid; grid-template-columns:38px minmax(0,1fr); gap:12px; padding-bottom:16px; }
+.vehicle-event-expanded > header h2 { margin:0 0 7px; }.vehicle-event-expanded > header p { color:var(--muted); font-size:12px; }
+.vehicle-event-expanded-repairs > header { border-bottom:1px solid #783b45; }.vehicle-event-expanded-repairs .vehicle-event-icon { background:rgba(182,55,70,.13); }.vehicle-event-expanded-repairs .vehicle-event-icon svg { stroke:#e26470; }
+.vehicle-event-expanded-maintenance > header { border-bottom:1px solid #28647d; }.vehicle-event-expanded-maintenance .vehicle-event-icon { background:rgba(34,158,199,.13); }.vehicle-event-expanded-maintenance .vehicle-event-icon svg { stroke:#32b6df; }
+.vehicle-event-detail-block { padding:14px 0; border-bottom:1px solid var(--line); }
+.vehicle-event-expanded-repairs .vehicle-event-detail-block { border-color:#4d3138; }.vehicle-event-expanded-maintenance .vehicle-event-detail-block { border-color:#234858; }
+.vehicle-event-detail-block h3 { margin:0 0 8px; font-size:13px; }.vehicle-event-detail-block p { margin:0; color:var(--soft); line-height:1.55; white-space:pre-wrap; }
+.vehicle-event-detail-parts h3 { display:flex; align-items:center; gap:7px; }.vehicle-event-detail-parts h3 svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
+.vehicle-event-expanded-repairs .vehicle-event-detail-parts h3 { color:#e88a94; }.vehicle-event-expanded-maintenance .vehicle-event-detail-parts h3 { color:#60c7e7; }
+.vehicle-problem-edit { display:grid; gap:16px; margin-top:18px; }.vehicle-problem-edit label { display:grid; gap:7px; color:var(--muted); }.vehicle-problem-edit input,.vehicle-problem-edit textarea { width:100%; min-height:44px; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:#061522; color:var(--text); resize:vertical; }
 .vehicle-spec-parameters { display:grid; gap:8px; margin:14px 0 4px; }
 .vehicle-spec-parameter { position:relative; min-width:0; padding:12px 48px 12px 14px; border:1px solid #1d3c52; border-radius:8px; background:rgba(7,26,39,.58); }
 .vehicle-spec-parameter > div:first-child { display:grid; grid-template-columns:minmax(130px,1.2fr) minmax(120px,1fr) minmax(120px,1fr); align-items:center; gap:12px; min-width:0; }
@@ -3470,13 +3489,14 @@ body.assistant-mode.chat-active .bubble small { display:block; float:none; margi
   #car-history .vehicle-filters button { min-width:0; min-height:42px; padding:8px 6px; font-size:11px; line-height:1.2; white-space:normal; }
   .vehicle-record-actions > div { max-width:calc(100vw - 40px); }
   .service-file-picker { align-items:flex-start; flex-direction:column; gap:8px; }
-  .active-problem-card { grid-template-columns:28px minmax(0,1fr); gap:9px; min-height:116px; padding:13px; }
+  .active-problem-card { grid-template-columns:28px minmax(0,1fr); gap:9px; min-height:116px; padding:13px 42px 13px 13px; }
   .active-problem-icon { width:26px; height:26px; }
   .active-problem-card p { margin-top:8px; -webkit-line-clamp:2; }
   .problem-context-indicators { gap:5px; margin-top:9px; }
   .problem-context-indicators span { min-height:23px; padding:3px 6px; }
   .active-problem-card .problem-context-indicators i { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
   .active-problem-expanded > header { grid-template-columns:30px minmax(0,1fr); gap:9px; }
+  .vehicle-event-expanded > header { grid-template-columns:30px minmax(0,1fr); gap:9px; }
   .vehicle-spec-parameter > div:first-child { grid-template-columns:1fr; gap:5px; }
   .vehicle-event-timeline { gap:13px; }
   .vehicle-event-timeline::before { left:6px; }
