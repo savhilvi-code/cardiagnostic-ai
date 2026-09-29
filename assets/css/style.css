@@ -3271,6 +3271,10 @@ body.assistant-mode .bubble:last-child {
 .vehicle-record-actions button { width:100%; padding:9px 11px; border:0; border-radius:6px; background:transparent; color:var(--text); text-align:left; cursor:pointer; }
 .vehicle-record-actions button:hover,
 .vehicle-record-actions button:focus-visible { background:#153047; }
+.vehicle-record-actions .danger-btn { color:#ff9aa8; }
+.vehicle-record-actions .danger-btn:hover,
+.vehicle-record-actions .danger-btn:focus-visible { background:rgba(255,76,76,.13); color:#ffdede; }
+.vehicle-delete-unavailable { max-width:480px; color:var(--muted); line-height:1.5; }
 .vehicle-event-direct-edit { position:absolute; top:10px; right:10px; z-index:4; display:grid; place-items:center; width:32px; height:32px; padding:0; border:0; border-radius:8px; background:transparent; color:var(--soft); font-size:22px; line-height:1; cursor:pointer; }
 .vehicle-event-direct-edit:hover,.vehicle-event-direct-edit:focus-visible { background:rgba(70,111,137,.15); outline:none; }
 .active-problem-list { display:grid; gap:14px; margin:16px 0 24px; }
@@ -3471,6 +3475,18 @@ body.assistant-mode.chat-active .bubble small { display:block; float:none; margi
   .vehicle-photo-stage { width:240px; height:190px; }
   .vehicle-card-facts { grid-template-columns:repeat(2,minmax(0,1fr)); }
   #car .vehicle-actions > div { left:auto; right:0; width:min(260px,calc(100vw - 44px)); }
+}
+
+@media(min-width:1051px) {
+  body.page-mode .side,
+  body.assistant-mode .side {
+    position:sticky !important;
+    top:12px !important;
+    align-self:start !important;
+    height:max-content !important;
+    max-height:calc(100dvh - 24px) !important;
+    overflow:visible !important;
+  }
 }
 
 @media(max-width:650px) {

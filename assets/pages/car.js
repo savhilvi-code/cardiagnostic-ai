@@ -10,7 +10,7 @@ window.PulsCar = (() => {
     mainSpecs:['Main specifications','Основные характеристики'], engineFluids:['Engine and fluids','Двигатель и жидкости'], consumables:['Filters and consumables','Фильтры и расходники'], wheels:['Wheels and pressure','Колёса и давление'], fuelCapacities:['Fuel and capacities','Топливо и объёмы'], electrical:['Electrical','Электрика'], dimensions:['Dimensions and weight','Размеры и масса'], service:['Service specifications / torque','Сервисные данные / моменты затяжки'], environment:['Environmental parameters','Экологические параметры'], recommended:['Recommended','Рекомендовано'], actual:['Used on this vehicle','Используется на автомобиле'],
     continue:['Continue discussion','Продолжить обсуждение'], sources:['Sources used','Использованные материалы'], sourceCount:['Sources','Источники'], eventCount:['Context events','События контекста'], symptoms:['Symptoms','Симптомы'], conditions:['Conditions','Условия'], confirmed_facts:['Confirmed facts','Подтверждённые факты'], checks_summary:['Already checked','Что проверено'], hypotheses:['Hypotheses','Гипотезы'], actions_summary:['Actions taken','Выполненные действия'], current_conclusion:['Current conclusion','Текущий вывод'], next_step:['Next step','Следующий шаг'], confirmation:['Confirmed result','Подтверждённый результат'], started:['Started','Начало'],
     OPEN:['Open','Открыта'], IN_PROGRESS:['Diagnosis in progress','Диагностика в процессе'], SOLVED:['Solved','Решена'], CLOSED:['Closed','Закрыта'], ARCHIVED:['Archived','В архиве'],
-    editEntry:['Edit','Редактировать'], editProblem:['Edit problem','Редактировать проблему'], recordActions:['Record actions','Действия с записью'], problem:['Problem','Проблема'], created:['Created','Создана'], updated:['Updated','Обновлена'], problemSummary:['Problem summary','Описание проблемы'], partsConsumables:['Parts / Consumables','Запчасти / расходники'], workPerformed:['Work performed','Выполненные работы'], notes:['Notes','Примечания'], problemTitle:['Problem title','Название проблемы'], problemSymptoms:['Symptoms (one per line)','Симптомы (по одному в строке)'],
+    editEntry:['Edit','Редактировать'], editProblem:['Edit problem','Редактировать проблему'], deleteAction:['Delete','Удалить'], deleteEventQuestion:['Delete record?','Удалить запись?'], deleteProblemQuestion:['Delete problem?','Удалить проблему?'], deleteUnavailable:['Deletion is not available until the server deletion contract is implemented.','Удаление пока недоступно до реализации серверного контракта.'], recordActions:['Record actions','Действия с записью'], problem:['Problem','Проблема'], created:['Created','Создана'], updated:['Updated','Обновлена'], problemSummary:['Problem summary','Описание проблемы'], partsConsumables:['Parts / Consumables','Запчасти / расходники'], workPerformed:['Work performed','Выполненные работы'], notes:['Notes','Примечания'], problemTitle:['Problem title','Название проблемы'], problemSymptoms:['Symptoms (one per line)','Симптомы (по одному в строке)'],
     save:['Save','Сохранить'], parameter:['Parameter','Параметр'],
     deleteTitle:['Delete vehicle?','Удалить автомобиль?'], deleteHelp:['The vehicle will be moved to Trash. Its technical history and photo will be retained; it can be restored during the recovery period shown in Trash.','Автомобиль будет перемещён в корзину. Техническая история и фото сохранятся. Восстановление доступно в течение срока, указанного в корзине.'], restore:['Restore','Восстановить'], restoreUntil:['Restore until','Восстановить до'], expired:['Recovery period has expired','Срок восстановления истёк'], noTrash:['No deleted vehicles.','Нет удалённых автомобилей.'],
     vinFailed:['Could not automatically identify the vehicle. Please complete the main vehicle information manually.','Не удалось автоматически определить автомобиль. Заполните основные данные вручную.'], signIn:['Sign in to load your vehicles.','Войдите, чтобы загрузить свои автомобили.']
@@ -126,11 +126,11 @@ window.PulsCar = (() => {
     return indicators.length?`<div class="problem-context-indicators">${indicators.map(([kind,label,count])=>`<span title="${esc(label)}">${contextIcon(kind)}<i>${esc(label)}</i>${count!==''?`<b>${esc(count)}</b>`:''}</span>`).join('')}</div>`:'';
   }
   function recordActionsMarkup(row){
-    if(row.recordKind!=='event'||!['SERVICE','REPAIR'].includes(String(row.event_type||'').toUpperCase()))return '';
-    return `<button type="button" class="vehicle-event-direct-edit" data-car-event-edit="${esc(row.id)}" aria-label="${esc(text('editEntry'))}">⋮</button>`;
+    if(row.recordKind!=='event'||!['SERVICE','MAINTENANCE','REPAIR'].includes(String(row.event_type||'').toUpperCase()))return '';
+    return `<details class="vehicle-record-actions"><summary aria-label="${esc(text('recordActions'))}">⋮</summary><div role="menu"><button type="button" role="menuitem" data-car-event-edit="${esc(row.id)}">${esc(text('editEntry'))}</button><button type="button" role="menuitem" class="danger-btn" data-car-event-delete="${esc(row.id)}">${esc(text('deleteAction'))}</button></div></details>`;
   }
   function problemActionsMarkup(problemId){
-    return `<details class="vehicle-record-actions active-problem-actions"><summary aria-label="${esc(text('recordActions'))}">⋮</summary><div role="menu"><button type="button" role="menuitem" data-car-problem-edit="${esc(problemId)}">${esc(text('editEntry'))}</button><button type="button" role="menuitem" data-car-problem-continue="${esc(problemId)}">${esc(text('continue'))}</button></div></details>`;
+    return `<details class="vehicle-record-actions active-problem-actions"><summary aria-label="${esc(text('recordActions'))}">⋮</summary><div role="menu"><button type="button" role="menuitem" data-car-problem-edit="${esc(problemId)}">${esc(text('editEntry'))}</button><button type="button" role="menuitem" data-car-problem-continue="${esc(problemId)}">${esc(text('continue'))}</button><button type="button" role="menuitem" class="danger-btn" data-car-problem-delete="${esc(problemId)}">${esc(text('deleteAction'))}</button></div></details>`;
   }
   function eventParts(data={}){
     const values=[];
@@ -197,6 +197,10 @@ window.PulsCar = (() => {
   }
   function modal(content,surface=''){el('vehicleDialogContent').innerHTML=content;if(surface)el('vehicleDialog').dataset.surface=surface;else delete el('vehicleDialog').dataset.surface;if(!el('vehicleDialog').open)el('vehicleDialog').showModal();}
   function close(){el('vehicleDialog').close();delete el('vehicleDialog').dataset.surface;selectedProblem=null;}
+  function deleteConfirmation(kind,id){
+    const question=kind==='problem'?text('deleteProblemQuestion'):text('deleteEventQuestion');
+    modal(`<h2>${esc(question)}</h2><p class="vehicle-delete-unavailable">${esc(text('deleteUnavailable'))}</p><div class="profile-actions"><button type="button" class="btn" data-car-action="close">${esc(text('cancel'))}</button><button type="button" class="btn danger-btn" data-car-delete-unavailable="${esc(`${kind}:${id}`)}">${esc(text('deleteAction'))}</button></div>`);
+  }
   function editSpec(parameterKey){
     const row=specRows(state.detail?.specs||{}).find(item=>String(item.parameter_key)===String(parameterKey));if(!row)return;
     modal(`<h2>${esc(text('editEntry'))}</h2><div class="vehicle-spec-edit"><label><span>${esc(text('parameter'))}</span><strong>${esc(row.parameter_name||row.parameter_key)}</strong></label><label><span>${esc(text('recommended'))}</span><strong>${esc(specDisplayValue(row,'recommended'))}</strong></label><label><span>${esc(text('actual'))}</span><input id="vehicleSpecActualInput" value="${esc(row.actual_value||'')}" autocomplete="off"></label><div class="profile-actions"><button type="button" class="btn" data-car-action="close">${esc(text('cancel'))}</button><button type="button" class="btn blue" data-car-spec-save="${esc(row.parameter_key)}">${esc(text('save'))}</button></div></div>`);
@@ -288,8 +292,8 @@ window.PulsCar = (() => {
       if(openRecordMenus.length&&!recordMenu){openRecordMenus.forEach(item=>item.removeAttribute('open'));event.preventDefault();return;}
       const vehicleMenu=event.target.closest('.vehicle-actions'),openVehicleMenu=document.querySelector('.vehicle-actions[open]');
       if(openVehicleMenu&&!vehicleMenu){openVehicleMenu.removeAttribute('open');event.preventDefault();return;}
-      if(recordMenu&&!event.target.closest('[data-car-event-edit],[data-car-problem-edit],[data-car-problem-continue],[data-car-spec-edit]'))return;
-      const b=event.target.closest('[data-car-action],[data-car-tab],[data-car-filter],[data-car-problem],[data-car-problem-edit],[data-car-problem-save],[data-car-problem-continue],[data-car-event-open],[data-car-event-edit],[data-car-spec-edit],[data-car-spec-save],[data-car-file-download],[data-car-vehicle],[data-car-restore],[data-car-switch]');if(!b||b.disabled||busy)return;const d=b.dataset;
+      if(recordMenu&&!event.target.closest('[data-car-event-edit],[data-car-event-delete],[data-car-problem-edit],[data-car-problem-continue],[data-car-problem-delete],[data-car-spec-edit]'))return;
+      const b=event.target.closest('[data-car-action],[data-car-tab],[data-car-filter],[data-car-problem],[data-car-problem-edit],[data-car-problem-save],[data-car-problem-continue],[data-car-problem-delete],[data-car-event-open],[data-car-event-edit],[data-car-event-delete],[data-car-delete-unavailable],[data-car-spec-edit],[data-car-spec-save],[data-car-file-download],[data-car-vehicle],[data-car-restore],[data-car-switch]');if(!b||b.disabled||busy)return;const d=b.dataset;
       if(d.carSwitch){switchVehicle(d.carSwitch);return;}
       if(d.carTab)return setTab(d.carTab);
       if(d.carFilter){filter=d.carFilter;renderSections(loadVehicleProfile());return;}
@@ -297,9 +301,12 @@ window.PulsCar = (() => {
       if(d.carProblemEdit){document.querySelectorAll('.vehicle-record-actions[open]').forEach(item=>item.removeAttribute('open'));editProblem(d.carProblemEdit);return;}
       if(d.carProblemSave){await saveProblem(d.carProblemSave,b);return;}
       if(d.carProblemContinue){document.querySelectorAll('.vehicle-record-actions[open]').forEach(item=>item.removeAttribute('open'));const p=state.problems.find(item=>String(item.id)===String(d.carProblemContinue));continueProblem(p);return;}
+      if(d.carProblemDelete){document.querySelectorAll('.vehicle-record-actions[open]').forEach(item=>item.removeAttribute('open'));deleteConfirmation('problem',d.carProblemDelete);return;}
       if(d.carEventOpen){eventDetailModal(d.carEventOpen);return;}
       if(d.carFileDownload){await downloadFile(d.carFileDownload,d.carFileName);return;}
       if(d.carEventEdit){document.querySelectorAll('.vehicle-record-actions[open]').forEach(item=>item.removeAttribute('open'));const row=state.events.find(item=>String(item.id)===String(d.carEventEdit));if(row){if(el('vehicleDialog').open)close();window.PulsService.open({vehicleId:state.id,event:row});}return;}
+      if(d.carEventDelete){document.querySelectorAll('.vehicle-record-actions[open]').forEach(item=>item.removeAttribute('open'));deleteConfirmation('event',d.carEventDelete);return;}
+      if(d.carDeleteUnavailable){toast(text('deleteUnavailable'));return;}
       if(d.carSpecEdit){document.querySelectorAll('.vehicle-record-actions[open]').forEach(item=>item.removeAttribute('open'));editSpec(d.carSpecEdit);return;}
       if(d.carSpecSave){await saveSpec(d.carSpecSave,b);return;}
       if(d.carVehicle){editing=false;++vehicleLookupRequestId;fillVehicleForm(setActiveVehicleProfile(d.carVehicle));tab='overview';filter='all';render();return;}
