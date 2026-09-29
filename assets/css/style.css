@@ -3357,13 +3357,13 @@ body.assistant-mode.chat-active .bubble:last-child { margin-bottom:0 !important;
 body.assistant-mode.chat-active .bubble small { display:block; float:none; margin:8px 0 0; text-align:right; }
 @media(max-width:1050px) {
   .app { width:100%; }
-  .workspace { display:grid !important; grid-template-columns:var(--puls-navigation-width) minmax(0,1fr); gap:var(--puls-navigation-gap); overflow:visible; transition:grid-template-columns .2s ease,gap .2s ease; }
-  body.navigation-open .workspace { grid-template-columns:var(--puls-navigation-width) minmax(0,1fr); gap:var(--puls-navigation-gap); }
+  .workspace { display:grid !important; grid-template-columns:minmax(0,1fr); gap:0; overflow:visible; }
+  body.navigation-open .workspace { grid-template-columns:minmax(0,1fr); gap:0; }
   .mobile-nav-toggle { display:none !important; }
   .topbar { position:sticky; top:0; z-index:1120; width:100vw; margin-left:calc(50% - 50vw); box-sizing:border-box; padding:10px max(12px,env(safe-area-inset-right)) 10px max(12px,env(safe-area-inset-left)); align-items:center; gap:8px; background:#02070d; }
   .brand-nav-toggle { flex:1 1 auto; max-width:min(62vw,420px); gap:10px; cursor:pointer; }
   .brand-nav-toggle > div { min-width:0; }
-  .brand-subtitle { display:block; overflow:hidden; font-size:10px; line-height:1.25; white-space:nowrap; text-overflow:ellipsis; }
+  .brand-subtitle { display:block; overflow:hidden; font-size:9px; line-height:1.25; white-space:nowrap; text-overflow:ellipsis; }
   .brand-title { overflow:hidden; font-size:16px; white-space:nowrap; text-overflow:ellipsis; }
   .system-pill { display:block !important; align-self:center; flex:0 1 auto; min-width:0; max-width:38vw; margin-left:auto; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
   body .side, body.page-mode .side, body.assistant-mode .side { display:block !important; position:relative !important; top:auto !important; left:auto !important; bottom:auto; width:auto; min-width:0; height:max-content !important; max-height:calc(100dvh - 84px) !important; box-sizing:border-box; border:0; border-radius:0; background:transparent; padding:0; z-index:1; opacity:0; visibility:hidden; overflow:hidden; pointer-events:none; transition:opacity .16s ease; }
@@ -3502,14 +3502,13 @@ body.assistant-mode.chat-active .bubble small { display:block; float:none; margi
 @media(min-width:1051px) {
   body.page-mode .workspace,
   body.assistant-mode .workspace {
-    grid-template-columns:var(--puls-navigation-width) minmax(0,1fr) !important;
-    gap:var(--puls-navigation-gap);
-    transition:grid-template-columns .2s ease,gap .2s ease;
+    grid-template-columns:minmax(0,1fr) !important;
+    gap:0;
   }
   body.navigation-open.page-mode .workspace,
   body.navigation-open.assistant-mode .workspace {
-    grid-template-columns:var(--puls-navigation-width) minmax(0,1fr) !important;
-    gap:var(--puls-navigation-gap);
+    grid-template-columns:minmax(0,1fr) !important;
+    gap:0;
   }
   body.page-mode .side,
   body.assistant-mode .side {
@@ -4279,27 +4278,88 @@ body.assistant-mode .composer-shell.is-expanded .composer-actions {
   }
 }
 
-/* Fixed chat controls share the same navigation-open geometry as the workspace. */
-body { --puls-navigation-width: 0px; --puls-navigation-gap: 0px; }
-body.navigation-open { --puls-navigation-width: 220px; --puls-navigation-gap: 12px; }
-
 @media (min-width: 1051px) {
   body.assistant-mode .composer {
-    left: calc(18px + var(--puls-navigation-width) + var(--puls-navigation-gap)) !important;
+    left: 18px !important;
     right: 18px !important;
     width: auto !important;
     max-width: none !important;
-    transition: left .2s ease, right .2s ease, width .2s ease !important;
   }
 }
 
 @media (max-width: 1050px) {
-  body.navigation-open { --puls-navigation-width: min(240px, 72vw); --puls-navigation-gap: 10px; }
   body.assistant-mode .composer {
-    left: calc(8px + var(--puls-navigation-width) + var(--puls-navigation-gap)) !important;
+    left: 8px !important;
     right: 8px !important;
     width: auto !important;
     max-width: none !important;
-    transition: left .2s ease, right .2s ease, width .2s ease !important;
+  }
+}
+
+/* One shared navigation overlay: opening it never changes workspace geometry. */
+.workspace,
+body.page-mode .workspace,
+body.assistant-mode .workspace {
+  position: relative;
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 0 !important;
+}
+
+body .side,
+body.page-mode .side,
+body.assistant-mode .side {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 220px !important;
+  min-width: 0;
+  height: max-content !important;
+  max-height: 100% !important;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  pointer-events: none;
+  transform: translateX(calc(-100% - 16px));
+  transition: transform .2s ease, opacity .16s ease, visibility 0s linear .2s;
+}
+
+body.navigation-open .side,
+body.navigation-open.page-mode .side,
+body.navigation-open.assistant-mode .side {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(0);
+  transition: transform .2s ease, opacity .16s ease;
+}
+
+/* The global header owns the viewport-wide background and never follows navigation. */
+.topbar,
+body.page-mode .topbar,
+body.assistant-mode .topbar {
+  width: 100vw !important;
+  max-width: none !important;
+  margin-left: calc(50% - 50vw) !important;
+  box-sizing: border-box;
+  padding-left: max(20px, env(safe-area-inset-left)) !important;
+  padding-right: max(20px, env(safe-area-inset-right)) !important;
+  align-items: center;
+  z-index: 1200;
+}
+
+@media (max-width: 1050px) {
+  body .side,
+  body.page-mode .side,
+  body.assistant-mode .side {
+    width: min(240px, 72vw) !important;
+  }
+
+  .topbar,
+  body.page-mode .topbar,
+  body.assistant-mode .topbar {
+    padding-left: max(12px, env(safe-area-inset-left)) !important;
+    padding-right: max(12px, env(safe-area-inset-right)) !important;
   }
 }
