@@ -67,6 +67,9 @@ window.PulsCar = (() => {
     const currentPhoto=el('vehicleCurrentPhoto');
     currentPhoto.classList.toggle('has-photo',Boolean(vehicle.photoUrl));
     currentPhoto.style.backgroundImage=vehicle.photoUrl?`url("${vehicle.photoUrl.replaceAll('"','%22')}")`:'';
+    const dots=el('vehiclePositionDots');
+    dots.innerHTML=vehicles.length>1?vehicles.map(item=>`<span class="${item.id===vehicle.id?'active':''}"></span>`).join(''):'';
+    dots.hidden=vehicles.length<2;
     document.querySelectorAll('[data-car-switch]').forEach(button=>{button.hidden=vehicles.length<2;button.disabled=vehicles.length<2;});
     setTab(tab);
     if(state.id!==vehicle.id||state.owner!==window.pulsCurrentUser?.id){void load(vehicle.id);return;}
