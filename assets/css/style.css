@@ -4287,6 +4287,34 @@ body.assistant-mode .composer-shell.is-expanded .composer-actions {
   }
 }
 
+/* Navigation overlay exposes only its three individual actions. */
+#mainNavigation .nav {
+  display: flex !important;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+#mainNavigation .nav button {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: center;
+  justify-content: stretch;
+  column-gap: 12px;
+  padding: 0 12px;
+  text-align: left;
+}
+
+#mainNavigation .nav button svg {
+  width: 20px;
+  height: 20px;
+  margin: 0 auto;
+}
+
 @media (max-width: 1050px) {
   body.assistant-mode .composer {
     left: 8px !important;
