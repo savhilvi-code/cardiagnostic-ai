@@ -4477,8 +4477,8 @@ body.assistant-mode .topbar {
   align-items: center;
   gap: 3px;
   color: #f3f9ff;
-  font-size: 28px;
-  font-weight: 600;
+  font-size: 24px;
+  font-weight: 500;
   line-height: 1;
   white-space: nowrap;
 }
