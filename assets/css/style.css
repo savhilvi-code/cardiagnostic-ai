@@ -4300,7 +4300,7 @@ body.assistant-mode .composer-shell.is-expanded .composer-actions {
     right: 10px !important;
     width: auto !important;
     max-width: none !important;
-    padding: 0 7px !important;
+    padding: 4px 7px !important;
     border-radius: 10px !important;
   }
 }
@@ -4365,7 +4365,7 @@ body.assistant-mode .composer-shell.is-expanded .composer-actions {
     right: 6px !important;
     width: auto !important;
     max-width: none !important;
-    padding: 0 3px !important;
+    padding: 4px 3px !important;
     border-radius: 10px !important;
   }
 }
@@ -4474,7 +4474,7 @@ body.assistant-mode .topbar {
 
 .brand-nav-toggle {
   align-items: center;
-  gap: 7px;
+  gap: 6px;
 }
 
 .brand-logo,
@@ -4490,7 +4490,7 @@ body.assistant-mode .topbar {
 .brand-nav-label {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 6px;
   color: #f3f9ff;
   font-size: 24px;
   font-weight: 500;
@@ -4570,7 +4570,7 @@ body[data-auth-state="authenticated"] #assistant .assistant-chat > .head {
   body.assistant-mode .composer {
     left: 8px !important;
     right: 8px !important;
-    padding: 7px 10px !important;
+    padding: 10px 13px !important;
     border-radius: 22px !important;
   }
 
