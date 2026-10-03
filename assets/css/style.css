@@ -4116,7 +4116,7 @@ button.chat-attachment-file-icon.is-openable {
 /* ===== PULS ChatGPT-style expanding composer ===== */
 .composer,
 body.assistant-mode .composer {
-  padding: 8px !important;
+  padding: 7px !important;
   overflow: visible !important;
   border-radius: 22px !important;
 }
@@ -4129,7 +4129,7 @@ body.assistant-mode .composer-shell {
   flex-direction: column;
   justify-content: flex-end;
   border: 0;
-  border-radius: 18px;
+  border-radius: 19px;
   background: #04111d;
   overflow: visible;
   transition: min-height .12s ease, border-color .12s ease, box-shadow .12s ease;
@@ -4433,6 +4433,8 @@ body.assistant-mode .topbar {
   margin-left: 0 !important;
   margin-right: 0 !important;
   box-sizing: border-box;
+  padding-top: 6px !important;
+  padding-bottom: 6px !important;
   padding-left: max(10px, env(safe-area-inset-left)) !important;
   padding-right: max(10px, env(safe-area-inset-right)) !important;
   z-index: 1200;
@@ -4440,19 +4442,21 @@ body.assistant-mode .topbar {
 
 .topbar-inner {
   width: 100%;
-  min-height: 80px;
+  min-height: 56px;
   min-width: 0;
   box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 18px;
+  padding-top: 6px;
+  padding-bottom: 6px;
   padding-left: max(10px, env(safe-area-inset-left));
   padding-right: max(10px, env(safe-area-inset-right));
   border: 1px solid var(--line-strong);
   border-radius: 10px;
-  background: rgba(3, 12, 22, .96);
-  backdrop-filter: blur(14px);
+  background: transparent;
+  backdrop-filter: none;
 }
 
 .brand-logo {
