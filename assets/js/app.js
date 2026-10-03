@@ -733,10 +733,19 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         }
       }
 
-      pill.textContent = label;
+      document.body.dataset.authState = signedIn ? "authenticated" : "guest";
+      const hasCompactQuota = Boolean(signedIn && currentQuota && !currentQuota.unlimited);
+      const fullLabel = document.createElement("span");
+      fullLabel.className = "system-pill-full";
+      fullLabel.textContent = label;
+      const compactLabel = document.createElement("span");
+      compactLabel.className = "system-pill-compact";
+      if (hasCompactQuota) compactLabel.textContent = `${currentQuota.remaining} / ${currentQuota.limit}`;
+      pill.replaceChildren(fullLabel, compactLabel);
       pill.setAttribute("aria-label", label);
       pill.setAttribute("title", label);
       pill.dataset.authState = signedIn ? "authenticated" : "guest";
+      pill.dataset.compactQuota = String(hasCompactQuota);
       pill.setAttribute("aria-disabled", String(signedIn));
       renderSettingsSubscription();
     }
