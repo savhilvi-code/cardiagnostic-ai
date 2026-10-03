@@ -4542,7 +4542,7 @@ body[data-auth-state="authenticated"] #assistant .assistant-chat > .head {
     gap: 8px;
     padding: 5px 6px 5px 14px;
     border: 1px solid var(--line-strong);
-    border-radius: 22px;
+    border-radius: 10px;
     background: rgba(3, 12, 22, .96);
     backdrop-filter: blur(14px);
   }
@@ -4574,7 +4574,7 @@ body[data-auth-state="authenticated"] #assistant .assistant-chat > .head {
     max-width: 56vw;
     min-height: 34px;
     padding: 7px 11px;
-    border-radius: 999px;
+    border-radius: 10px;
     font-size: 12px;
     line-height: 1;
   }
