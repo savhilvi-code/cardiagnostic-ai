@@ -4442,15 +4442,15 @@ body.assistant-mode .topbar {
 
 .topbar-inner {
   width: 100%;
-  min-height: 56px;
+  min-height: 52px;
   min-width: 0;
   box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  padding-top: 6px;
-  padding-bottom: 6px;
+  padding-top: 4px;
+  padding-bottom: 4px;
   padding-left: max(10px, env(safe-area-inset-left));
   padding-right: max(10px, env(safe-area-inset-right));
   border: 1px solid var(--line-strong);
@@ -4471,10 +4471,10 @@ body.assistant-mode .topbar {
 .brand-nav-label {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 3px;
   color: #f3f9ff;
   font-size: 28px;
-  font-weight: 800;
+  font-weight: 600;
   line-height: 1;
   white-space: nowrap;
 }
@@ -4562,6 +4562,7 @@ body[data-auth-state="authenticated"] #assistant .assistant-chat > .head {
   .brand-nav-label {
     gap: 6px;
     font-size: 15px;
+    font-weight: 800;
   }
 
   .brand-mobile-chevron {
