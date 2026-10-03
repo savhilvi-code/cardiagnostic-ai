@@ -4492,6 +4492,7 @@ body.assistant-mode .topbar {
   font-weight: 500;
   line-height: 1;
   white-space: nowrap;
+  transform: translateY(1px);
 }
 
 .brand-mobile-chevron {
@@ -4561,7 +4562,7 @@ body[data-auth-state="authenticated"] #assistant .assistant-chat > .head {
   body.assistant-mode .composer {
     left: 8px !important;
     right: 8px !important;
-    padding: 7px !important;
+    padding: 7px 10px !important;
     border-radius: 22px !important;
   }
 
@@ -4585,6 +4586,7 @@ body[data-auth-state="authenticated"] #assistant .assistant-chat > .head {
     gap: 6px;
     font-size: 15px;
     font-weight: 800;
+    transform: none;
   }
 
   .brand-mobile-chevron {
