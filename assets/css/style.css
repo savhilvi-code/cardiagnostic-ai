@@ -4465,7 +4465,14 @@ body.assistant-mode .topbar {
 }
 
 .brand-nav-toggle {
+  align-items: center;
   gap: 7px;
+}
+
+.brand-logo,
+.brand-nav-label,
+.brand-mobile-chevron {
+  align-self: center;
 }
 
 .system-pill-compact {
