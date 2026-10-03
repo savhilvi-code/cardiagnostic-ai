@@ -4500,7 +4500,7 @@ body.assistant-mode .topbar {
 }
 
 .brand-nav-label > span {
-  transform: translateY(1px);
+  transform: translateY(-1px);
 }
 
 .brand-mobile-chevron {
@@ -4570,8 +4570,8 @@ body[data-auth-state="authenticated"] #assistant .assistant-chat > .head {
   body.assistant-mode .composer {
     left: 8px !important;
     right: 8px !important;
-    padding: 10px 13px !important;
-    border-radius: 22px !important;
+    padding: 4px 3px !important;
+    border-radius: 10px !important;
   }
 
   .topbar-inner {
