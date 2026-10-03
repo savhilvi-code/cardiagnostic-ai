@@ -4226,6 +4226,10 @@ body.assistant-mode .composer .send {
   align-self: center;
 }
 
+.composer-actions .send {
+  justify-self: end;
+}
+
 /* One line: text shares the compact bar visually with the controls. */
 .composer-shell:not(.is-expanded),
 body.assistant-mode .composer-shell:not(.is-expanded) {
@@ -4296,7 +4300,7 @@ body.assistant-mode .composer-shell.is-expanded .composer-actions {
     right: 10px !important;
     width: auto !important;
     max-width: none !important;
-    padding: 0 !important;
+    padding: 0 7px !important;
     border-radius: 10px !important;
   }
 }
@@ -4361,7 +4365,7 @@ body.assistant-mode .composer-shell.is-expanded .composer-actions {
     right: 6px !important;
     width: auto !important;
     max-width: none !important;
-    padding: 0 !important;
+    padding: 0 3px !important;
     border-radius: 10px !important;
   }
 }
@@ -4492,6 +4496,10 @@ body.assistant-mode .topbar {
   font-weight: 500;
   line-height: 1;
   white-space: nowrap;
+  transform: none;
+}
+
+.brand-nav-label > span {
   transform: translateY(1px);
 }
 
@@ -4586,6 +4594,9 @@ body[data-auth-state="authenticated"] #assistant .assistant-chat > .head {
     gap: 6px;
     font-size: 15px;
     font-weight: 800;
+  }
+
+  .brand-nav-label > span {
     transform: none;
   }
 
