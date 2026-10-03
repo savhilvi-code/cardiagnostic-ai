@@ -4442,15 +4442,15 @@ body.assistant-mode .topbar {
 
 .topbar-inner {
   width: 100%;
-  min-height: 52px;
+  min-height: 48px;
   min-width: 0;
   box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  padding-top: 4px;
-  padding-bottom: 4px;
+  padding-top: 2px;
+  padding-bottom: 2px;
   padding-left: max(10px, env(safe-area-inset-left));
   padding-right: max(10px, env(safe-area-inset-right));
   border: 1px solid var(--line-strong);
@@ -4462,6 +4462,10 @@ body.assistant-mode .topbar {
 .brand-logo {
   width: 42px;
   height: 42px;
+}
+
+.brand-nav-toggle {
+  gap: 7px;
 }
 
 .system-pill-compact {
