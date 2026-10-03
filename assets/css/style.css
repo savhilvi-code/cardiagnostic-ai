@@ -3667,6 +3667,11 @@ body.assistant-mode .puls-message-body {
   min-width: 0;
 }
 
+body.assistant-mode .puls-message-body > strong:first-child,
+body.assistant-mode .puls-message-body > strong:first-child + br {
+  display: none !important;
+}
+
 body.assistant-mode .puls-search-visual {
   margin: 12px 0 4px;
   max-width: 520px;
@@ -4520,6 +4525,40 @@ body.assistant-mode .topbar {
 
 /* Authenticated chat has no introductory flex item or reserved layout space. */
 body[data-auth-state="authenticated"] #assistant .assistant-chat > .head {
+  display: none !important;
+}
+
+/* Shared user-facing HUD layers: scrolling content stays below transparent controls. */
+.topbar,
+body.page-mode .topbar,
+body.assistant-mode .topbar {
+  isolation: isolate;
+}
+
+.workspace {
+  position: relative;
+  z-index: 0;
+}
+
+.composer,
+body.assistant-mode .composer {
+  isolation: isolate;
+  z-index: 80 !important;
+}
+
+/* Hide scrollbar chrome globally without changing any scrollable overflow behavior. */
+html,
+body,
+body * {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+body *::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
   display: none !important;
 }
 
