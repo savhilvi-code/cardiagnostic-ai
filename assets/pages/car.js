@@ -19,6 +19,7 @@ window.PulsCar = (() => {
   const el = id => document.getElementById(id), esc = v => escapeHtml(v ?? '');
   let initialized=false, editing=false, tab='overview', filter='all', version=0, selectedProblem=null, busy=false, authOwner='', navigationCloseTimer=null;
   let state={id:'',owner:'',loading:false,detail:null,problems:[],events:[],errors:{}};
+  let loadPromise=null;
   const date = v => v && Number.isFinite(Date.parse(v)) ? new Date(v).toLocaleDateString(currentLocale()) : text('unavailable');
   function valueText(v) {
     if(v==null || v==='') return text('unavailable');
@@ -79,8 +80,13 @@ window.PulsCar = (() => {
     primaryControls.innerHTML=`<button type="button" class="vehicle-primary-check${isPrimary?' active':''}" data-car-primary="${esc(vehicle.id)}" aria-pressed="${String(isPrimary)}" aria-label="${esc(text(isPrimary?'primaryVehicle':'setPrimary'))}" title="${esc(text(isPrimary?'primaryVehicle':'setPrimary'))}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 12.5 4 4L18 8.5"/></svg></button>`;
     document.querySelectorAll('[data-car-switch]').forEach(button=>{button.hidden=vehicles.length<2;button.disabled=vehicles.length<2;});
     setTab(tab);
-    if(state.id!==vehicle.id||state.owner!==window.pulsCurrentUser?.id)return load(vehicle.id);
+    if(state.id!==vehicle.id||state.owner!==window.pulsCurrentUser?.id){
+      const pending=load(vehicle.id);loadPromise=pending;
+      pending.then(()=>{if(loadPromise===pending)loadPromise=null;},()=>{if(loadPromise===pending)loadPromise=null;});
+      return el('car')?.classList.contains('active')?(window.PulsLoading?.track(pending)||pending):pending;
+    }
     renderSections(vehicle);
+    return state.loading?loadPromise:null;
   }
   async function load(id){
     const request=++version,owner=window.pulsCurrentUser?.id;
@@ -189,7 +195,7 @@ window.PulsCar = (() => {
     return `<svg class="vehicle-data-heading-icon" viewBox="0 0 24 24" aria-hidden="true">${paths[key]||paths.mainSpecs}</svg>`;
   }
   function renderSections(v){
-    if(state.loading){renderHistoryFilters([]);['vehicleRecentLog','vehicleHistory','vehicleData'].forEach(id=>el(id).innerHTML=notice('loading'));return;}
+    if(state.loading){renderHistoryFilters([]);['vehicleRecentLog','vehicleHistory','vehicleData'].forEach(id=>el(id).replaceChildren());return;}
     const rows=timeline(), warning=state.errors.events||state.errors.problems?errorBlock():'';
     renderHistoryFilters(rows);
     el('vehicleRecentLog').innerHTML=warning+logMarkup(rows.filter(row=>row.recordKind==='event'));

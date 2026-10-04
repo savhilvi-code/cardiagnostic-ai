@@ -2440,21 +2440,24 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       composer.style.display = shouldShow ? "" : "none";
     }
 
-    let pulsLoadingCycle = 0;
+    let pulsLoadingOperationId = 0;
+    const pulsLoadingOperations = new Set();
 
     function beginPulsViewLoading() {
       const overlay = $("#pulsLoadingOverlay");
-      const cycle = ++pulsLoadingCycle;
+      const operation = ++pulsLoadingOperationId;
+      pulsLoadingOperations.add(operation);
       if (overlay) {
         overlay.hidden = false;
         overlay.setAttribute("aria-hidden", "false");
       }
-      return cycle;
+      return operation;
     }
 
-    function finishPulsViewLoading(cycle) {
+    function finishPulsViewLoading(operation) {
       window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
-        if (cycle !== pulsLoadingCycle) return;
+        pulsLoadingOperations.delete(operation);
+        if (pulsLoadingOperations.size) return;
         const overlay = $("#pulsLoadingOverlay");
         if (!overlay) return;
         overlay.hidden = true;
@@ -2462,9 +2465,20 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       }));
     }
 
+    function trackPulsViewLoading(promise) {
+      if (!promise || typeof promise.then !== "function") return promise;
+      const operation = beginPulsViewLoading();
+      return Promise.resolve(promise).finally(() => finishPulsViewLoading(operation));
+    }
+
+    window.PulsLoading = {
+      begin: beginPulsViewLoading,
+      finish: finishPulsViewLoading,
+      track: trackPulsViewLoading
+    };
+
     function showView(viewId) {
       if (!["assistant", "car", "dtc", "manuals", "video", "settings"].includes(viewId)) return;
-      const loadingCycle = beginPulsViewLoading();
       window.PulsCar.closeNavigation();
       $$(".nav button, .view").forEach((node) => node.classList.remove("active"));
       $(`.nav button[data-view="${viewId}"]`).classList.add("active");
@@ -2489,10 +2503,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       const viewLoad = viewId === "car"
         ? window.PulsCar.render()
         : assistantActive ? restoreChatMessages() : null;
-      Promise.resolve(viewLoad).then(
-        () => finishPulsViewLoading(loadingCycle),
-        () => finishPulsViewLoading(loadingCycle)
-      );
+      trackPulsViewLoading(viewLoad);
       syncAssistantMessageHeight();
       if (window.innerWidth < 1050) window.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -4075,6 +4086,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     }
 
     document.addEventListener("DOMContentLoaded", async () => {
+      const initialLoadingOperation = beginPulsViewLoading();
       document.body.classList.add("assistant-mode");
       installRuntimeVisualFixes();
       syncSplashLayout();
@@ -4088,32 +4100,41 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       SPLASH_ACTIVATE_EVENTS.forEach((eventName) => {
         document.addEventListener(eventName, handleSplashActivation, { passive: eventName !== "keydown" });
       });
-      await window.pulsAuthReady;
-      window.addEventListener("puls-auth-change", async (event) => {
-        window.PulsChat.authChanged();
-        chatInitialRestoreComplete = false;
-        chatAutoFollow = true;
-        window.PulsCar.authChanged();
-        if (!event.detail?.user) {
-          clearPendingAttachment();
-          clearPrivateUiCache();
-          window.pulsAppUser = null;
-          fillVehicleForm(loadVehicleProfile());
-        }
-        const supportEmailInput = $("#supportEmailInput");
-        if (supportEmailInput && $("#supportModal")?.classList.contains("show")) {
-          supportEmailInput.value = getSupportEmailValue();
-        }
-        applyAuthLockedState();
-        await refreshQuotaFromBackend(event.detail?.user || null);
+      try {
+        await window.pulsAuthReady;
+        window.addEventListener("puls-auth-change", async (event) => {
+          const authLoadingOperation = beginPulsViewLoading();
+          try {
+            window.PulsChat.authChanged();
+            chatInitialRestoreComplete = false;
+            chatAutoFollow = true;
+            window.PulsCar.authChanged();
+            if (!event.detail?.user) {
+              clearPendingAttachment();
+              clearPrivateUiCache();
+              window.pulsAppUser = null;
+              fillVehicleForm(loadVehicleProfile());
+            }
+            const supportEmailInput = $("#supportEmailInput");
+            if (supportEmailInput && $("#supportModal")?.classList.contains("show")) {
+              supportEmailInput.value = getSupportEmailValue();
+            }
+            applyAuthLockedState();
+            await refreshQuotaFromBackend(event.detail?.user || null);
+            await syncVehicleStoreFromBackend();
+            await renderLists();
+            await renderAssistantMessages();
+          } finally {
+            finishPulsViewLoading(authLoadingOperation);
+          }
+        });
         await syncVehicleStoreFromBackend();
+        await refreshQuotaFromBackend();
         await renderLists();
         await renderAssistantMessages();
-      });
-      await syncVehicleStoreFromBackend();
-      await refreshQuotaFromBackend();
-      await renderLists();
-      await renderAssistantMessages();
+      } finally {
+        finishPulsViewLoading(initialLoadingOperation);
+      }
 
       $("#sendBtn").addEventListener("click", sendPrompt);
       $("#chatAttachmentInput")?.addEventListener("change", (event) => {
