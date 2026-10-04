@@ -2479,6 +2479,69 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       track: trackPulsViewLoading
     };
 
+    const HEADER_SCROLL_THRESHOLD = 8;
+    let headerScrollTarget = null;
+    let headerScrollPosition = 0;
+    let headerScrollDirection = 0;
+    let headerScrollDistance = 0;
+
+    function setSharedHeaderVisible(visible = true) {
+      document.body.classList.toggle("puls-header-hidden", !visible);
+    }
+
+    function readHeaderScrollPosition(target) {
+      return target === window
+        ? Math.max(0, window.scrollY || document.documentElement.scrollTop || 0)
+        : Math.max(0, target?.scrollTop || 0);
+    }
+
+    function sharedHeaderScrollTarget() {
+      if (document.body.classList.contains("assistant-mode") && document.body.classList.contains("chat-active")) {
+        return $("#messages") || window;
+      }
+      return window;
+    }
+
+    function handleSharedHeaderScroll() {
+      const target = headerScrollTarget || sharedHeaderScrollTarget();
+      const position = readHeaderScrollPosition(target);
+      const delta = position - headerScrollPosition;
+      headerScrollPosition = position;
+
+      if (document.body.classList.contains("navigation-open") || position <= 4) {
+        headerScrollDirection = 0;
+        headerScrollDistance = 0;
+        setSharedHeaderVisible(true);
+        return;
+      }
+
+      if (Math.abs(delta) < 1) return;
+      const chatScroll = target !== window;
+      const nextDirection = (chatScroll ? delta < 0 : delta > 0) ? 1 : -1;
+      if (nextDirection !== headerScrollDirection) {
+        headerScrollDirection = nextDirection;
+        headerScrollDistance = 0;
+      }
+      headerScrollDistance += Math.abs(delta);
+      if (headerScrollDistance < HEADER_SCROLL_THRESHOLD) return;
+
+      setSharedHeaderVisible(nextDirection < 0);
+      headerScrollDistance = 0;
+    }
+
+    function bindSharedHeaderAutoHide({ reset = true } = {}) {
+      const nextTarget = sharedHeaderScrollTarget();
+      if (headerScrollTarget !== nextTarget) {
+        headerScrollTarget?.removeEventListener("scroll", handleSharedHeaderScroll);
+        headerScrollTarget = nextTarget;
+        headerScrollTarget.addEventListener("scroll", handleSharedHeaderScroll, { passive: true });
+      }
+      headerScrollPosition = readHeaderScrollPosition(headerScrollTarget);
+      headerScrollDirection = 0;
+      headerScrollDistance = 0;
+      if (reset) setSharedHeaderVisible(true);
+    }
+
     function showView(viewId) {
       if (!["assistant", "car", "dtc", "manuals", "video", "settings"].includes(viewId)) return;
       window.PulsCar.closeNavigation();
@@ -2489,6 +2552,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       const assistantActive = viewId === "assistant";
       document.body.classList.toggle("assistant-mode", assistantActive);
       document.body.classList.toggle("page-mode", !assistantActive);
+      bindSharedHeaderAutoHide();
 
       if (!assistantActive) {
         clearTimeout(idleTimerId);
@@ -4057,6 +4121,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       splashVisible = false;
       document.body.classList.add("chat-active");
       setPulsScreenState();
+      bindSharedHeaderAutoHide();
       stopSplashVideo();
       resetIdleTimer();
     }
@@ -4097,6 +4162,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       injectIcons();
       ensureCarPhotoActions();
       window.PulsCar.init();
+      bindSharedHeaderAutoHide();
       applyLanguage();
       initVehicleEditor();
       SPLASH_ACTIVATE_EVENTS.forEach((eventName) => {
@@ -4154,6 +4220,14 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       $("#messages")?.addEventListener("scroll", (event) => {
         chatAutoFollow = messagesAreNearBottom(event.currentTarget);
       }, { passive: true });
+      $("#mobileNavToggle")?.addEventListener("click", () => {
+        window.requestAnimationFrame(() => {
+          if (document.body.classList.contains("navigation-open")) setSharedHeaderVisible(true);
+          headerScrollPosition = readHeaderScrollPosition(headerScrollTarget || sharedHeaderScrollTarget());
+          headerScrollDirection = 0;
+          headerScrollDistance = 0;
+        });
+      });
       promptInput.addEventListener("input", syncPendingAttachmentComposer);
       promptInput.addEventListener("keydown", (event) => {
         if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {

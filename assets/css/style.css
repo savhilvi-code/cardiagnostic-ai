@@ -18,6 +18,9 @@
       --danger: #ff4c4c;
       --shadow: 0 22px 70px rgba(0, 0, 0, .45);
       --radius: 14px;
+      --puls-fixed-edge: 6px;
+      --puls-fixed-gap: 8px;
+      --puls-header-menu-top: calc(max(var(--puls-fixed-edge), env(safe-area-inset-top)) + 62px);
     }
 
     * { box-sizing: border-box; }
@@ -4395,12 +4398,12 @@ body.assistant-mode .workspace {
 body.page-mode #mainNavigation,
 body.assistant-mode #mainNavigation {
   position: fixed !important;
-  top: 106px !important;
-  left: max(20px, env(safe-area-inset-left)) !important;
+  top: var(--puls-header-menu-top) !important;
+  left: max(var(--puls-fixed-edge), env(safe-area-inset-left)) !important;
   width: 220px !important;
   min-width: 0;
   height: max-content !important;
-  max-height: calc(100dvh - 118px) !important;
+  max-height: calc(100dvh - var(--puls-header-menu-top) - var(--puls-fixed-edge)) !important;
   z-index: 1000;
   isolation: isolate;
   opacity: 0;
@@ -4478,11 +4481,23 @@ body.assistant-mode .topbar {
   margin-left: 0 !important;
   margin-right: 0 !important;
   box-sizing: border-box;
-  padding-top: 6px !important;
-  padding-bottom: 6px !important;
-  padding-left: max(10px, env(safe-area-inset-left)) !important;
-  padding-right: max(10px, env(safe-area-inset-right)) !important;
+  padding-top: max(var(--puls-fixed-edge), env(safe-area-inset-top)) !important;
+  padding-bottom: var(--puls-fixed-edge) !important;
+  padding-left: max(var(--puls-fixed-edge), env(safe-area-inset-left)) !important;
+  padding-right: max(var(--puls-fixed-edge), env(safe-area-inset-right)) !important;
   z-index: 1200;
+  transition: transform .18s ease-out;
+  will-change: transform;
+}
+
+body.page-mode .app,
+body.assistant-mode .app,
+body.assistant-mode.chat-active .app {
+  padding-top: 0 !important;
+}
+
+body.puls-header-hidden .topbar {
+  transform: translateY(calc(-100% - max(var(--puls-fixed-edge), env(safe-area-inset-top))));
 }
 
 .topbar-inner {
@@ -4632,7 +4647,7 @@ body.assistant-mode .composer {
 
 /* Extend scroll clipping to the visible HUD edges while preserving resting offsets. */
 body.page-mode .workspace,
-body.assistant-mode.chat-active .workspace {
+body.assistant-mode.chat-active[data-auth-state="authenticated"] .workspace {
   margin-top: -72px;
 }
 
@@ -4674,17 +4689,15 @@ body *::-webkit-scrollbar {
   #mainNavigation,
   body.page-mode #mainNavigation,
   body.assistant-mode #mainNavigation {
-    top: 116px !important;
-    left: max(12px, env(safe-area-inset-left)) !important;
     width: min(240px, 72vw) !important;
-    max-height: calc(100dvh - 128px) !important;
+    max-height: calc(100dvh - var(--puls-header-menu-top) - var(--puls-fixed-edge)) !important;
   }
 
   .topbar,
   body.page-mode .topbar,
   body.assistant-mode .topbar {
-    padding-left: max(6px, env(safe-area-inset-left)) !important;
-    padding-right: max(6px, env(safe-area-inset-right)) !important;
+    padding-left: max(var(--puls-fixed-edge), env(safe-area-inset-left)) !important;
+    padding-right: max(var(--puls-fixed-edge), env(safe-area-inset-right)) !important;
   }
 
   .app > .hero,
@@ -4703,14 +4716,13 @@ body *::-webkit-scrollbar {
   #mainNavigation,
   body.page-mode #mainNavigation,
   body.assistant-mode #mainNavigation {
-    top: 78px !important;
-    max-height: calc(100dvh - 90px) !important;
+    max-height: calc(100dvh - var(--puls-header-menu-top) - var(--puls-fixed-edge)) !important;
   }
 
   .topbar,
   body.page-mode .topbar,
   body.assistant-mode .topbar {
-    padding: 6px max(6px, env(safe-area-inset-right)) 6px max(6px, env(safe-area-inset-left)) !important;
+    padding: max(var(--puls-fixed-edge), env(safe-area-inset-top)) max(var(--puls-fixed-edge), env(safe-area-inset-right)) var(--puls-fixed-edge) max(var(--puls-fixed-edge), env(safe-area-inset-left)) !important;
     margin-bottom: 8px;
   }
 
@@ -4778,6 +4790,34 @@ body *::-webkit-scrollbar {
     content: "\26A1";
     color: var(--cyan);
     font-size: 13px;
+  }
+}
+
+/* Fixed HUD elements share one viewport inset and remain parent-anchored. */
+body.assistant-mode .composer {
+  left: max(var(--puls-fixed-edge), env(safe-area-inset-left)) !important;
+  right: max(var(--puls-fixed-edge), env(safe-area-inset-right)) !important;
+  bottom: calc(5px + env(safe-area-inset-bottom)) !important;
+}
+
+.composer-shell,
+body.assistant-mode .composer-shell {
+  position: relative;
+}
+
+.composer-menu-wrap {
+  position: static;
+}
+
+.composer-menu {
+  bottom: calc(100% + var(--puls-fixed-gap));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .topbar,
+  body.page-mode .topbar,
+  body.assistant-mode .topbar {
+    transition: none;
   }
 }
 
