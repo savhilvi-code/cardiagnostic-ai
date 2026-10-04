@@ -38,7 +38,7 @@
     "logo": "https://pulscar.co/assets/img/puls-logo.png"
   }
   </script>
-  <link rel="stylesheet" href="assets/css/style.css?v=20261004-chat-underlay1">
+  <link rel="stylesheet" href="assets/css/style.css?v=20261004-quota-modal1">
 </head>
 <body class="puls-splash-active" data-auth-state="guest">
   <div class="puls-splash-screen" id="pulsSplashScreen" aria-hidden="true">
@@ -367,6 +367,19 @@
     </div>
   </div>
 
+  <div class="request-limit-modal" id="requestLimitModal" aria-hidden="true">
+    <section class="request-limit-dialog" role="dialog" aria-modal="true" aria-labelledby="requestLimitTitle">
+      <button class="request-limit-close" id="requestLimitCloseBtn" type="button" aria-label="Close" data-i18n-aria-label="common.close">×</button>
+      <span class="request-limit-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" focusable="false"><path d="M13.5 2 5 14h6l-.5 8L19 10h-6z"></path></svg>
+      </span>
+      <h2 id="requestLimitTitle" data-i18n="quota.title">Remaining requests</h2>
+      <strong class="request-limit-value" id="requestLimitValue">— / —</strong>
+      <p id="requestLimitDescription" data-i18n="quota.description">You can send — more requests in this period.</p>
+      <button class="request-limit-logout" id="requestLimitLogoutBtn" type="button" data-i18n="auth.logout">Log out</button>
+    </section>
+  </div>
+
   <div class="request-modal" id="requestModal" aria-hidden="true">
     <div class="request-dialog" role="dialog" aria-modal="true" aria-labelledby="requestModalTitle">
       <button class="request-close" id="requestCloseBtn" type="button" aria-label="Закрыть" data-i18n-aria-label="common.close">×</button>
@@ -514,6 +527,6 @@
   <script src="assets/js/config.js?v=20260706-01"></script>
   <script src="assets/js/chat-session.js?v=20260927-attachment-first1"></script>
   <script src="assets/pages/car.js?v=20261004-vehicle-switch-loader1"></script>
-  <script src="assets/js/app.js?v=20261004-header-underlay1"></script>
+  <script src="assets/js/app.js?v=20261004-quota-modal1"></script>
 </body>
 </html>

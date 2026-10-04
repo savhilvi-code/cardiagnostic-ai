@@ -341,6 +341,9 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "profile.emailMissing": "Email is missing",
         "auth.open": "Sign in / Register",
         "auth.logout": "Log out",
+        "quota.title": "Remaining requests",
+        "quota.description": "You can send {remaining} more requests in this period.",
+        "quota.unlimited": "You have unlimited requests in this period.",
         "auth.deleteProfile": "Delete profile",
         "auth.title": "PULS account",
         "auth.description": "Sign in or register by email to connect your history, subscription, and devices.",
@@ -647,6 +650,9 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "profile.emailMissing": "Email не указан",
         "auth.open": "Войти / Регистрация",
         "auth.logout": "Выйти",
+        "quota.title": "Осталось запросов",
+        "quota.description": "В этом периоде можно отправить ещё {remaining} запросов.",
+        "quota.unlimited": "В этом периоде доступно неограниченное число запросов.",
         "auth.deleteProfile": "Удалить профиль",
         "auth.title": "Аккаунт PULS",
         "auth.description": "Войдите или зарегистрируйтесь по email, чтобы привязать историю, подписку и устройства.",
@@ -717,6 +723,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       const pill = $("#systemPill") || $(".system-pill");
       if (!pill) return;
       const signedIn = isSignedIn();
+      if (!signedIn) closeRequestLimitModal();
       let label = t("system.authCta");
 
       if (signedIn) {
@@ -742,8 +749,47 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       pill.setAttribute("title", label);
       pill.dataset.authState = signedIn ? "authenticated" : "guest";
       pill.dataset.compactQuota = String(hasCompactQuota);
-      pill.setAttribute("aria-disabled", String(signedIn));
+      pill.removeAttribute("aria-disabled");
+      pill.setAttribute("aria-haspopup", "dialog");
+      pill.setAttribute("aria-expanded", String(signedIn && $("#requestLimitModal")?.classList.contains("show")));
+      syncRequestLimitModal();
       renderSettingsSubscription();
+    }
+
+    function syncRequestLimitModal() {
+      const value = $("#requestLimitValue");
+      const description = $("#requestLimitDescription");
+      if (!value || !description) return;
+      if (currentQuota?.unlimited) {
+        value.textContent = "∞";
+        description.textContent = t("quota.unlimited");
+        return;
+      }
+      const remaining = currentQuota?.remaining ?? "—";
+      const limit = currentQuota?.limit ?? "—";
+      value.textContent = `${remaining} / ${limit}`;
+      description.textContent = t("quota.description", { remaining });
+    }
+
+    function openRequestLimitModal() {
+      if (!isSignedIn()) {
+        window.openAuthModal?.();
+        return;
+      }
+      syncRequestLimitModal();
+      const modal = $("#requestLimitModal");
+      modal?.classList.add("show");
+      modal?.setAttribute("aria-hidden", "false");
+      $("#systemPill")?.setAttribute("aria-expanded", "true");
+      $("#requestLimitCloseBtn")?.focus();
+    }
+
+    function closeRequestLimitModal() {
+      const modal = $("#requestLimitModal");
+      if (!modal?.classList.contains("show")) return;
+      modal.classList.remove("show");
+      modal.setAttribute("aria-hidden", "true");
+      $("#systemPill")?.setAttribute("aria-expanded", "false");
     }
 
     function renderSettingsSubscription() {
@@ -4301,7 +4347,18 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         }
 
         if (event.target.closest("#systemPill")) {
-          if (!isSignedIn()) window.openAuthModal?.();
+          openRequestLimitModal();
+          return;
+        }
+
+        if (event.target.closest("#requestLimitCloseBtn") || event.target.id === "requestLimitModal") {
+          closeRequestLimitModal();
+          return;
+        }
+
+        if (event.target.closest("#requestLimitLogoutBtn")) {
+          closeRequestLimitModal();
+          void window.logoutUser?.();
           return;
         }
 
@@ -4416,6 +4473,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
       document.addEventListener("keydown", (event) => {
         if (event.key === "Escape") {
+          closeRequestLimitModal();
           closeRequestModal();
           closeSupportModal();
           closeChatImagePreview();
