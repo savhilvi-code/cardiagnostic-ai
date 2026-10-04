@@ -4468,8 +4468,9 @@ body.assistant-mode .topbar {
   padding-right: max(10px, env(safe-area-inset-right));
   border: 1px solid var(--line-strong);
   border-radius: 10px;
-  background: transparent;
-  backdrop-filter: none;
+  background: rgba(2, 7, 13, .28);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
 }
 
 .brand-logo {
@@ -4497,7 +4498,7 @@ body.assistant-mode .topbar {
   align-items: center;
   gap: 6px;
   color: #f3f9ff;
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 500;
   line-height: 1;
   white-space: nowrap;
