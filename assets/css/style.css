@@ -4546,6 +4546,26 @@ body.assistant-mode .composer {
   z-index: 80 !important;
 }
 
+/* Extend scroll clipping to the visible HUD edges while preserving resting offsets. */
+body.page-mode .workspace,
+body.assistant-mode.chat-active .workspace {
+  margin-top: -72px;
+}
+
+body.page-mode .content > .main-panel {
+  padding-top: 76px !important;
+}
+
+body.assistant-mode.chat-active .messages {
+  padding-top: 80px !important;
+}
+
+@media (min-width: 1051px) {
+  body.assistant-mode.chat-active .app {
+    height: 111.111dvh !important;
+  }
+}
+
 /* Hide scrollbar chrome globally without changing any scrollable overflow behavior. */
 html,
 body,
