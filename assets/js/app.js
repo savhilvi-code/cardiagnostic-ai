@@ -4153,7 +4153,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     }
 
     document.addEventListener("DOMContentLoaded", async () => {
-      const initialLoadingOperation = beginPulsViewLoading();
+      const initialLoadingOperation = beginPulsViewLoading("local");
       document.body.classList.add("assistant-mode");
       installRuntimeVisualFixes();
       syncSplashLayout();

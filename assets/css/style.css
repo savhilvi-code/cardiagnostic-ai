@@ -21,6 +21,7 @@
       --puls-fixed-edge: 6px;
       --puls-fixed-gap: 8px;
       --puls-header-menu-top: calc(max(var(--puls-fixed-edge), env(safe-area-inset-top)) + 62px);
+      --puls-readable-top-inset: 76px;
     }
 
     * { box-sizing: border-box; }
@@ -4647,16 +4648,20 @@ body.assistant-mode .composer {
 
 /* Extend scroll clipping to the visible HUD edges while preserving resting offsets. */
 body.page-mode .workspace,
-body.assistant-mode.chat-active[data-auth-state="authenticated"] .workspace {
+body.assistant-mode.chat-active .workspace {
   margin-top: -72px;
 }
 
 body.page-mode .content > .main-panel {
-  padding-top: 76px !important;
+  padding-top: var(--puls-readable-top-inset) !important;
 }
 
 body.assistant-mode.chat-active .messages {
-  padding-top: 80px !important;
+  padding-top: var(--puls-readable-top-inset) !important;
+}
+
+body.assistant-mode.chat-active:not([data-auth-state="authenticated"]) #assistant .assistant-chat > .head {
+  padding-top: var(--puls-readable-top-inset) !important;
 }
 
 @media (min-width: 1051px) {
