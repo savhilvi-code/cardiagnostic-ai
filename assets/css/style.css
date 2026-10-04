@@ -4468,7 +4468,7 @@ body.assistant-mode .topbar {
   padding-right: max(10px, env(safe-area-inset-right));
   border: 1px solid var(--line-strong);
   border-radius: 10px;
-  background: rgba(2, 7, 13, .50);
+  background: rgba(2, 7, 13, .62);
   -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
 }
@@ -4743,4 +4743,38 @@ body *::-webkit-scrollbar {
     color: var(--cyan);
     font-size: 13px;
   }
+}
+
+/* Composer controls keep their full hit areas but show only their icons at rest. */
+.composer .composer-icon-btn,
+.composer .send,
+body.assistant-mode .composer .composer-icon-btn,
+body.assistant-mode .composer .send {
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  transform: none;
+}
+
+.composer .composer-icon-btn:not(:disabled):active,
+.composer .composer-icon-btn:not(:disabled):focus-visible,
+.composer .composer-menu-trigger[aria-expanded="true"],
+.composer .send:not(:disabled):active,
+.composer .send:not(:disabled):focus-visible,
+body.assistant-mode .composer .composer-icon-btn:not(:disabled):active,
+body.assistant-mode .composer .composer-icon-btn:not(:disabled):focus-visible,
+body.assistant-mode .composer .composer-menu-trigger[aria-expanded="true"],
+body.assistant-mode .composer .send:not(:disabled):active,
+body.assistant-mode .composer .send:not(:disabled):focus-visible {
+  border-color: var(--cyan) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none;
+}
+
+.composer .send:disabled,
+body.assistant-mode .composer .send:disabled {
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
