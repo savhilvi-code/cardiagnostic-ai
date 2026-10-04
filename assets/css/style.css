@@ -4656,10 +4656,6 @@ body.page-mode .content > .main-panel {
   padding-top: var(--puls-readable-top-inset) !important;
 }
 
-body.assistant-mode.chat-active .messages {
-  padding-top: var(--puls-readable-top-inset) !important;
-}
-
 body.assistant-mode.chat-active:not([data-auth-state="authenticated"]) #assistant .assistant-chat > .head {
   padding-top: var(--puls-readable-top-inset) !important;
 }
