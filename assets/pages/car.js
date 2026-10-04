@@ -47,10 +47,9 @@ window.PulsCar = (() => {
   function translate(){document.querySelectorAll('[data-v2]').forEach(n=>n.textContent=text(n.dataset.v2));}
   const notice = key => `<p class="vehicle-empty-note">${esc(text(key))}</p>`;
   const errorBlock = () => `${notice('loadError')}<button type="button" class="btn" data-car-action="retry">${esc(text('retry'))}</button>`;
-  function setTab(next,trackLoading=false){
+  function setTab(next){
     tab=['overview','data','history'].includes(next)?next:'overview';
     document.querySelectorAll('[data-car-tab]').forEach(b=>{const selected=b.dataset.carTab===tab;b.setAttribute('aria-selected',String(selected));b.tabIndex=selected?0:-1;el(`car-${b.dataset.carTab}`).hidden=!selected;});
-    if(trackLoading&&state.loading&&loadPromise)window.PulsLoading?.track(loadPromise,'local');
   }
   function displayedVehicle(vehicles=loadVehicleStore().vehicles.filter(v=>isBackendVehicleId(v.id)&&v.lifecycle_status!=='TRASHED')){
     return vehicles.find(v=>v.id===state.id)||vehicles.find(v=>v.id===loadVehicleStore().activeId)||vehicles[0];
@@ -289,7 +288,10 @@ window.PulsCar = (() => {
     const current=vehicles.findIndex(v=>v.id===displayedVehicle(vehicles)?.id);
     const step=direction==='previous'?-1:1;
     const next=vehicles[(Math.max(0,current)+step+vehicles.length)%vehicles.length];
-    editing=false;++vehicleLookupRequestId;fillVehicleForm(next);tab='overview';filter='all';void load(next.id);
+    editing=false;++vehicleLookupRequestId;fillVehicleForm(next);tab='overview';filter='all';
+    const pending=load(next.id);loadPromise=pending;
+    pending.then(()=>{if(loadPromise===pending)loadPromise=null;},()=>{if(loadPromise===pending)loadPromise=null;});
+    window.PulsLoading?.track(pending,'local');
   }
   function invalidate(){++version;state.id='';}
   function eventSaved(saved){if(!saved?.id||String(saved.vehicle_id)!==String(state.id))return;const index=state.events.findIndex(row=>String(row.id)===String(saved.id));if(index>=0)state.events[index]=saved;else state.events.unshift(saved);renderSections(displayedVehicle());}
@@ -306,7 +308,7 @@ window.PulsCar = (() => {
     el('mainNavigation').addEventListener('pointerdown',restartNavigationTimer,{passive:true});
     el('mainNavigation').addEventListener('focusin',restartNavigationTimer);
     document.addEventListener('pointerdown',event=>{if(document.body.classList.contains('navigation-open')&&!event.target.closest('#mainNavigation,#mobileNavToggle'))closeNavigation();},{passive:true});
-    document.addEventListener('keydown',event=>{if(event.key==='Escape'){closeNavigation();document.querySelectorAll('.vehicle-record-actions[open],.vehicle-actions[open]').forEach(item=>item.removeAttribute('open'));}if(event.target.matches('.vehicle-event-card[data-car-event-open]')&&['Enter',' '].includes(event.key)){event.preventDefault();eventDetailModal(event.target.dataset.carEventOpen);return;}if(event.target.matches('[data-car-tab]')&&['ArrowLeft','ArrowRight','Home','End'].includes(event.key)){event.preventDefault();const tabs=['overview','data','history'],index=event.key==='Home'?0:event.key==='End'?2:(tabs.indexOf(tab)+(event.key==='ArrowRight'?1:2))%3;setTab(tabs[index],true);el(`tab-${tabs[index]}`).focus();}});
+    document.addEventListener('keydown',event=>{if(event.key==='Escape'){closeNavigation();document.querySelectorAll('.vehicle-record-actions[open],.vehicle-actions[open]').forEach(item=>item.removeAttribute('open'));}if(event.target.matches('.vehicle-event-card[data-car-event-open]')&&['Enter',' '].includes(event.key)){event.preventDefault();eventDetailModal(event.target.dataset.carEventOpen);return;}if(event.target.matches('[data-car-tab]')&&['ArrowLeft','ArrowRight','Home','End'].includes(event.key)){event.preventDefault();const tabs=['overview','data','history'],index=event.key==='Home'?0:event.key==='End'?2:(tabs.indexOf(tab)+(event.key==='ArrowRight'?1:2))%3;setTab(tabs[index]);el(`tab-${tabs[index]}`).focus();}});
     document.addEventListener('click',async event=>{
       const recordMenu=event.target.closest('.vehicle-record-actions'),openRecordMenus=[...document.querySelectorAll('.vehicle-record-actions[open]')];
       if(openRecordMenus.length&&!recordMenu){openRecordMenus.forEach(item=>item.removeAttribute('open'));event.preventDefault();return;}
@@ -316,7 +318,7 @@ window.PulsCar = (() => {
       const b=event.target.closest('[data-car-action],[data-car-tab],[data-car-filter],[data-car-problem],[data-car-problem-edit],[data-car-problem-save],[data-car-problem-continue],[data-car-problem-delete],[data-car-event-open],[data-car-event-edit],[data-car-event-delete],[data-car-delete-unavailable],[data-car-spec-edit],[data-car-spec-save],[data-car-file-download],[data-car-vehicle],[data-car-primary],[data-car-restore],[data-car-switch]');if(!b||b.disabled||busy)return;const d=b.dataset;
       if(d.carSwitch){switchVehicle(d.carSwitch);return;}
       if(d.carPrimary){setActiveVehicleProfile(d.carPrimary);render();return;}
-      if(d.carTab)return setTab(d.carTab,true);
+      if(d.carTab)return setTab(d.carTab);
       if(d.carFilter){filter=d.carFilter;renderSections(displayedVehicle());return;}
       if(d.carProblem)return problem(d.carProblem);
       if(d.carProblemEdit){document.querySelectorAll('.vehicle-record-actions[open]').forEach(item=>item.removeAttribute('open'));editProblem(d.carProblemEdit);return;}
