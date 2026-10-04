@@ -2412,7 +2412,7 @@ body.assistant-mode .composer .send:disabled {
   background: transparent;
   box-shadow: none;
   isolation: isolate;
-  transition: visibility 0s linear .2s;
+  transition: visibility 0s linear .3s;
 }
 
 .composer-menu.show {
@@ -2454,24 +2454,24 @@ body.assistant-mode .composer .send:disabled {
   opacity: 0;
   transform: translateY(6px);
   transition:
-    opacity .12s ease var(--composer-menu-delay),
-    transform .12s ease var(--composer-menu-delay),
+    opacity .17s ease var(--composer-menu-delay),
+    transform .17s ease var(--composer-menu-delay),
     background .18s,
     box-shadow .18s,
     color .18s;
 }
 
 .composer-menu button:nth-child(1) { --composer-menu-delay: 0s; }
-.composer-menu button:nth-child(2) { --composer-menu-delay: .035s; }
-.composer-menu button:nth-child(3) { --composer-menu-delay: .07s; }
+.composer-menu button:nth-child(2) { --composer-menu-delay: .06s; }
+.composer-menu button:nth-child(3) { --composer-menu-delay: .12s; }
 
 .composer-menu.show button {
   opacity: 1;
   transform: translateY(0);
 }
 
-.composer-menu.show button:nth-child(1) { --composer-menu-delay: .07s; }
-.composer-menu.show button:nth-child(2) { --composer-menu-delay: .035s; }
+.composer-menu.show button:nth-child(1) { --composer-menu-delay: .12s; }
+.composer-menu.show button:nth-child(2) { --composer-menu-delay: .06s; }
 .composer-menu.show button:nth-child(3) { --composer-menu-delay: 0s; }
 
 .composer-menu button:not(:disabled):hover,
@@ -5031,6 +5031,7 @@ body.assistant-mode .composer .send:disabled {
   html,
   body {
     background-color: #02070d !important;
+    overscroll-behavior-y: contain;
   }
 
   #app {
