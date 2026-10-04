@@ -2468,7 +2468,11 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     function trackPulsViewLoading(promise) {
       if (!promise || typeof promise.then !== "function") return promise;
       const operation = beginPulsViewLoading();
-      return Promise.resolve(promise).finally(() => finishPulsViewLoading(operation));
+      Promise.resolve(promise).then(
+        () => finishPulsViewLoading(operation),
+        () => finishPulsViewLoading(operation)
+      );
+      return promise;
     }
 
     window.PulsLoading = {
