@@ -4488,6 +4488,13 @@ body.assistant-mode .topbar {
   display: none;
 }
 
+.puls-loading-overlay.is-local {
+  pointer-events: none;
+  background: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
 .puls-loading-spinner {
   position: relative;
   width: 36px;

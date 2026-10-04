@@ -50,7 +50,7 @@ window.PulsCar = (() => {
   function setTab(next,trackLoading=false){
     tab=['overview','data','history'].includes(next)?next:'overview';
     document.querySelectorAll('[data-car-tab]').forEach(b=>{const selected=b.dataset.carTab===tab;b.setAttribute('aria-selected',String(selected));b.tabIndex=selected?0:-1;el(`car-${b.dataset.carTab}`).hidden=!selected;});
-    if(trackLoading&&state.loading&&loadPromise)window.PulsLoading?.track(loadPromise);
+    if(trackLoading&&state.loading&&loadPromise)window.PulsLoading?.track(loadPromise,'local');
   }
   function displayedVehicle(vehicles=loadVehicleStore().vehicles.filter(v=>isBackendVehicleId(v.id)&&v.lifecycle_status!=='TRASHED')){
     return vehicles.find(v=>v.id===state.id)||vehicles.find(v=>v.id===loadVehicleStore().activeId)||vehicles[0];
@@ -84,7 +84,7 @@ window.PulsCar = (() => {
     if(state.id!==vehicle.id||state.owner!==window.pulsCurrentUser?.id){
       const pending=load(vehicle.id);loadPromise=pending;
       pending.then(()=>{if(loadPromise===pending)loadPromise=null;},()=>{if(loadPromise===pending)loadPromise=null;});
-      return el('car')?.classList.contains('active')?(window.PulsLoading?.track(pending)||pending):pending;
+      return el('car')?.classList.contains('active')?(window.PulsLoading?.track(pending,'local')||pending):pending;
     }
     renderSections(vehicle);
     return state.loading?loadPromise:null;

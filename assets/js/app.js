@@ -2441,33 +2441,35 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     }
 
     let pulsLoadingOperationId = 0;
-    const pulsLoadingOperations = new Set();
+    const pulsLoadingOperations = new Map();
 
-    function beginPulsViewLoading() {
+    function syncPulsLoadingOverlay() {
       const overlay = $("#pulsLoadingOverlay");
+      if (!overlay) return;
+      const active = pulsLoadingOperations.size > 0;
+      const localOnly = active && !Array.from(pulsLoadingOperations.values()).includes("global");
+      overlay.hidden = !active;
+      overlay.setAttribute("aria-hidden", String(!active));
+      overlay.classList.toggle("is-local", localOnly);
+    }
+
+    function beginPulsViewLoading(mode = "global") {
       const operation = ++pulsLoadingOperationId;
-      pulsLoadingOperations.add(operation);
-      if (overlay) {
-        overlay.hidden = false;
-        overlay.setAttribute("aria-hidden", "false");
-      }
+      pulsLoadingOperations.set(operation, mode === "local" ? "local" : "global");
+      syncPulsLoadingOverlay();
       return operation;
     }
 
     function finishPulsViewLoading(operation) {
       window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
         pulsLoadingOperations.delete(operation);
-        if (pulsLoadingOperations.size) return;
-        const overlay = $("#pulsLoadingOverlay");
-        if (!overlay) return;
-        overlay.hidden = true;
-        overlay.setAttribute("aria-hidden", "true");
+        syncPulsLoadingOverlay();
       }));
     }
 
-    function trackPulsViewLoading(promise) {
+    function trackPulsViewLoading(promise, mode = "global") {
       if (!promise || typeof promise.then !== "function") return promise;
-      const operation = beginPulsViewLoading();
+      const operation = beginPulsViewLoading(mode);
       Promise.resolve(promise).then(
         () => finishPulsViewLoading(operation),
         () => finishPulsViewLoading(operation)
