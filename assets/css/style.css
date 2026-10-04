@@ -2397,7 +2397,7 @@ body.assistant-mode .composer .send:disabled {
   position: absolute;
   left: 0;
   bottom: calc(100% + 9px);
-  width: 264px;
+  width: 220px;
   display: none;
   padding: 0;
   border: 0;
@@ -2511,7 +2511,7 @@ body.assistant-mode .composer .send:disabled {
   }
 
   .composer-menu {
-    width: min(264px, calc(100vw - 36px));
+    width: min(240px, calc(100vw - 36px));
   }
 }
 
@@ -4348,6 +4348,7 @@ body.assistant-mode .composer-shell.is-expanded .composer-actions {
   background: rgba(2, 10, 18, .94);
   box-shadow: 0 8px 20px rgba(0, 0, 0, .22);
   text-align: left;
+  opacity: 0;
 }
 
 #mainNavigation .nav button svg {
@@ -4406,8 +4407,8 @@ body.assistant-mode #mainNavigation {
   visibility: hidden;
   overflow: visible !important;
   pointer-events: none;
-  transform: translateX(calc(-100% - 16px));
-  transition: transform .2s ease, opacity .16s ease, visibility 0s linear .2s;
+  transform: none;
+  transition: opacity .12s ease, visibility 0s linear .2s;
 }
 
 body.navigation-open #mainNavigation,
@@ -4416,8 +4417,39 @@ body.navigation-open.assistant-mode #mainNavigation {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
-  transform: translateX(0);
-  transition: transform .2s ease, opacity .16s ease;
+  transform: none;
+  transition: opacity .12s ease;
+}
+
+#mainNavigation .nav button:first-child {
+  transform: translateX(-32px);
+}
+
+#mainNavigation .nav button:nth-child(2),
+#mainNavigation .nav button:nth-child(3) {
+  transform: translateY(-10px);
+}
+
+body.navigation-open #mainNavigation .nav button:first-child {
+  animation: puls-nav-first-row-in .2s ease-out both;
+}
+
+body.navigation-open #mainNavigation .nav button:nth-child(2) {
+  animation: puls-nav-lower-row-in .16s ease-out .16s both;
+}
+
+body.navigation-open #mainNavigation .nav button:nth-child(3) {
+  animation: puls-nav-lower-row-in .16s ease-out .24s both;
+}
+
+@keyframes puls-nav-first-row-in {
+  from { opacity: 0; transform: translateX(-32px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes puls-nav-lower-row-in {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* The global header owns the viewport-wide background and never follows navigation. */
@@ -4635,6 +4667,10 @@ body *::-webkit-scrollbar {
 }
 
 @media (max-width: 1050px) {
+  .composer-menu {
+    width: min(240px, calc(100vw - 36px));
+  }
+
   #mainNavigation,
   body.page-mode #mainNavigation,
   body.assistant-mode #mainNavigation {

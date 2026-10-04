@@ -307,7 +307,6 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "composer.attachPhoto": "Attach photo",
         "composer.sendVideo": "Send video",
         "composer.attachDocument": "Attach document",
-        "composer.dtcSoon": "Diagnostics by code — coming soon",
         "composer.attachmentStartChat": "Send a message first to start the vehicle conversation.",
         "composer.attachmentUploading": "Uploading attachment…",
         "composer.attachmentSaved": "Attachment saved.",
@@ -362,7 +361,6 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "auth.deleteRequested": "Profile deletion request saved. Check your email if confirmation is required.",
         "auth.lockedAction": "Sign in or register to use this setting.",
         "toast.dtc": "Code diagnostics section opened.",
-        "toast.voice": "Voice input can be connected to Web Speech API or n8n.",
         "toast.demo": "This is a demo button. It can be connected to n8n, uploads, or a materials database.",
         "toast.pay": "Payment will be connected to your checkout provider."
       },
@@ -615,7 +613,6 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "composer.attachPhoto": "Прикрепить фото",
         "composer.sendVideo": "Отправить видео",
         "composer.attachDocument": "Прикрепить документ",
-        "composer.dtcSoon": "Диагностика по коду — скоро",
         "composer.attachmentStartChat": "Сначала отправьте сообщение, чтобы начать диалог об автомобиле.",
         "composer.attachmentUploading": "Загрузка вложения…",
         "composer.attachmentSaved": "Вложение сохранено.",
@@ -670,7 +667,6 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         "auth.deleteRequested": "Запрос на удаление профиля сохранен. Проверьте почту, если требуется подтверждение.",
         "auth.lockedAction": "Войдите или зарегистрируйтесь, чтобы использовать эту настройку.",
         "toast.dtc": "Открыт раздел диагностики по коду.",
-        "toast.voice": "Голосовой ввод можно подключить к Web Speech API или n8n.",
         "toast.demo": "Это демо-кнопка. Ее можно подключить к n8n, загрузке файлов или базе материалов.",
         "toast.pay": "Оплату можно подключить к вашему платежному провайдеру."
       }
@@ -4338,7 +4334,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           event.preventDefault();
           chooseChatAttachment(action);
         } else if (action === "voice") {
-          toast(t("toast.voice"));
+          return;
         } else {
           toast(t("toast.demo"));
         }
