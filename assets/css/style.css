@@ -4468,9 +4468,53 @@ body.assistant-mode .topbar {
   padding-right: max(10px, env(safe-area-inset-right));
   border: 1px solid var(--line-strong);
   border-radius: 10px;
-  background: rgba(2, 7, 13, .28);
+  background: rgba(2, 7, 13, .38);
   -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
+}
+
+.puls-loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  display: grid;
+  place-items: center;
+  background: rgba(2, 7, 13, .36);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+
+.puls-loading-overlay[hidden] {
+  display: none;
+}
+
+.puls-loading-spinner {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  filter: drop-shadow(0 0 5px rgba(8, 125, 255, .28));
+}
+
+.puls-loading-spinner i {
+  position: absolute;
+  top: 2px;
+  left: 17px;
+  width: 2px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(19, 217, 255, .18);
+  opacity: .12;
+  transform: rotate(calc(var(--i) * 27.692deg));
+  transform-origin: 1px 16px;
+  animation: puls-loading-segment 1.04s linear infinite;
+  animation-delay: calc(-1.04s + (var(--i) * .08s));
+}
+
+@keyframes puls-loading-segment {
+  0% { opacity: 1; background: #13d9ff; box-shadow: 0 0 4px rgba(19, 217, 255, .45); }
+  12% { opacity: .82; background: #087dff; box-shadow: 0 0 3px rgba(8, 125, 255, .34); }
+  24% { opacity: .58; background: #965cff; box-shadow: 0 0 2px rgba(150, 92, 255, .26); }
+  42%, 100% { opacity: .12; background: rgba(104, 127, 157, .36); box-shadow: none; }
 }
 
 .brand-logo {

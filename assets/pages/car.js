@@ -79,7 +79,7 @@ window.PulsCar = (() => {
     primaryControls.innerHTML=`<button type="button" class="vehicle-primary-check${isPrimary?' active':''}" data-car-primary="${esc(vehicle.id)}" aria-pressed="${String(isPrimary)}" aria-label="${esc(text(isPrimary?'primaryVehicle':'setPrimary'))}" title="${esc(text(isPrimary?'primaryVehicle':'setPrimary'))}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 12.5 4 4L18 8.5"/></svg></button>`;
     document.querySelectorAll('[data-car-switch]').forEach(button=>{button.hidden=vehicles.length<2;button.disabled=vehicles.length<2;});
     setTab(tab);
-    if(state.id!==vehicle.id||state.owner!==window.pulsCurrentUser?.id){void load(vehicle.id);return;}
+    if(state.id!==vehicle.id||state.owner!==window.pulsCurrentUser?.id)return load(vehicle.id);
     renderSections(vehicle);
   }
   async function load(id){

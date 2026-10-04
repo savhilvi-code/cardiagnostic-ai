@@ -2440,8 +2440,31 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       composer.style.display = shouldShow ? "" : "none";
     }
 
+    let pulsLoadingCycle = 0;
+
+    function beginPulsViewLoading() {
+      const overlay = $("#pulsLoadingOverlay");
+      const cycle = ++pulsLoadingCycle;
+      if (overlay) {
+        overlay.hidden = false;
+        overlay.setAttribute("aria-hidden", "false");
+      }
+      return cycle;
+    }
+
+    function finishPulsViewLoading(cycle) {
+      window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+        if (cycle !== pulsLoadingCycle) return;
+        const overlay = $("#pulsLoadingOverlay");
+        if (!overlay) return;
+        overlay.hidden = true;
+        overlay.setAttribute("aria-hidden", "true");
+      }));
+    }
+
     function showView(viewId) {
       if (!["assistant", "car", "dtc", "manuals", "video", "settings"].includes(viewId)) return;
+      const loadingCycle = beginPulsViewLoading();
       window.PulsCar.closeNavigation();
       $$(".nav button, .view").forEach((node) => node.classList.remove("active"));
       $(`.nav button[data-view="${viewId}"]`).classList.add("active");
@@ -2463,8 +2486,13 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       }
 
       syncComposerVisibility(viewId);
-      if (viewId === "car") window.PulsCar.render();
-      if (assistantActive) void restoreChatMessages();
+      const viewLoad = viewId === "car"
+        ? window.PulsCar.render()
+        : assistantActive ? restoreChatMessages() : null;
+      Promise.resolve(viewLoad).then(
+        () => finishPulsViewLoading(loadingCycle),
+        () => finishPulsViewLoading(loadingCycle)
+      );
       syncAssistantMessageHeight();
       if (window.innerWidth < 1050) window.scrollTo({ top: 0, behavior: "smooth" });
     }
