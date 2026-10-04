@@ -4756,6 +4756,11 @@ body.assistant-mode .composer .send {
   transform: none;
 }
 
+.composer .send:not(:disabled),
+body.assistant-mode .composer .send:not(:disabled) {
+  color: var(--blue);
+}
+
 .composer .composer-icon-btn:not(:disabled):active,
 .composer .composer-icon-btn:not(:disabled):focus-visible,
 .composer .composer-menu-trigger[aria-expanded="true"],
