@@ -5019,3 +5019,35 @@ body.assistant-mode .composer .send:disabled {
   background: transparent !important;
   box-shadow: none !important;
 }
+
+@media (max-width: 480px) {
+  button,
+  a,
+  summary,
+  [role="button"] {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html,
+  body {
+    background-color: #02070d !important;
+  }
+
+  #app {
+    background-color: transparent;
+  }
+
+  body.page-mode,
+  body.page-mode .content > .main-panel {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none;
+  }
+
+  body.page-mode::-webkit-scrollbar,
+  body.page-mode .content > .main-panel::-webkit-scrollbar {
+    width: 0 !important;
+    height: 0 !important;
+    display: none !important;
+    background: transparent !important;
+  }
+}
