@@ -2400,20 +2400,25 @@ body.assistant-mode .composer .send:disabled {
 .composer-menu {
   position: absolute;
   left: 0;
-  bottom: calc(100% + 9px);
+  bottom: calc(100% + 14px);
   width: 220px;
-  display: none;
+  display: grid;
+  gap: 8px;
+  visibility: hidden;
+  pointer-events: none;
   padding: 0;
   border: 0;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
   isolation: isolate;
+  transition: visibility 0s linear .2s;
 }
 
 .composer-menu.show {
-  display: grid;
-  gap: 8px;
+  visibility: visible;
+  pointer-events: auto;
+  transition-delay: 0s;
 }
 
 .composer-menu::before {
@@ -2427,6 +2432,7 @@ body.assistant-mode .composer .send:disabled {
 }
 
 .composer-menu button {
+  --composer-menu-delay: 0s;
   position: relative;
   z-index: 1;
   width: 100%;
@@ -2445,8 +2451,28 @@ body.assistant-mode .composer .send:disabled {
   text-align: left;
   font-size: 14px;
   font-weight: 600;
-  transition: background .18s, box-shadow .18s, color .18s;
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity .12s ease var(--composer-menu-delay),
+    transform .12s ease var(--composer-menu-delay),
+    background .18s,
+    box-shadow .18s,
+    color .18s;
 }
+
+.composer-menu button:nth-child(1) { --composer-menu-delay: 0s; }
+.composer-menu button:nth-child(2) { --composer-menu-delay: .035s; }
+.composer-menu button:nth-child(3) { --composer-menu-delay: .07s; }
+
+.composer-menu.show button {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.composer-menu.show button:nth-child(1) { --composer-menu-delay: .07s; }
+.composer-menu.show button:nth-child(2) { --composer-menu-delay: .035s; }
+.composer-menu.show button:nth-child(3) { --composer-menu-delay: 0s; }
 
 .composer-menu button:not(:disabled):hover,
 .composer-menu button:not(:disabled):active {
@@ -4671,6 +4697,11 @@ body.assistant-mode.chat-active .assistant-chat {
   position: relative;
 }
 
+body.assistant-mode.chat-active .content > .main-panel,
+body.assistant-mode.chat-active .assistant-chat {
+  padding-top: 0 !important;
+}
+
 /* One quota component: centered dialog on wide layouts, bottom sheet on phones. */
 .request-limit-modal {
   position: fixed;
@@ -4939,7 +4970,7 @@ body.assistant-mode .composer-shell {
 }
 
 .composer-menu {
-  bottom: calc(100% + var(--puls-fixed-gap));
+  bottom: calc(100% + 14px);
 }
 
 @media (prefers-reduced-motion: reduce) {
