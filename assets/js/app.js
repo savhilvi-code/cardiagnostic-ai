@@ -1952,7 +1952,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
     function hasAcknowledgedDevelopmentNotice() {
       try {
-        return localStorage.getItem(DEVELOPMENT_NOTICE_STORAGE_KEY) === "true";
+        return sessionStorage.getItem(DEVELOPMENT_NOTICE_STORAGE_KEY) === "true";
       } catch (_error) {
         return false;
       }
@@ -1970,7 +1970,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
     function acknowledgeDevelopmentNotice() {
       try {
-        localStorage.setItem(DEVELOPMENT_NOTICE_STORAGE_KEY, "true");
+        sessionStorage.setItem(DEVELOPMENT_NOTICE_STORAGE_KEY, "true");
       } catch (_error) {
         // Keep the acknowledgement effective for this rendered page if storage is unavailable.
       }
