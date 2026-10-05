@@ -1,0 +1,269 @@
+:root {
+  --puls-mode-cyan: #26dcff;
+  --puls-mode-blue: #086cff;
+  --puls-mode-text: #fff;
+  --puls-mode-muted: #a3b2cb;
+}
+
+.puls-mode-selection[hidden] {
+  display: none !important;
+}
+
+.puls-mode-selection {
+  position: fixed;
+  inset: 0;
+  z-index: 1450;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  min-height: min(620px, 100dvh);
+  overflow: hidden;
+  color: var(--puls-mode-text);
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  background:
+    radial-gradient(ellipse at 50% 43%, rgba(0, 61, 180, .30), transparent 44%),
+    linear-gradient(180deg, #00030a 0%, #000b20 43%, #001033 62%, #00040c 100%);
+  isolation: isolate;
+}
+
+@media (min-width: 1051px) {
+  body:has(.puls-mode-selection:not([hidden])) {
+    zoom: 1;
+  }
+}
+
+.puls-mode-beam {
+  position: absolute;
+  left: 50%;
+  top: -2%;
+  width: 2px;
+  height: 31%;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, rgba(83, 166, 255, .82), rgba(29, 111, 255, .38) 36%, rgba(12, 75, 225, .11) 76%, transparent);
+  filter: blur(5px);
+  box-shadow: 0 0 18px rgba(20, 101, 255, .30), 0 0 42px rgba(0, 77, 255, .14);
+  opacity: .38;
+  animation: puls-mode-beam 4.2s ease-in-out infinite;
+}
+
+.puls-mode-heading {
+  position: absolute;
+  z-index: 5;
+  top: 9%;
+  width: 100%;
+  padding: 0 18px;
+  text-align: center;
+}
+
+.puls-mode-heading h1 {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(32px, 7vw, 55px);
+  font-weight: 400;
+  letter-spacing: .01em;
+}
+
+.puls-mode-heading h1 b {
+  font-weight: 500;
+  text-shadow: 0 0 10px rgba(65, 146, 255, .9);
+}
+
+.puls-mode-heading p {
+  margin: 8px 0 0;
+  color: #a9b8d1;
+  font-size: clamp(15px, 3vw, 21px);
+}
+
+.puls-mode-wave-stage {
+  position: absolute;
+  z-index: 2;
+  top: 25%;
+  right: 0;
+  left: 0;
+  height: 33%;
+  overflow: hidden;
+}
+
+.puls-mode-wave-glow {
+  position: absolute;
+  inset: 2% -15%;
+  background: radial-gradient(ellipse at center, rgba(0, 91, 255, .34), transparent 61%);
+  filter: blur(22px);
+  animation: puls-mode-glow 3.8s ease-in-out infinite;
+}
+
+.puls-mode-large-wave {
+  position: absolute;
+  left: -9%;
+  width: 118%;
+  height: 100%;
+  overflow: visible;
+  transform: translateY(28px);
+  transform-origin: 50% 50%;
+  filter: drop-shadow(0 0 4px #54a8ff) drop-shadow(0 0 11px rgba(0, 111, 255, .72));
+}
+
+.puls-mode-particle {
+  position: absolute;
+  border-radius: 50%;
+  background: #50cfff;
+  box-shadow: 0 0 5px #0ba6ff, 0 0 11px #086cff;
+  animation: puls-mode-twinkle var(--puls-mode-particle-duration) ease-in-out infinite alternate;
+}
+
+.puls-mode-scope {
+  position: absolute;
+  z-index: 5;
+  top: 30.5%;
+  left: 0;
+  width: 100%;
+  height: 22%;
+  pointer-events: none;
+  filter: drop-shadow(0 0 5px rgba(38, 119, 255, .8));
+}
+
+.puls-mode-welcome-flare {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  left: 50%;
+  width: 190px;
+  height: 175px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 0%, rgba(64, 155, 255, .34), rgba(30, 103, 255, .17) 18%, rgba(13, 67, 190, .07) 42%, transparent 72%);
+  filter: blur(7px);
+  opacity: .72;
+  animation: puls-mode-flare 4.8s ease-in-out infinite;
+}
+
+.puls-mode-welcome-flare::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 2px;
+  height: 150px;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, rgba(103, 187, 255, .68), rgba(31, 116, 255, .24) 42%, transparent);
+  filter: blur(3px);
+}
+
+.puls-mode-cards {
+  position: absolute;
+  z-index: 10;
+  bottom: 7%;
+  left: 50%;
+  width: min(84vw, 660px);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  transform: translateX(-50%);
+}
+
+.puls-mode-card {
+  position: relative;
+  height: clamp(245px, 33dvh, 350px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(48, 120, 190, .62);
+  border-radius: 28px;
+  outline: none;
+  background: linear-gradient(180deg, rgba(5, 43, 79, .94), rgba(1, 16, 34, .98));
+  color: #fff;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: border-color .25s ease, box-shadow .25s ease, transform .25s ease;
+}
+
+.puls-mode-card:hover,
+.puls-mode-card:focus-visible,
+.puls-mode-card.selected {
+  border-color: #6be7ff;
+  box-shadow: 0 0 6px #78bdff, 0 0 18px rgba(0, 190, 255, .95), 0 0 42px rgba(0, 100, 255, .58), inset 0 0 28px rgba(0, 144, 255, .24);
+  transform: translateY(-2px);
+}
+
+.puls-mode-icon {
+  height: 72px;
+  margin-bottom: 18px;
+  color: #d2efff;
+  filter: drop-shadow(0 0 7px rgba(41, 183, 255, .65));
+}
+
+.puls-mode-card:hover .puls-mode-icon,
+.puls-mode-card:focus-visible .puls-mode-icon,
+.puls-mode-card.selected .puls-mode-icon {
+  color: #4ce7ff;
+  filter: drop-shadow(0 0 10px #17caff);
+}
+
+.puls-mode-icon svg {
+  width: 65px;
+  height: 65px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.puls-mode-card strong {
+  font-size: clamp(20px, 4vw, 30px);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.puls-mode-card small {
+  margin-top: 8px;
+  color: #98aac3;
+  font-size: clamp(14px, 2.8vw, 19px);
+}
+
+.puls-mode-card:hover small,
+.puls-mode-card:focus-visible small,
+.puls-mode-card.selected small {
+  color: #28dfff;
+}
+
+@keyframes puls-mode-beam {
+  0%, 100% { opacity: .2; filter: blur(6px); }
+  45% { opacity: .46; filter: blur(4px); }
+  62% { opacity: .31; filter: blur(5px); }
+}
+
+@keyframes puls-mode-glow {
+  50% { opacity: .55; transform: scale(1.05); }
+}
+
+@keyframes puls-mode-twinkle {
+  from { opacity: .12; transform: scale(.55); }
+  to { opacity: 1; transform: scale(1.35); }
+}
+
+@keyframes puls-mode-flare {
+  0%, 100% { opacity: .5; }
+  45% { opacity: .82; }
+  65% { opacity: .62; }
+}
+
+@media (max-width: 560px) {
+  .puls-mode-heading { top: 8.5%; }
+  .puls-mode-wave-stage { top: 24%; height: 31%; }
+  .puls-mode-cards { bottom: 7%; width: 84vw; gap: 12px; }
+  .puls-mode-card { height: 31dvh; min-height: 240px; border-radius: 25px; }
+}
+
+@media (max-height: 760px) {
+  .puls-mode-heading { top: 5%; }
+  .puls-mode-heading h1 { font-size: 32px; }
+  .puls-mode-heading p { font-size: 15px; }
+  .puls-mode-wave-stage { top: 18%; height: 31%; }
+  .puls-mode-cards { bottom: 3.5%; }
+  .puls-mode-card { height: 31dvh; min-height: 190px; }
+  .puls-mode-icon { height: 54px; margin-bottom: 10px; }
+  .puls-mode-icon svg { width: 50px; height: 50px; }
+}

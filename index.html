@@ -39,6 +39,7 @@
   }
   </script>
   <link rel="stylesheet" href="assets/css/style.css?v=20261005-guest-development-gate1">
+  <link rel="stylesheet" href="assets/css/mode-selection.css?v=20261005-v621-1">
 </head>
 <body class="puls-splash-active" data-auth-state="guest">
   <div class="puls-splash-screen" id="pulsSplashScreen" aria-hidden="true">
@@ -352,6 +353,45 @@
     </div>
   </section>
 
+  <section class="puls-mode-selection" id="pulsModeSelection" aria-labelledby="pulsModeSelectionTitle" hidden>
+    <div class="puls-mode-welcome-flare" aria-hidden="true"></div>
+    <div class="puls-mode-beam" aria-hidden="true"></div>
+    <header class="puls-mode-heading">
+      <h1 id="pulsModeSelectionTitle">Welcome to <b>PULS</b></h1>
+      <p>Your technical representative</p>
+    </header>
+
+    <div class="puls-mode-wave-stage" aria-hidden="true">
+      <div class="puls-mode-wave-glow"></div>
+      <svg class="puls-mode-large-wave puls-mode-large-wave-1" viewBox="0 0 1000 300" preserveAspectRatio="none">
+        <path d="M0 158 C75 78 120 238 205 146 S340 77 415 159 S540 239 625 143 S760 76 835 154 S935 213 1000 140" fill="none" stroke="#4aa8ff" stroke-width="5"></path>
+        <path d="M0 174 C85 106 135 217 218 157 S355 112 425 176 S545 215 632 154 S762 105 842 168 S940 202 1000 153" fill="none" stroke="rgba(37,165,255,.82)" stroke-width="2.2"></path>
+      </svg>
+      <svg class="puls-mode-large-wave puls-mode-large-wave-2" viewBox="0 0 1000 300" preserveAspectRatio="none">
+        <path d="M0 180 C100 122 145 202 235 158 S360 116 440 176 S560 208 650 150 S785 113 865 171 S955 190 1000 162" fill="none" stroke="rgba(63,201,255,.55)" stroke-width="1.6"></path>
+      </svg>
+      <svg class="puls-mode-large-wave puls-mode-large-wave-3" viewBox="0 0 1000 300" preserveAspectRatio="none">
+        <path d="M0 145 C70 100 130 199 210 137 S345 102 415 146 S530 197 620 134 S760 99 835 145 S945 180 1000 133" fill="none" stroke="rgba(20,120,255,.42)" stroke-width="1.4"></path>
+      </svg>
+      <div class="puls-mode-particles" id="pulsModeParticles"></div>
+    </div>
+
+    <canvas class="puls-mode-scope" id="pulsModeScope" aria-hidden="true"></canvas>
+
+    <div class="puls-mode-cards" role="group" aria-label="Choose how to use PULS">
+      <button class="puls-mode-card" type="button" data-puls-mode="voice">
+        <span class="puls-mode-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M10 28v8M18 20v24M26 12v40M34 18v28M42 10v44M50 21v22M58 27v10"></path></svg></span>
+        <strong>Talk to PULS</strong>
+        <small>Voice mode</small>
+      </button>
+      <button class="puls-mode-card" type="button" data-puls-mode="text">
+        <span class="puls-mode-icon" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M7 14c9-3 17-1 25 5v35c-8-6-16-8-25-5zM57 14c-9-3-17-1-25 5v35c8-6 16-8 25-5z"></path><path d="M14 24c5-1 9 0 13 3M14 32c5-1 9 0 13 3M50 24c-5-1-9 0-13 3M50 32c-5-1-9 0-13 3"></path></svg></span>
+        <strong>Meet PULS</strong>
+        <small>Text mode</small>
+      </button>
+    </div>
+  </section>
+
   <div class="puls-loading-overlay" id="pulsLoadingOverlay" aria-hidden="true" hidden>
     <div class="puls-loading-spinner" role="status" aria-label="PULS loading">
       <i style="--i:0"></i><i style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i><i style="--i:5"></i><i style="--i:6"></i>
@@ -543,6 +583,7 @@
   <script src="assets/js/config.js?v=20260706-01"></script>
   <script src="assets/js/chat-session.js?v=20260927-attachment-first1"></script>
   <script src="assets/pages/car.js?v=20261004-vehicle-switch-loader1"></script>
+  <script src="assets/js/mode-selection.js?v=20261005-v621-1"></script>
   <script src="assets/js/app.js?v=20261005-guest-development-gate1"></script>
 </body>
 </html>
