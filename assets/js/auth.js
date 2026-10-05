@@ -1,6 +1,6 @@
 const AUTH_STATUS_READY = "Введите email и пароль.";
 const AUTH_STATUS_CONFIG = "Добавьте Supabase URL и anon key в assets/js/supabaseClient.js.";
-const POST_REGISTRATION_MODE_KEY = "puls_post_registration_mode_user_id";
+let modeSelectionAuthEntryUserId = null;
 window.pulsAuthReady = Promise.resolve(null);
 
 function authText(key, fallback) {
@@ -60,34 +60,18 @@ function closeAuthModal() {
   modal.setAttribute("aria-hidden", "true");
 }
 
-function rememberPostRegistrationMode(user) {
-  if (!user?.id) return;
-  try {
-    localStorage.setItem(POST_REGISTRATION_MODE_KEY, user.id);
-  } catch (_error) {
-    // The immediate post-registration transition still works when storage is unavailable.
-    window.pulsPendingModeSelectionUserId = user.id;
+function handleModeSelectionAuthEvent(event, session) {
+  if (event === "SIGNED_OUT") {
+    modeSelectionAuthEntryUserId = null;
+    window.PulsModeSelection?.hide();
+    return;
   }
-}
-
-function showPendingPostRegistrationMode(user) {
-  if (!user?.id || !window.PulsModeSelection) return false;
-  let pendingUserId = window.pulsPendingModeSelectionUserId || null;
-  try {
-    pendingUserId = localStorage.getItem(POST_REGISTRATION_MODE_KEY) || pendingUserId;
-  } catch (_error) {
-    // Use the in-memory registration marker.
-  }
-  if (pendingUserId !== user.id) return false;
-  try {
-    localStorage.removeItem(POST_REGISTRATION_MODE_KEY);
-  } catch (_error) {
-    // The in-memory marker is cleared below.
-  }
-  window.pulsPendingModeSelectionUserId = null;
+  if (event !== "INITIAL_SESSION" && event !== "SIGNED_IN") return;
+  const userId = session?.user?.id || null;
+  if (!userId || modeSelectionAuthEntryUserId === userId || !window.PulsModeSelection) return;
+  modeSelectionAuthEntryUserId = userId;
   closeAuthModal();
   window.PulsModeSelection.show();
-  return true;
 }
 
 async function updateProfileBlock() {
@@ -124,7 +108,6 @@ async function updateProfileBlock() {
   authBtn.style.display = "none";
   logoutBtn.style.display = "inline-flex";
   if (deleteProfileBtn) deleteProfileBtn.style.display = "inline-flex";
-  showPendingPostRegistrationMode(user);
 }
 
 async function syncAuthUserProfile(user) {
@@ -221,7 +204,6 @@ async function registerUser(email, password) {
     return;
   }
 
-  if (data.user) rememberPostRegistrationMode(data.user);
   if (data.user) publishAuthState(data.user, await syncAuthUserProfile(data.user));
   setAuthStatus(authText("auth.registerSuccess", "Регистрация успешна. Проверьте почту для подтверждения."));
   await updateProfileBlock();
@@ -330,7 +312,9 @@ document.addEventListener("DOMContentLoaded", () => {
     registerUser(email, password);
   });
 
-  window.supabaseClient?.auth.onAuthStateChange(() => {
-    updateProfileBlock();
+  window.supabaseClient?.auth.onAuthStateChange((event, session) => {
+    updateProfileBlock()
+      .catch((error) => console.warn("Could not update authentication profile:", error))
+      .finally(() => handleModeSelectionAuthEvent(event, session));
   });
 });
