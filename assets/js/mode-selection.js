@@ -29,9 +29,13 @@
     for (let index = 0; index < 260; index += 1) {
       const particle = document.createElement("i");
       const size = .45 + Math.random() * 2.25;
+      const useLowerField = Math.random() < .35;
+      const verticalPosition = useLowerField
+        ? 48 + Math.pow(Math.random(), 1.45) * 47
+        : 12 + Math.pow(Math.random(), .9) * 46;
       particle.className = "puls-mode-particle";
       particle.style.left = `${Math.random() * 100}%`;
-      particle.style.top = `${18 + Math.random() * 65}%`;
+      particle.style.top = `${verticalPosition}%`;
       particle.style.width = `${size}px`;
       particle.style.height = `${size}px`;
       particle.style.setProperty("--puls-mode-particle-duration", `${1.2 + Math.random() * 3.8}s`);
@@ -113,7 +117,7 @@
         const breathing = minimumAmplitude + (1 - minimumAmplitude) * ((Math.sin(centralTime * breatheSpeed + breathePhase) + 1) / 2);
         const travelSpeed = [1.16, 1.31, .91, 1.47][layerIndex];
         const peakFlow = .88 + .12 * (.62 * Math.sin(normalizedX * Math.PI * 2 * .92 - centralTime * .31 + layerIndex * .71) + .38 * Math.sin(normalizedX * Math.PI * 2 * 1.73 - centralTime * .19 + 1.15 + layerIndex * .43));
-        const y = centerY + canvasHeight * layer.amplitude * breathing * envelope * peakFlow * Math.sin(normalizedX * Math.PI * 2 * layer.frequency - centralTime * travelSpeed + layer.phase);
+        const y = centerY + canvasHeight * layer.amplitude * 1.18 * breathing * envelope * peakFlow * Math.sin(normalizedX * Math.PI * 2 * layer.frequency - centralTime * travelSpeed + layer.phase);
         if (x === 0) context.moveTo(x, y);
         else context.lineTo(x, y);
       }
