@@ -4693,6 +4693,22 @@ body.assistant-mode.chat-active:not([data-auth-state="authenticated"]) #assistan
   pointer-events: none;
 }
 
+.topbar {
+  anchor-name: --puls-header;
+}
+
+.composer {
+  anchor-name: --puls-composer;
+}
+
+body.assistant-mode.chat-active:not([data-auth-state="authenticated"]) #assistant .assistant-chat > .head:has(.guest-development-notice:not([hidden])) {
+  top: anchor(--puls-header bottom);
+  bottom: anchor(--puls-composer top);
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+}
+
 .guest-intro[hidden],
 .guest-development-notice[hidden] {
   display: none !important;
@@ -4700,7 +4716,7 @@ body.assistant-mode.chat-active:not([data-auth-state="authenticated"]) #assistan
 
 .guest-development-notice {
   width: min(480px, calc(100% - 32px));
-  margin: 24px auto 0;
+  margin: 0 auto;
   padding: clamp(24px, 3.5vw, 30px);
   box-sizing: border-box;
   display: flex;
@@ -4760,13 +4776,23 @@ body.assistant-mode.chat-active:not([data-auth-state="authenticated"]) #assistan
 @media (max-width: 480px) {
   .guest-development-notice {
     width: calc(100% - 28px);
-    margin-top: 14px;
-    padding: 22px 18px;
-    gap: 14px;
+    padding: 18px 16px;
+    gap: 11px;
+  }
+
+  .guest-development-notice-icon {
+    width: 38px;
+    height: 38px;
+  }
+
+  .guest-development-notice h1 {
+    font-size: 20px;
+    line-height: 1.2;
   }
 
   .guest-development-notice-copy p {
-    font-size: 14px;
+    font-size: 13px;
+    line-height: 1.42;
   }
 }
 
