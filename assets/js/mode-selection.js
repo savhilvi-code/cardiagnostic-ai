@@ -29,10 +29,10 @@
     for (let index = 0; index < 260; index += 1) {
       const particle = document.createElement("i");
       const size = .45 + Math.random() * 2.25;
-      const useLowerField = Math.random() < .35;
+      const useLowerField = Math.random() < .43;
       const verticalPosition = useLowerField
-        ? 48 + Math.pow(Math.random(), 1.45) * 47
-        : 12 + Math.pow(Math.random(), .9) * 46;
+        ? 42 + Math.pow(Math.random(), .9) * 56
+        : 8 + Math.pow(Math.random(), .95) * 52;
       particle.className = "puls-mode-particle";
       particle.style.left = `${Math.random() * 100}%`;
       particle.style.top = `${verticalPosition}%`;

@@ -253,6 +253,7 @@
 @media (max-width: 560px) {
   .puls-mode-heading { top: 8.5%; }
   .puls-mode-wave-stage { top: 24%; height: 31%; }
+  .puls-mode-large-wave { transform: translateY(58px); }
   .puls-mode-cards { bottom: 7%; width: 84vw; gap: 12px; }
   .puls-mode-card { height: 31dvh; min-height: 240px; border-radius: 25px; }
 }
