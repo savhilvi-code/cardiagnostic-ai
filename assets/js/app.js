@@ -1966,6 +1966,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       const showNotice = !signedIn && !hasAcknowledgedDevelopmentNotice();
       notice.hidden = !showNotice;
       intro.hidden = showNotice || signedIn;
+      const app = $("#app");
+      if (app) app.inert = showNotice;
     }
 
     function acknowledgeDevelopmentNotice() {
@@ -1978,6 +1980,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       const intro = $("#guestIntro");
       if (notice) notice.hidden = true;
       if (intro) intro.hidden = false;
+      const app = $("#app");
+      if (app) app.inert = false;
     }
 
     function requireSignedInForEdit() {

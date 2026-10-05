@@ -4693,30 +4693,30 @@ body.assistant-mode.chat-active:not([data-auth-state="authenticated"]) #assistan
   pointer-events: none;
 }
 
-.topbar {
-  anchor-name: --puls-header;
-}
-
-.composer {
-  anchor-name: --puls-composer;
-}
-
-body.assistant-mode.chat-active:not([data-auth-state="authenticated"]) #assistant .assistant-chat > .head:has(.guest-development-notice:not([hidden])) {
-  top: anchor(--puls-header bottom);
-  bottom: anchor(--puls-composer top);
-  display: grid;
-  place-items: center;
-  box-sizing: border-box;
-}
-
 .guest-intro[hidden],
-.guest-development-notice[hidden] {
+.guest-development-gate[hidden] {
   display: none !important;
 }
 
+.guest-development-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 1250;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: max(24px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: rgba(2, 7, 13, .56);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+
 .guest-development-notice {
-  width: min(480px, calc(100% - 32px));
-  margin: 0 auto;
+  width: min(480px, 100%);
+  margin: auto;
   padding: clamp(24px, 3.5vw, 30px);
   box-sizing: border-box;
   display: flex;
