@@ -38,7 +38,7 @@
     "logo": "https://pulscar.co/assets/img/puls-logo.png"
   }
   </script>
-  <link rel="stylesheet" href="assets/css/style.css?v=20261004-mobile-page-scroll1">
+  <link rel="stylesheet" href="assets/css/style.css?v=20261005-guest-development-notice1">
 </head>
 <body class="puls-splash-active" data-auth-state="guest">
   <div class="puls-splash-screen" id="pulsSplashScreen" aria-hidden="true">
@@ -106,9 +106,22 @@
             <div class="chat-grid">
               <div class="assistant-chat">
                 <div class="head">
-                  <div>
+                  <div class="guest-intro" id="guestIntro" hidden>
                     <p data-i18n="assistant.subtitle">Задайте любой вопрос о вашем автомобиле</p>
                   </div>
+                  <section class="guest-development-notice" id="guestDevelopmentNotice" aria-labelledby="guestDevelopmentNoticeTitle" hidden>
+                    <svg class="guest-development-notice-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                      <path d="M12 3 2.8 20h18.4L12 3Z"></path>
+                      <path d="M12 9v5"></path>
+                      <path d="M12 17.5h.01"></path>
+                    </svg>
+                    <h1 id="guestDevelopmentNoticeTitle">PULS is currently in development</h1>
+                    <div class="guest-development-notice-copy">
+                      <p>PULS is currently being actively developed and tested. Some features may still be incomplete or work differently than expected.</p>
+                      <p>You’re welcome to explore PULS and try it out. Just keep in mind that this is an early version and should not yet be relied on as a finished product.</p>
+                    </div>
+                    <button class="btn blue guest-development-notice-accept" id="guestDevelopmentNoticeAccept" type="button">Try PULS anyway</button>
+                  </section>
                 </div>
 
                 <div class="messages" id="messages"></div>
@@ -527,6 +540,6 @@
   <script src="assets/js/config.js?v=20260706-01"></script>
   <script src="assets/js/chat-session.js?v=20260927-attachment-first1"></script>
   <script src="assets/pages/car.js?v=20261004-vehicle-switch-loader1"></script>
-  <script src="assets/js/app.js?v=20261004-quota-modal1"></script>
+  <script src="assets/js/app.js?v=20261005-guest-development-notice1"></script>
 </body>
 </html>

@@ -54,6 +54,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     const $ = (selector) => document.querySelector(selector);
     const $$ = (selector) => Array.from(document.querySelectorAll(selector));
     const LANGUAGE_STORAGE_KEY = "puls_language_v1";
+    const DEVELOPMENT_NOTICE_STORAGE_KEY = "puls_development_notice_acknowledged";
     const VEHICLE_STORAGE_KEY = "puls_vehicle_profile_v1";
     let currentQuota = null;
 
@@ -1947,6 +1948,36 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
     function isSignedIn() {
       return Boolean(window.pulsCurrentUser);
+    }
+
+    function hasAcknowledgedDevelopmentNotice() {
+      try {
+        return localStorage.getItem(DEVELOPMENT_NOTICE_STORAGE_KEY) === "true";
+      } catch (_error) {
+        return false;
+      }
+    }
+
+    function syncGuestDevelopmentNotice() {
+      const notice = $("#guestDevelopmentNotice");
+      const intro = $("#guestIntro");
+      if (!notice || !intro) return;
+      const signedIn = isSignedIn();
+      const showNotice = !signedIn && !hasAcknowledgedDevelopmentNotice();
+      notice.hidden = !showNotice;
+      intro.hidden = showNotice || signedIn;
+    }
+
+    function acknowledgeDevelopmentNotice() {
+      try {
+        localStorage.setItem(DEVELOPMENT_NOTICE_STORAGE_KEY, "true");
+      } catch (_error) {
+        // Keep the acknowledgement effective for this rendered page if storage is unavailable.
+      }
+      const notice = $("#guestDevelopmentNotice");
+      const intro = $("#guestIntro");
+      if (notice) notice.hidden = true;
+      if (intro) intro.hidden = false;
     }
 
     function requireSignedInForEdit() {
@@ -4216,6 +4247,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       });
       try {
         await window.pulsAuthReady;
+        syncGuestDevelopmentNotice();
         window.addEventListener("puls-auth-change", async (event) => {
           const authLoadingOperation = beginPulsViewLoading();
           try {
@@ -4234,6 +4266,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
               supportEmailInput.value = getSupportEmailValue();
             }
             applyAuthLockedState();
+            syncGuestDevelopmentNotice();
             await refreshQuotaFromBackend(event.detail?.user || null);
             await syncVehicleStoreFromBackend();
             await renderLists();
@@ -4251,6 +4284,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       }
 
       $("#sendBtn").addEventListener("click", sendPrompt);
+      $("#guestDevelopmentNoticeAccept")?.addEventListener("click", acknowledgeDevelopmentNotice);
       $("#chatAttachmentInput")?.addEventListener("change", (event) => {
         const files = Array.from(event.target.files || []);
         event.target.value = "";
