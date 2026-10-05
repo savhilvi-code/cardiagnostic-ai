@@ -23,16 +23,26 @@
   let canvasDpr = 1;
   let centralTime = 0;
 
+  function particleWaveCenterPercent() {
+    const stageBounds = particles.parentElement?.getBoundingClientRect();
+    const largeWaveBounds = largeWaves[0]?.getBoundingClientRect();
+    const centralWaveBounds = canvas.getBoundingClientRect();
+    if (!stageBounds?.height || !largeWaveBounds?.height || !centralWaveBounds.height) return 55;
+    const largeWaveCenter = largeWaveBounds.top + largeWaveBounds.height * .5;
+    const centralWaveCenter = centralWaveBounds.top + centralWaveBounds.height * .5;
+    return ((largeWaveCenter + centralWaveCenter) * .5 - stageBounds.top) / stageBounds.height * 100;
+  }
+
   function buildParticles() {
     if (particlesReady) return;
     const fragment = document.createDocumentFragment();
+    const waveCenter = particleWaveCenterPercent();
     for (let index = 0; index < 260; index += 1) {
       const particle = document.createElement("i");
       const size = .45 + Math.random() * 2.25;
-      const useLowerField = Math.random() < .43;
-      const verticalPosition = useLowerField
-        ? 42 + Math.pow(Math.random(), .9) * 56
-        : 8 + Math.pow(Math.random(), .95) * 52;
+      const direction = index % 2 === 0 ? -1 : 1;
+      const availableDistance = direction < 0 ? waveCenter - 3 : 97 - waveCenter;
+      const verticalPosition = waveCenter + direction * Math.pow(Math.random(), 2.15) * availableDistance;
       particle.className = "puls-mode-particle";
       particle.style.left = `${Math.random() * 100}%`;
       particle.style.top = `${verticalPosition}%`;
@@ -147,8 +157,8 @@
   }
 
   function show() {
-    buildParticles();
     root.hidden = false;
+    buildParticles();
     const app = document.getElementById("app");
     if (app) app.inert = true;
     root.querySelectorAll(".puls-mode-card").forEach((card) => card.classList.remove("selected"));
