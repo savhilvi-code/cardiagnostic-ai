@@ -5034,6 +5034,10 @@ body.assistant-mode .composer .send:disabled {
     overscroll-behavior-y: contain;
   }
 
+  html {
+    scrollbar-color: transparent transparent !important;
+  }
+
   #app {
     background-color: transparent;
   }
