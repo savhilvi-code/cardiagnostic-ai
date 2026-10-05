@@ -63,7 +63,7 @@ function closeAuthModal() {
 function rememberPostRegistrationMode(user) {
   if (!user?.id) return;
   try {
-    sessionStorage.setItem(POST_REGISTRATION_MODE_KEY, user.id);
+    localStorage.setItem(POST_REGISTRATION_MODE_KEY, user.id);
   } catch (_error) {
     // The immediate post-registration transition still works when storage is unavailable.
     window.pulsPendingModeSelectionUserId = user.id;
@@ -74,13 +74,13 @@ function showPendingPostRegistrationMode(user) {
   if (!user?.id || !window.PulsModeSelection) return false;
   let pendingUserId = window.pulsPendingModeSelectionUserId || null;
   try {
-    pendingUserId = sessionStorage.getItem(POST_REGISTRATION_MODE_KEY) || pendingUserId;
+    pendingUserId = localStorage.getItem(POST_REGISTRATION_MODE_KEY) || pendingUserId;
   } catch (_error) {
     // Use the in-memory registration marker.
   }
   if (pendingUserId !== user.id) return false;
   try {
-    sessionStorage.removeItem(POST_REGISTRATION_MODE_KEY);
+    localStorage.removeItem(POST_REGISTRATION_MODE_KEY);
   } catch (_error) {
     // The in-memory marker is cleared below.
   }
