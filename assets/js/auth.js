@@ -66,7 +66,7 @@ function handleModeSelectionAuthEvent(event, session) {
     window.PulsModeSelection?.hide();
     return;
   }
-  if (event !== "INITIAL_SESSION" && event !== "SIGNED_IN") return;
+  if (event !== "SIGNED_IN") return;
   const userId = session?.user?.id || null;
   if (!userId || modeSelectionAuthEntryUserId === userId || !window.PulsModeSelection) return;
   modeSelectionAuthEntryUserId = userId;

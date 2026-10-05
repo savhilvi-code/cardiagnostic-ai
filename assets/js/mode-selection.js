@@ -75,9 +75,11 @@
       const cycles = [3.08, 3.14, 3.03][layerIndex];
       const baseAmplitude = height * [.34, .28, .22][layerIndex] * responsiveAmplitude;
       const phaseSpeed = [.56, .49, .43][layerIndex];
+      const horizontalOverscan = .18;
+      const pointCount = 230;
       let pathData = "";
-      for (let index = 0; index <= 180; index += 1) {
-        const normalizedX = index / 180;
+      for (let index = 0; index <= pointCount; index += 1) {
+        const normalizedX = -horizontalOverscan + (index / pointCount) * (1 + horizontalOverscan * 2);
         const x = normalizedX * width;
         const carrier = Math.sin(normalizedX * Math.PI * 2 * cycles - time * phaseSpeed + layerIndex * .32);
         const y = centerY + carrier * baseAmplitude * amplitudeAt(normalizedX, time, layerIndex);
