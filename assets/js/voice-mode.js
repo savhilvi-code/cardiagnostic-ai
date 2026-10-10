@@ -1,4 +1,38 @@
 (() => {
+  function createVadGate({
+    startThreshold=.026,
+    endThreshold=.014,
+    silenceMs=950,
+    minSpeechMs=260,
+    maxSpeechMs=30000
+  }={}){
+    let active=false;
+    let noiseFloor=.008;
+    let startedAt=0;
+    let lastVoiceAt=0;
+    return {
+      sample(level,now){
+        const value=Math.max(0,Number(level)||0);
+        if(!active){
+          noiseFloor=noiseFloor*.96+Math.min(value,.04)*.04;
+          if(value>Math.max(startThreshold,noiseFloor*2.7)){
+            active=true;startedAt=now;lastVoiceAt=now;return 'start';
+          }
+          return null;
+        }
+        if(value>Math.max(endThreshold,noiseFloor*1.65))lastVoiceAt=now;
+        if((now-startedAt)>=maxSpeechMs||((now-startedAt)>=minSpeechMs&&(now-lastVoiceAt)>=silenceMs)){
+          active=false;return 'end';
+        }
+        return null;
+      },
+      reset(){active=false;startedAt=0;lastVoiceAt=0;noiseFloor=.008;},
+      get active(){return active;}
+    };
+  }
+  // A pure seam used by the focused VAD regression test.
+  window.PulsVoiceVad={createVadGate};
+
   const root = document.getElementById('pulsVoiceMode');
   const canvas = document.getElementById('pulsVoiceCanvas');
   const workspace = document.getElementById('app');
@@ -19,6 +53,19 @@
   let voiceSessionActive = false;
   let workspaceVisible = false;
   let stateBeforeWorkspace = 'standby';
+  let microphoneStream = null;
+  let microphoneContext = null;
+  let microphoneSource = null;
+  let microphoneAnalyser = null;
+  let microphoneSamples = null;
+  let mediaRecorder = null;
+  let vadFrame = 0;
+  let utteranceChunks = [];
+  let preRollChunks = [];
+  let processingUtterance = false;
+  let currentPlayback = null;
+  let voiceSessionEpoch = 0;
+  const vadGate=createVadGate();
 
   // Ultra-crisp render: modest supersampling above the native CSS DPR.
   // Cap the backing-store density to avoid excessive GPU/memory load on mobile.
@@ -173,8 +220,16 @@
       const source=ac.createMediaElementSource(element);
       const analyser=ac.createAnalyser();analyser.fftSize=1024;
       source.connect(analyser);analyser.connect(ac.destination);
-      audioContexts.push({ac,analyser,mode:'responding',samples:new Uint8Array(analyser.fftSize)});
+      audioContexts.push({ac,analyser,element,mode:'responding',samples:new Uint8Array(analyser.fftSize)});
       ac.resume();return ac;
+    },
+    disconnectAudioElement(element) {
+      for(let index=audioContexts.length-1;index>=0;index--){
+        const item=audioContexts[index];
+        if(item.element!==element)continue;
+        audioContexts.splice(index,1);
+        void item.ac.close().catch(()=>{});
+      }
     }
   };
   function updateAudioLevels(now){
@@ -1160,6 +1215,205 @@
     animationFrame=requestAnimationFrame(tick);
   }
 
+  function voiceLanguage(){
+    try{return localStorage.getItem('puls_language_v1')||'en';}catch{return 'en';}
+  }
+
+  function voiceMessage(key){
+    const ru=voiceLanguage().startsWith('ru');
+    const messages={
+      permission:ru?'Разрешите доступ к микрофону, чтобы использовать Voice Mode.':'Allow microphone access to use Voice Mode.',
+      unsupported:ru?'Запись с микрофона не поддерживается этим браузером.':'Microphone recording is not supported by this browser.',
+      empty:ru?'Речь не распознана. Попробуйте ещё раз.':'No speech was recognized. Please try again.',
+      failed:ru?'Голосовой запрос не выполнен. Попробуйте ещё раз.':'The voice request failed. Please try again.',
+      playback:ru?'Не удалось воспроизвести голосовой ответ.':'The voice response could not be played.'
+    };
+    return messages[key]||messages.failed;
+  }
+
+  function notifyVoice(message){
+    root.setAttribute('aria-label',`PULS Voice Mode. ${message}`);
+    window.PulsVoiceBridge?.notify?.(message);
+  }
+
+  function recorderMimeType(){
+    if(typeof MediaRecorder==='undefined')return '';
+    return ['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus']
+      .find(type=>MediaRecorder.isTypeSupported?.(type))||'';
+  }
+
+  function stopPlayback(){
+    if(!currentPlayback)return;
+    const element=currentPlayback;
+    element.pause();
+    element.dispatchEvent(new Event('ended'));
+  }
+
+  function releaseMicrophone(){
+    cancelAnimationFrame(vadFrame);vadFrame=0;
+    if(mediaRecorder&&mediaRecorder.state!=='inactive'){
+      try{mediaRecorder.stop();}catch{/* Recorder may already be stopping. */}
+    }
+    mediaRecorder=null;
+    microphoneSource?.disconnect();microphoneSource=null;
+    microphoneAnalyser?.disconnect();microphoneAnalyser=null;
+    microphoneSamples=null;
+    if(microphoneContext){void microphoneContext.close().catch(()=>{});microphoneContext=null;}
+    microphoneStream?.getTracks().forEach(track=>track.stop());microphoneStream=null;
+    vadGate.reset();utteranceChunks=[];preRollChunks=[];
+    window.PULSVoiceVisual.setAudioLevel('listening',0);
+  }
+
+  function stopVoiceSession({standby=true}={}){
+    voiceSessionEpoch++;
+    voiceSessionActive=false;
+    processingUtterance=false;
+    releaseMicrophone();
+    stopPlayback();
+    if(standby&&active)setState('standby');
+    updateToggleControl();
+  }
+
+  function base64AudioUrl(audio){
+    const type=String(audio?.content_type||'audio/mpeg');
+    const data=String(audio?.data_base64||'');
+    return data?`data:${type};base64,${data}`:'';
+  }
+
+  async function playVoiceResponse(audio,epoch){
+    const source=base64AudioUrl(audio);
+    if(!source)return false;
+    const element=new Audio(source);
+    currentPlayback=element;
+    let visualConnected=false;
+    setState('responding');
+    try{
+      try{
+        window.PULSVoiceVisual.connectAudioElement?.(element);
+        visualConnected=true;
+      }catch(error){console.warn('PULS response visualization unavailable:',error);}
+      await element.play();
+      await new Promise((resolve,reject)=>{
+        element.addEventListener('ended',resolve,{once:true});
+        element.addEventListener('error',()=>reject(new Error('PLAYBACK_FAILED')),{once:true});
+      });
+      return true;
+    }finally{
+      if(visualConnected)window.PULSVoiceVisual.disconnectAudioElement?.(element);
+      if(currentPlayback===element)currentPlayback=null;
+      element.removeAttribute('src');element.load();
+      if(epoch===voiceSessionEpoch)window.PULSVoiceVisual.setAudioLevel('responding',0);
+    }
+  }
+
+  async function submitUtterance(blob,epoch){
+    if(processingUtterance||!voiceSessionActive||epoch!==voiceSessionEpoch||blob.size<512)return;
+    processingUtterance=true;
+    setState('thinking');
+    try{
+      const bridge=window.PulsVoiceBridge;
+      if(!bridge)throw new Error('VOICE_BRIDGE_UNAVAILABLE');
+      const turn=await bridge.prepareTurn();
+      const form=new FormData();
+      form.append('audio',blob,blob.type.includes('ogg')?'utterance.ogg':'utterance.webm');
+      form.append('language',turn.language||voiceLanguage());
+      form.append('speak_response','true');
+      for(const field of ['conversation_id','vehicle_id','problem_id','vehicle_selection_explicit']){
+        const value=turn.context?.[field];
+        if(value!==undefined&&value!==null&&value!=='')form.append(field,String(value));
+      }
+      const response=await fetch(`${turn.apiBaseUrl}/api/voice/turn`,{
+        method:'POST',headers:turn.headers,body:form,cache:'no-store'
+      });
+      const payload=await response.json().catch(()=>({}));
+      if(!response.ok){
+        const error=new Error(payload.detail||`Voice API returned ${response.status}`);
+        error.status=response.status;throw error;
+      }
+      await bridge.completeTurn(payload,turn.owner);
+      if(epoch!==voiceSessionEpoch||!active||!voiceSessionActive)return;
+      if(payload.audio){
+        try{await playVoiceResponse(payload.audio,epoch);}
+        catch(error){console.warn('PULS voice playback failed:',error);notifyVoice(voiceMessage('playback'));}
+      }else if(payload.tts_error){
+        notifyVoice(payload.tts_error);
+      }
+    }catch(error){
+      console.warn('PULS voice turn failed:',error);
+      notifyVoice(error?.status===422?voiceMessage('empty'):voiceMessage('failed'));
+    }finally{
+      if(epoch===voiceSessionEpoch&&active&&voiceSessionActive){
+        processingUtterance=false;vadGate.reset();utteranceChunks=[];preRollChunks=[];setState('listening');
+      }
+    }
+  }
+
+  function finishUtterance(epoch,mimeType){
+    if(!utteranceChunks.length)return;
+    const chunks=utteranceChunks;utteranceChunks=[];preRollChunks=[];
+    const blob=new Blob(chunks,{type:mimeType||chunks[0]?.type||'audio/webm'});
+    void submitUtterance(blob,epoch);
+  }
+
+  function monitorVoiceActivity(epoch,mimeType){
+    if(epoch!==voiceSessionEpoch||!voiceSessionActive||!microphoneAnalyser||!microphoneSamples)return;
+    microphoneAnalyser.getByteTimeDomainData(microphoneSamples);
+    let power=0;
+    for(const byte of microphoneSamples){const sample=(byte-128)/128;power+=sample*sample;}
+    const rms=Math.sqrt(power/microphoneSamples.length);
+    window.PULSVoiceVisual.setAudioLevel('listening',Math.max(0,Math.min(1,(rms-.008)*9)));
+    if(!processingUtterance){
+      const decision=vadGate.sample(rms,performance.now());
+      if(decision==='start'){
+        utteranceChunks=preRollChunks.slice();preRollChunks=[];
+      }else if(decision==='end')finishUtterance(epoch,mimeType);
+    }
+    vadFrame=requestAnimationFrame(()=>monitorVoiceActivity(epoch,mimeType));
+  }
+
+  async function startVoiceSession(){
+    if(voiceSessionActive)return;
+    if(!window.pulsCurrentUser?.id){
+      closeToText();
+      window.openAuthModal?.();
+      return;
+    }
+    if(!navigator.mediaDevices?.getUserMedia||typeof MediaRecorder==='undefined'){
+      notifyVoice(voiceMessage('unsupported'));setState('standby');return;
+    }
+    const epoch=++voiceSessionEpoch;
+    voiceSessionActive=true;processingUtterance=false;updateToggleControl();
+    try{
+      microphoneStream=await navigator.mediaDevices.getUserMedia({
+        audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:false
+      });
+      if(epoch!==voiceSessionEpoch||!active||!voiceSessionActive){releaseMicrophone();return;}
+      const AudioContextClass=window.AudioContext||window.webkitAudioContext;
+      microphoneContext=new AudioContextClass();
+      microphoneSource=microphoneContext.createMediaStreamSource(microphoneStream);
+      microphoneAnalyser=microphoneContext.createAnalyser();
+      microphoneAnalyser.fftSize=2048;
+      microphoneSamples=new Uint8Array(microphoneAnalyser.fftSize);
+      microphoneSource.connect(microphoneAnalyser);
+      const mimeType=recorderMimeType();
+      mediaRecorder=new MediaRecorder(microphoneStream,mimeType?{mimeType}:undefined);
+      mediaRecorder.addEventListener('dataavailable',event=>{
+        if(!event.data?.size||epoch!==voiceSessionEpoch||processingUtterance)return;
+        if(vadGate.active)utteranceChunks.push(event.data);
+        else{preRollChunks.push(event.data);if(preRollChunks.length>2)preRollChunks.shift();}
+      });
+      mediaRecorder.start(160);
+      setState('listening');
+      monitorVoiceActivity(epoch,mimeType||mediaRecorder.mimeType);
+    }catch(error){
+      console.warn('PULS microphone start failed:',error);
+      if(epoch===voiceSessionEpoch){
+        notifyVoice(voiceMessage('permission'));
+        stopVoiceSession({standby:true});
+      }
+    }
+  }
+
   function updateToggleControl(){
     toggleButton.classList.toggle('is-running',voiceSessionActive);
     toggleButton.setAttribute('aria-pressed',String(voiceSessionActive));
@@ -1189,7 +1443,7 @@
   }
 
   function open({source='unknown'}={}){
-    if(active){revealControls();return;}
+    if(active){revealControls();if(!voiceSessionActive)void startVoiceSession();return;}
     active=true;
     root.hidden=false;
     root.setAttribute('aria-hidden','false');
@@ -1215,11 +1469,13 @@
     cancelAnimationFrame(animationFrame);
     animationFrame=requestAnimationFrame(tick);
     window.dispatchEvent(new CustomEvent('puls-voice-mode-change',{detail:{active:true,source}}));
+    void startVoiceSession();
   }
 
   function closeToText(){
     if(!active)return;
-    active=false;running=false;voiceSessionActive=false;
+    stopVoiceSession({standby:false});
+    active=false;running=false;
     clearTimeout(controlsTimer);clearTimeout(workspaceTimer);
     cancelAnimationFrame(animationFrame);
     resetWorkspaceSurface();
@@ -1261,9 +1517,8 @@
   controls.addEventListener('pointerdown',event=>event.stopPropagation());
   attachButton.addEventListener('click',()=>{revealControls();window.PulsAttachments?.choose?.();});
   toggleButton.addEventListener('click',()=>{
-    voiceSessionActive=!voiceSessionActive;
-    updateToggleControl();
-    setState('standby');
+    if(voiceSessionActive)stopVoiceSession({standby:true});
+    else void startVoiceSession();
     revealControls();
     window.dispatchEvent(new CustomEvent('puls-voice-session-toggle',{detail:{active:voiceSessionActive}}));
   });

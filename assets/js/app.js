@@ -4032,6 +4032,36 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       };
     }
 
+    // Voice Mode uses the same authenticated chat/session contract as the
+    // composer. It never renders or persists a parallel transcript.
+    window.PulsVoiceBridge = {
+      async prepareTurn() {
+        const owner = window.pulsCurrentUser?.id || "";
+        const headers = await backendAuthHeaders();
+        if (!owner || !headers.Authorization) {
+          window.openAuthModal?.();
+          throw new Error("AUTH_REQUIRED");
+        }
+        await window.PulsChat.beforeSend();
+        return {
+          apiBaseUrl: API_BASE_URL,
+          headers,
+          language: getLanguage(),
+          context: window.PulsChat.requestContext(),
+          owner
+        };
+      },
+      async completeTurn(response, owner) {
+        if (!response || owner !== window.pulsCurrentUser?.id) return;
+        updateQuota(response.quota);
+        await window.PulsChat.afterSend(response, owner);
+        await preserveMessagesScroll(() => window.PulsChat.refresh());
+      },
+      notify(message) {
+        toast(String(message || ""));
+      }
+    };
+
     function resizePromptInput() {
       const input = $("#promptInput");
       if (!input) return;
