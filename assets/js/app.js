@@ -4057,6 +4057,14 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         await window.PulsChat.afterSend(response, owner);
         await preserveMessagesScroll(() => window.PulsChat.refresh());
       },
+      showGreeting(text) {
+        const existing = document.getElementById("pulsVoiceStartupGreeting");
+        if (existing) return existing;
+        const greeting = appendMessage(String(text || ""), false, { autoScroll: true });
+        greeting.id = "pulsVoiceStartupGreeting";
+        greeting.dataset.transientVoiceGreeting = "true";
+        return greeting;
+      },
       notify(message) {
         toast(String(message || ""));
       }

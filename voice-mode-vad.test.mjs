@@ -16,4 +16,13 @@ gate.reset();
 assert.equal(gate.sample(0.06, 2000), "start");
 assert.equal(gate.sample(0.06, 32050), "end", "a bounded utterance prevents endless capture");
 
+assert.equal(
+  window.PulsVoiceGreeting.text("ru"),
+  "Привет! Я Пульс, твой автомобильный помощник. Хочешь, расскажу, чем я могу тебе помочь?"
+);
+assert.equal(
+  window.PulsVoiceGreeting.text("en"),
+  "Hi! I'm PULS, your automotive assistant. Want me to tell you what I can help you with?"
+);
+
 console.log("voice-mode VAD focused checks passed");

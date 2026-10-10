@@ -30,8 +30,14 @@
       get active(){return active;}
     };
   }
+  function startupGreeting(language='en'){
+    return String(language).toLowerCase().startsWith('ru')
+      ? 'Привет! Я Пульс, твой автомобильный помощник. Хочешь, расскажу, чем я могу тебе помочь?'
+      : "Hi! I'm PULS, your automotive assistant. Want me to tell you what I can help you with?";
+  }
   // A pure seam used by the focused VAD regression test.
   window.PulsVoiceVad={createVadGate};
+  window.PulsVoiceGreeting={text:startupGreeting};
 
   const root = document.getElementById('pulsVoiceMode');
   const canvas = document.getElementById('pulsVoiceCanvas');
@@ -65,6 +71,7 @@
   let processingUtterance = false;
   let currentPlayback = null;
   let voiceSessionEpoch = 0;
+  let startupGreetingPlayed = false;
   const vadGate=createVadGate();
 
   // Ultra-crisp render: modest supersampling above the native CSS DPR.
@@ -1306,6 +1313,32 @@
     }
   }
 
+  async function playStartupGreeting(epoch){
+    if(startupGreetingPlayed)return;
+    startupGreetingPlayed=true;
+    const bridge=window.PulsVoiceBridge;
+    const language=voiceLanguage().startsWith('ru')?'ru':'en';
+    bridge?.showGreeting?.(startupGreeting(language));
+    try{
+      if(!bridge)throw new Error('VOICE_BRIDGE_UNAVAILABLE');
+      const turn=await bridge.prepareTurn();
+      const form=new FormData();
+      form.append('language',language);
+      const response=await fetch(`${turn.apiBaseUrl}/api/voice/greeting`,{
+        method:'POST',headers:turn.headers,body:form,cache:'no-store'
+      });
+      const payload=await response.json().catch(()=>({}));
+      if(!response.ok)throw new Error(payload.detail||`Voice greeting returned ${response.status}`);
+      if(epoch===voiceSessionEpoch&&active&&voiceSessionActive&&payload.audio){
+        await playVoiceResponse(payload.audio,epoch);
+      }
+    }catch(error){
+      // Greeting is an enhancement: microphone listening must remain available
+      // even when TTS generation or browser playback is unavailable.
+      console.warn('PULS voice greeting unavailable:',error);
+    }
+  }
+
   async function submitUtterance(blob,epoch){
     if(processingUtterance||!voiceSessionActive||epoch!==voiceSessionEpoch||blob.size<512)return;
     processingUtterance=true;
@@ -1403,6 +1436,10 @@
         else{preRollChunks.push(event.data);if(preRollChunks.length>2)preRollChunks.shift();}
       });
       mediaRecorder.start(160);
+      processingUtterance=true;
+      await playStartupGreeting(epoch);
+      if(epoch!==voiceSessionEpoch||!active||!voiceSessionActive)return;
+      processingUtterance=false;vadGate.reset();utteranceChunks=[];preRollChunks=[];
       setState('listening');
       monitorVoiceActivity(epoch,mimeType||mediaRecorder.mimeType);
     }catch(error){
@@ -1445,6 +1482,7 @@
   function open({source='unknown'}={}){
     if(active){revealControls();if(!voiceSessionActive)void startVoiceSession();return;}
     active=true;
+    startupGreetingPlayed=false;
     root.hidden=false;
     root.setAttribute('aria-hidden','false');
     root.dataset.source=source;
