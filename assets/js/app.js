@@ -2625,10 +2625,10 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
     function showView(viewId) {
       if (!["assistant", "car", "dtc", "manuals", "video", "settings"].includes(viewId)) return;
-      window.PulsCar.closeNavigation();
+      window.PulsCar?.closeNavigation?.();
       $$(".nav button, .view").forEach((node) => node.classList.remove("active"));
-      $(`.nav button[data-view="${viewId}"]`).classList.add("active");
-      $(`#${viewId}`).classList.add("active");
+      $(`.nav button[data-view="${viewId}"]`)?.classList.add("active");
+      $(`#${viewId}`)?.classList.add("active");
 
       const assistantActive = viewId === "assistant";
       document.body.classList.toggle("assistant-mode", assistantActive);
@@ -2653,7 +2653,30 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       trackPulsViewLoading(viewLoad);
       syncAssistantMessageHeight();
       if (window.innerWidth < 1050) window.scrollTo({ top: 0, behavior: "smooth" });
+      return viewLoad;
     }
+
+    const pulsWorkspaceRoutes = Object.freeze({
+      conversation: { view: "assistant" },
+      car: { view: "car", tab: "overview" },
+      serviceHistory: { view: "car", tab: "history", filter: "all" },
+      technicalData: { view: "car", tab: "data" },
+      activeProblems: { view: "car", tab: "history", filter: "problems" },
+    });
+
+    window.PulsWorkspace = {
+      routes: pulsWorkspaceRoutes,
+      async show(target = {}) {
+        const { view = "assistant", tab = "", filter = "" } = typeof target === "string"
+          ? (pulsWorkspaceRoutes[target] || pulsWorkspaceRoutes.conversation)
+          : target;
+        const viewLoad = showView(view);
+        const carLoad = view === "car" && tab
+          ? window.PulsCar?.navigate?.({ tab, filter })
+          : null;
+        await Promise.all([viewLoad, carLoad].filter(Boolean).map((value) => Promise.resolve(value)));
+      }
+    };
 
     function toast(message) {
       const box = $("#toast");
@@ -3203,7 +3226,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         return;
       }
       input.value = "";
-      input.accept = chatAttachmentAccept[action] || "";
+      input.accept = chatAttachmentAccept[action] || Object.values(chatAttachmentAccept).join(",");
       try {
         input.click();
       } catch (error) {
@@ -3211,6 +3234,10 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         toast(t("composer.attachmentPickerError"));
       }
     }
+
+    window.PulsAttachments = {
+      choose: chooseChatAttachment,
+    };
 
     async function uploadChatAttachment(file) {
       if (!file) return;
@@ -4503,7 +4530,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           event.preventDefault();
           chooseChatAttachment(action);
         } else if (action === "voice") {
-          return;
+          window.PulsVoiceMode?.open?.({ source: "composer" });
         } else {
           toast(t("toast.demo"));
         }

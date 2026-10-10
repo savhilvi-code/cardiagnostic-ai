@@ -51,6 +51,11 @@ window.PulsCar = (() => {
     tab=['overview','data','history'].includes(next)?next:'overview';
     document.querySelectorAll('[data-car-tab]').forEach(b=>{const selected=b.dataset.carTab===tab;b.setAttribute('aria-selected',String(selected));b.tabIndex=selected?0:-1;el(`car-${b.dataset.carTab}`).hidden=!selected;});
   }
+  function navigate({tab:nextTab='overview',filter:nextFilter='all'}={}){
+    if(nextTab==='history'&&['all','maintenance','repairs','problems'].includes(nextFilter))filter=nextFilter;
+    setTab(nextTab);
+    return render();
+  }
   function displayedVehicle(vehicles=loadVehicleStore().vehicles.filter(v=>isBackendVehicleId(v.id)&&v.lifecycle_status!=='TRASHED')){
     return vehicles.find(v=>v.id===state.id)||vehicles.find(v=>v.id===loadVehicleStore().activeId)||vehicles[0];
   }
@@ -354,5 +359,5 @@ window.PulsCar = (() => {
     el('carVehicle').addEventListener('pointerup',event=>{if(swipeStartX==null)return;const dx=event.clientX-swipeStartX,dy=event.clientY-swipeStartY;swipeStartX=swipeStartY=null;if(Math.abs(dx)>=55&&Math.abs(dx)>Math.abs(dy)*1.4)switchVehicle(dx>0?'previous':'next');},{passive:true});
     render();
   }
-  return {init,render,translate,text,closeNavigation,authChanged,invalidate,eventSaved,isEditing(){return editing;},setBusy(value){busy=value;},photoReady(){return !busy&&!state.loading&&!state.errors.detail&&state.detail?.vehicle?.id===state.id;},saved(){editing=false;invalidate();render();}};
+  return {init,render,navigate,translate,text,closeNavigation,authChanged,invalidate,eventSaved,isEditing(){return editing;},setBusy(value){busy=value;},photoReady(){return !busy&&!state.loading&&!state.errors.detail&&state.detail?.vehicle?.id===state.id;},saved(){editing=false;invalidate();render();}};
 })();

@@ -1,0 +1,168 @@
+.puls-voice-mode {
+  position: fixed;
+  inset: 0;
+  z-index: 1800;
+  overflow: hidden;
+  background: #00030a;
+  touch-action: manipulation;
+}
+
+.puls-voice-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.puls-voice-controls {
+  position: fixed;
+  z-index: 3;
+  left: 50%;
+  bottom: max(28px, env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  gap: clamp(34px, 8vw, 72px);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%);
+  transition: opacity 220ms ease;
+}
+
+.puls-voice-controls.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.puls-voice-control {
+  position: relative;
+  display: grid;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  place-items: center;
+  color: #d8f5ff;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.puls-voice-control::before {
+  position: absolute;
+  inset: 2px;
+  content: "";
+  border-radius: 50%;
+  background: rgba(38, 220, 255, .18);
+  box-shadow: 0 0 24px rgba(8, 108, 255, .72);
+  opacity: 0;
+  transform: scale(.72);
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.puls-voice-control:active::before {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.puls-voice-control:focus-visible {
+  outline: 2px solid #26dcff;
+  outline-offset: 4px;
+}
+
+.puls-voice-control svg {
+  position: relative;
+  z-index: 1;
+  width: 25px;
+  height: 25px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.puls-voice-toggle {
+  width: 64px;
+  height: 64px;
+}
+
+.puls-voice-toggle svg {
+  width: 34px;
+  height: 34px;
+}
+
+.puls-voice-toggle .voice-stop-icon,
+.puls-voice-toggle.is-running .voice-play-icon {
+  display: none;
+}
+
+.puls-voice-toggle.is-running .voice-stop-icon {
+  display: block;
+}
+
+body.voice-mode-active {
+  overflow: hidden !important;
+}
+
+body.voice-mode-active #app {
+  pointer-events: none;
+}
+
+body.voice-workspace-mode #app {
+  position: fixed;
+  inset: 0;
+  z-index: 1700;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  pointer-events: auto;
+}
+
+body.voice-workspace-mode #app > .topbar,
+body.voice-workspace-mode #app > .hero,
+body.voice-workspace-mode #app .side,
+body.voice-workspace-mode #app .composer {
+  display: none !important;
+}
+
+body.voice-workspace-mode #app .workspace {
+  display: block !important;
+  min-height: 100%;
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+body.voice-workspace-mode #app .content,
+body.voice-workspace-mode #app .main-panel {
+  width: 100%;
+  max-width: none;
+  min-height: 100%;
+  margin: 0;
+}
+
+.puls-voice-mode.is-workspace-visible {
+  pointer-events: none;
+}
+
+.puls-voice-mode.is-workspace-visible .puls-voice-controls {
+  pointer-events: none;
+}
+
+.puls-voice-mode.is-workspace-visible .puls-voice-controls.is-visible {
+  pointer-events: auto;
+}
+
+@media (max-width: 480px) {
+  .puls-voice-controls {
+    bottom: max(20px, env(safe-area-inset-bottom));
+    gap: 32px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .puls-voice-controls,
+  .puls-voice-control::before {
+    transition-duration: 1ms;
+  }
+}
