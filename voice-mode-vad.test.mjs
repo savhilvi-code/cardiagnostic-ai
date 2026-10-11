@@ -65,6 +65,19 @@ assert.equal(navigation.plan('unsupported','car',[]).target,null);
 assert.equal(navigation.plan('my_vehicle','conversation',[]).target,'car');
 assert.equal(navigation.validateAction('my_vehicle'),'my_vehicle');
 assert.equal(navigation.validateAction('javascript:alert(1)'),null,"unknown model actions must be rejected");
+for(const action of ['scroll_down','scroll_up','scroll_top','scroll_bottom','text_interface']){
+  assert.equal(navigation.validateAction(action),action);
+}
+
+const voiceScroll=window.PulsVoiceScroll;
+const chatScroll={scrollTop:120,clientHeight:500,scrollHeight:1800};
+const pageScroll={scrollTop:80,clientHeight:700,scrollHeight:2400};
+assert.equal(voiceScroll.target({assistantMode:true,messages:chatScroll,mainPanel:pageScroll}),chatScroll);
+assert.equal(voiceScroll.target({assistantMode:false,messages:chatScroll,mainPanel:pageScroll}),pageScroll);
+assert.equal(voiceScroll.top('scroll_down',chatScroll),550);
+assert.equal(voiceScroll.top('scroll_up',chatScroll),0);
+assert.equal(voiceScroll.top('scroll_top',pageScroll),0);
+assert.equal(voiceScroll.top('scroll_bottom',pageScroll),1700);
 
 let finishTransition;
 let finishAudio;
@@ -194,5 +207,10 @@ assert.equal(navigationManifest.acknowledgements.en.voice_interface.text,'Return
 assert.equal(navigationManifest.acknowledgements.ru.workspace.available,false,"missing paid assets must be declared unavailable");
 assert.match(voiceSource,/entry\?\.available!==true\|\|!entry\?\.file/);
 assert.match(voiceSource,/payloadAudio\|\|await requestNavigationAcknowledgement/,"missing cached assets must use runtime TTS fallback");
+assert.match(voiceSource,/silentNavigationActions\.has\(String\(navigation\?\.action/,"scroll and text-mode actions must not request TTS");
+assert.match(voiceSource,/action\.startsWith\('scroll_'\)[\s\S]*?performVoiceScroll/);
+assert.match(voiceSource,/action==='text_interface'[\s\S]*?closeToText\(\)/,"text command must use the existing text-mode lifecycle");
+assert.match(voiceSource,/function stopVoiceSession[\s\S]*?voiceSessionEpoch\+\+[\s\S]*?releaseMicrophone\(\)/,"text exit invalidates pending turns and releases the microphone");
+assert.match(voiceSource,/if\(epoch!==voiceSessionEpoch\|\|!active\|\|!voiceSessionActive\)return;[\s\S]*?lastGenuineActivityAt/,"late voice responses must not reactivate UI after exit");
 
 console.log("voice-mode VAD, recorder, error UI and greeting isolation checks passed");

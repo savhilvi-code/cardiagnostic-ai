@@ -113,11 +113,25 @@
     repairs:'repairs',maintenance:'maintenance',active_problems:'activeProblems'
   });
   const voiceNavigationActions=new Set([
-    ...Object.keys(voiceNavigationTargets),'back','voice_interface'
+    ...Object.keys(voiceNavigationTargets),'back','voice_interface','scroll_down','scroll_up',
+    'scroll_top','scroll_bottom','text_interface'
   ]);
   function validatedVoiceNavigationAction(action){
     const normalized=String(action||'');
     return voiceNavigationActions.has(normalized)?normalized:null;
+  }
+  function voiceScrollTarget({assistantMode=false,messages=null,mainPanel=null,scrollingElement=null}={}){
+    if(assistantMode&&messages)return messages;
+    return mainPanel||scrollingElement||null;
+  }
+  function voiceScrollTop(action,target){
+    const current=Math.max(0,Number(target?.scrollTop)||0);
+    const viewport=Math.max(1,Number(target?.clientHeight)||1);
+    const bottom=Math.max(0,(Number(target?.scrollHeight)||0)-viewport);
+    if(action==='scroll_top')return 0;
+    if(action==='scroll_bottom')return bottom;
+    const distance=Math.max(120,viewport*.86);
+    return Math.max(0,Math.min(bottom,current+(action==='scroll_up'?-distance:distance)));
   }
   function voiceNavigationPlan(action,current='conversation',history=[]){
     const safeHistory=Array.isArray(history)?history.filter(Boolean):[];
@@ -154,6 +168,7 @@
     plan:voiceNavigationPlan,targets:voiceNavigationTargets,coordinate:coordinateVoiceNavigation,
     validateAction:validatedVoiceNavigationAction
   };
+  window.PulsVoiceScroll={target:voiceScrollTarget,top:voiceScrollTop};
 
   const root = document.getElementById('pulsVoiceMode');
   const canvas = document.getElementById('pulsVoiceCanvas');
@@ -199,6 +214,9 @@
   const greetingManifestUrl='assets/audio/voice-greetings/manifest.v1.json';
   let navigationAcknowledgementManifestPromise=null;
   const navigationAcknowledgementManifestUrl='assets/audio/voice-acknowledgements/manifest.v1.json';
+  const silentNavigationActions=new Set([
+    'scroll_down','scroll_up','scroll_top','scroll_bottom','text_interface'
+  ]);
   const recorderLifecycle=createRecorderLifecycle({
     createRecorder(stream,mimeType){return new MediaRecorder(stream,mimeType?{mimeType}:undefined);},
     onBlob(blob,{epoch}){
@@ -1535,6 +1553,7 @@
   }
 
   async function prepareNavigationAcknowledgement(navigation,turn,payloadAudio){
+    if(silentNavigationActions.has(String(navigation?.action||'')))return null;
     const source=await cachedNavigationAcknowledgementSource(navigation,turn.language||voiceLanguage());
     if(source)return {source,revoke:true};
     const audio=payloadAudio||await requestNavigationAcknowledgement(navigation,turn);
@@ -1611,6 +1630,7 @@
         const error=new Error(payload.detail||`Voice API returned ${response.status}`);
         error.status=response.status;throw error;
       }
+      if(epoch!==voiceSessionEpoch||!active||!voiceSessionActive)return;
       lastGenuineActivityAt=performance.now();
       if(payload.navigation){
         await coordinateVoiceNavigation(payload.navigation,{
@@ -1843,6 +1863,31 @@
     });
   }
 
+  function waitForTextModeExit(){
+    if(!active)return Promise.resolve(true);
+    return new Promise(resolve=>{
+      const handle=event=>{
+        if(event.detail?.active!==false)return;
+        window.removeEventListener('puls-voice-mode-change',handle);
+        resolve(true);
+      };
+      window.addEventListener('puls-voice-mode-change',handle);
+    });
+  }
+
+  function performVoiceScroll(action){
+    if(!workspaceVisible||transitionActive)return false;
+    const target=voiceScrollTarget({
+      assistantMode:document.body.classList.contains('assistant-mode'),
+      messages:document.getElementById('messages'),
+      mainPanel:document.querySelector('.content > .main-panel'),
+      scrollingElement:document.scrollingElement
+    });
+    if(!target||typeof target.scrollTo!=='function')return false;
+    target.scrollTo({top:voiceScrollTop(action,target),behavior:'smooth'});
+    return true;
+  }
+
   async function showWorkspace(target={view:'assistant'}){
     if(!active)open({source:'workspace'});
     if(workspaceVisible&&!transitionActive){
@@ -1880,6 +1925,16 @@
     if(navigation?.available===false){
       notifyVoice(navigation.failure_message||voiceMessage('navigationUnavailable'));
       return {started:false,completion:Promise.resolve(false)};
+    }
+    if(action.startsWith('scroll_')){
+      const started=performVoiceScroll(action);
+      if(!started)notifyVoice(voiceMessage('navigationUnavailable'));
+      return {started,completion:Promise.resolve(started)};
+    }
+    if(action==='text_interface'){
+      const completion=waitForTextModeExit();
+      closeToText();
+      return {started:true,completion};
     }
     if(action==='voice_interface'){
       if(!workspaceVisible||transitionActive)return {started:true,completion:Promise.resolve(true)};
