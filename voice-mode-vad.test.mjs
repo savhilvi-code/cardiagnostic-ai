@@ -261,7 +261,7 @@ assert.match(appSource,/input\.value \+= `\$\{prefix\}\$\{text\}`/,"dictation in
 assert.match(indexSource,/puls-dictation-waveform[\s\S]*?puls-dictation-bars[\s\S]*?puls-dictation-transcribing[\s\S]*?data-dictation-state="idle"[\s\S]*?voice-btn-mic[\s\S]*?voice-btn-stop/,"dictation waveform and transcription label stay separate from the fixed microphone/stop control");
 assert.match(indexSource,/voice-btn-mic[\s\S]*?<rect[\s\S]*?<path/,"idle dictation uses the approved outline SVG microphone");
 assert.match(styleSource,/\.puls-dictation-bars i\s*\{[^}]*width:\s*1px[^}]*background:\s*#f7fbff/s,"recording waveform uses thin white bars");
-assert.match(styleSource,/\.puls-dictation-waveform::before[\s\S]*?radial-gradient[\s\S]*?puls-dictation-dots 1\.35s linear infinite/,"white recording dots move continuously beneath the waveform");
+assert.match(styleSource,/\.puls-dictation-waveform::before[\s\S]*?rgba\(247, 251, 255, \.86\) 0 1\.7px[\s\S]*?puls-dictation-dots 2\.7s linear infinite/,"larger white recording dots move continuously at half the prior speed");
 assert.match(styleSource,/@keyframes puls-dictation-dots[\s\S]*?background-position:\s*-12px center/,"recording dots travel right to left without state-dependent restarts");
 assert.match(styleSource,/transform:\s*scaleY\(var\(--dictation-scale\)\)/,"waveform amplitude is driven by compatible scale variables");
 assert.match(styleSource,/\.voice-btn\[data-dictation-state="recording"\] \.voice-btn-stop,[\s\S]*?background:\s*#f7fbff/,"recording exposes a white stop square");
@@ -273,7 +273,9 @@ assert.match(appSource,/setDictationVisualState\("transcribing"\)/,"dictation ex
 assert.match(appSource,/createMediaStreamSource\(session\.stream\)/,"dictation analysis reuses the existing recording stream");
 assert.match(appSource,/analysis\.peak = Math\.max\(\.12, input, analysis\.peak \* \.992\)/,"microphone amplitude uses smooth peak normalization and decay");
 assert.match(appSource,/analysis\.history\.shift\(\)[\s\S]*?analysis\.history\.push\(analysis\.level < \.025 \? 0 : analysis\.level\)/,"each new microphone sample enters on the right while prior samples shift left");
+assert.match(appSource,/now - analysis\.lastSampleAt >= 104/,"captured waveform history scrolls exactly twice as slowly");
 assert.match(appSource,/renderDictationWaveform\(waveform, analysis\.history\)/,"one authoritative renderer draws the captured amplitude history");
+assert.match(styleSource,/\.composer:has\(\.composer-shell\[data-dictation-state="recording"\]\)[\s\S]*?inset 0 0 16px rgba\(8, 125, 255, \.2\)/,"recording adds only the composer perimeter's blue inset glow");
 assert.doesNotMatch(styleSource,/dictation-reveal|puls-dictation-fallback/,"obsolete reveal masks and synchronized fallback waves are removed");
 assert.match(appSource,/getLanguage\(\) === "ru" \? "Расшифровка…" : "Transcribing…"/,"pending transcription uses the selected interface language");
 assert.match(styleSource,/data-dictation-state="transcribing"\] \.puls-dictation-transcribing\s*\{[^}]*opacity:\s*1[^}]*visibility:\s*visible/s,"the subtle transcription label replaces the fading waveform while STT is pending");

@@ -2411,11 +2411,11 @@ body.assistant-mode .assistant-right {
   position: absolute;
   inset: 0;
   z-index: 0;
-  background-image: radial-gradient(circle at center, rgba(247, 251, 255, .64) 0 1px, transparent 1.25px);
+  background-image: radial-gradient(circle at center, rgba(247, 251, 255, .86) 0 1.7px, transparent 2px);
   background-position: 0 center;
   background-size: 12px 100%;
-  animation: puls-dictation-dots 1.35s linear infinite;
-  opacity: .54;
+  animation: puls-dictation-dots 2.7s linear infinite;
+  opacity: .76;
 }
 
 .composer-shell.is-expanded .puls-dictation-waveform,
@@ -2427,6 +2427,14 @@ body.assistant-mode .assistant-right {
   opacity: 1;
   visibility: visible;
   transition-delay: 0s;
+}
+
+.composer:has(.composer-shell[data-dictation-state="recording"]),
+body.assistant-mode .composer:has(.composer-shell[data-dictation-state="recording"]) {
+  box-shadow:
+    0 -12px 40px rgba(0, 0, 0, .38),
+    inset 0 0 0 1px rgba(8, 125, 255, .55),
+    inset 0 0 16px rgba(8, 125, 255, .2);
 }
 
 .puls-dictation-transcribing {

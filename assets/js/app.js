@@ -4178,7 +4178,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           const normalized = input < .018 ? 0 : Math.min(1, input / analysis.peak);
           const smoothing = normalized > analysis.level ? .28 : .12;
           analysis.level += (normalized - analysis.level) * smoothing;
-          if (!analysis.lastSampleAt || now - analysis.lastSampleAt >= 52) {
+          if (!analysis.lastSampleAt || now - analysis.lastSampleAt >= 104) {
             analysis.history.shift();
             analysis.history.push(analysis.level < .025 ? 0 : analysis.level);
             renderDictationWaveform(waveform, analysis.history);
