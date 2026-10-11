@@ -109,12 +109,12 @@
     return {width:resolvedWidth,height:resolvedHeight,cx:resolvedWidth*.5,cy:resolvedHeight*.47};
   }
   const voiceNavigationTargets=Object.freeze({
-    workspace:'conversation',vehicle:'car',my_vehicle:'car',technical_data:'technicalData',vehicle_history:'vehicleHistory',
+    workspace:'conversation',vehicle:'car',my_vehicle:'car',technical_data:'technicalData',technical_consumables:'technicalConsumables',vehicle_history:'vehicleHistory',
     repairs:'repairs',maintenance:'maintenance',active_problems:'activeProblems'
   });
   const voiceNavigationActions=new Set([
     ...Object.keys(voiceNavigationTargets),'back','voice_interface','scroll_down','scroll_up',
-    'scroll_top','scroll_bottom','text_interface'
+    'scroll_top','scroll_bottom','text_interface','scroll_faster','scroll_slower','scroll_stop'
   ]);
   function validatedVoiceNavigationAction(action){
     const normalized=String(action||'');
@@ -132,6 +132,14 @@
     if(action==='scroll_bottom')return bottom;
     const distance=Math.max(120,viewport*.86);
     return Math.max(0,Math.min(bottom,current+(action==='scroll_up'?-distance:distance)));
+  }
+  const voiceScrollDurations=Object.freeze({slow:680,normal:430,fast:250});
+  function adjustedVoiceScrollSpeed(current,action){
+    const levels=['slow','normal','fast'];
+    const index=Math.max(0,levels.indexOf(current));
+    if(action==='scroll_faster')return levels[Math.min(levels.length-1,index+1)];
+    if(action==='scroll_slower')return levels[Math.max(0,index-1)];
+    return levels[index];
   }
   function voiceNavigationPlan(action,current='conversation',history=[]){
     const safeHistory=Array.isArray(history)?history.filter(Boolean):[];
@@ -168,7 +176,10 @@
     plan:voiceNavigationPlan,targets:voiceNavigationTargets,coordinate:coordinateVoiceNavigation,
     validateAction:validatedVoiceNavigationAction
   };
-  window.PulsVoiceScroll={target:voiceScrollTarget,top:voiceScrollTop};
+  window.PulsVoiceScroll={
+    target:voiceScrollTarget,top:voiceScrollTop,adjustSpeed:adjustedVoiceScrollSpeed,
+    durations:voiceScrollDurations
+  };
 
   const root = document.getElementById('pulsVoiceMode');
   const canvas = document.getElementById('pulsVoiceCanvas');
@@ -196,6 +207,10 @@
   let workspaceVisible = false;
   let voiceWorkspaceTarget='conversation';
   let voiceWorkspaceHistory=[];
+  let lastVoiceUiAction='';
+  let lastScrollTarget=null;
+  let voiceScrollSpeed='normal';
+  let voiceScrollMotion=null;
   let stateBeforeWorkspace = 'standby';
   let microphoneStream = null;
   let microphoneContext = null;
@@ -215,7 +230,8 @@
   let navigationAcknowledgementManifestPromise=null;
   const navigationAcknowledgementManifestUrl='assets/audio/voice-acknowledgements/manifest.v1.json';
   const silentNavigationActions=new Set([
-    'scroll_down','scroll_up','scroll_top','scroll_bottom','text_interface'
+    'scroll_down','scroll_up','scroll_top','scroll_bottom','scroll_faster','scroll_slower',
+    'scroll_stop','text_interface','technical_consumables'
   ]);
   const recorderLifecycle=createRecorderLifecycle({
     createRecorder(stream,mimeType){return new MediaRecorder(stream,mimeType?{mimeType}:undefined);},
@@ -1620,6 +1636,15 @@
         const value=turn.context?.[field];
         if(value!==undefined&&value!==null&&value!=='')form.append(field,String(value));
       }
+      form.append('last_ui_action',lastVoiceUiAction);
+      form.append('current_view',voiceWorkspaceTarget);
+      form.append('voice_presentation',workspaceVisible?'workspace':'voice');
+      form.append('scroll_speed',voiceScrollSpeed);
+      form.append('scroll_active',String(Boolean(voiceScrollMotion)));
+      form.append('available_actions',[
+        ...voiceNavigationActions,
+        ...Object.keys(window.PulsWorkspace?.destinations||{})
+      ].filter((value,index,items)=>items.indexOf(value)===index).join(','));
       const response=await fetch(`${turn.apiBaseUrl}/api/voice/turn`,{
         method:'POST',headers:turn.headers,body:form,cache:'no-store'
       });
@@ -1656,6 +1681,7 @@
         });
         return;
       }
+      resetVoiceScrollContext();
       await bridge.completeTurn(payload,turn.owner);
       if(epoch!==voiceSessionEpoch||!active||!voiceSessionActive)return;
       if(payload.audio){
@@ -1780,6 +1806,7 @@
 
   function finishTextModeTransition(){
     pendingTextExit=false;pendingVoiceStart=false;
+    resetVoiceScrollContext();
     active=false;running=false;
     clearTimeout(controlsTimer);clearTimeout(workspaceTimer);
     cancelAnimationFrame(animationFrame);
@@ -1803,6 +1830,7 @@
     active=true;
     voiceWorkspaceTarget='conversation';
     voiceWorkspaceHistory=[];
+    resetVoiceScrollContext();
     startupGreetingPlayed=false;
     root.hidden=false;
     root.setAttribute('aria-hidden','false');
@@ -1875,7 +1903,47 @@
     });
   }
 
-  function performVoiceScroll(action){
+  function cancelVoiceScroll(){
+    if(!voiceScrollMotion)return false;
+    cancelAnimationFrame(voiceScrollMotion.frame);
+    voiceScrollMotion=null;
+    return true;
+  }
+
+  function resetVoiceScrollContext(){
+    cancelVoiceScroll();
+    lastVoiceUiAction='';
+    lastScrollTarget=null;
+    voiceScrollSpeed='normal';
+  }
+
+  function startVoiceScroll(target,to){
+    cancelVoiceScroll();
+    const from=Math.max(0,Number(target.scrollTop)||0);
+    const distance=to-from;
+    if(!distance)return;
+    if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches){target.scrollTop=to;return;}
+    const started=performance.now(),duration=voiceScrollDurations[voiceScrollSpeed];
+    const motion={target,to,frame:0};
+    voiceScrollMotion=motion;
+    const step=now=>{
+      if(voiceScrollMotion!==motion)return;
+      const progress=Math.min(1,(now-started)/duration);
+      target.scrollTop=from+distance*(1-Math.pow(1-progress,3));
+      if(progress<1)motion.frame=requestAnimationFrame(step);
+      else voiceScrollMotion=null;
+    };
+    motion.frame=requestAnimationFrame(step);
+  }
+
+  function changeVoiceScrollSpeed(action){
+    if(!lastVoiceUiAction.startsWith('scroll_')||lastVoiceUiAction==='scroll_stop')return false;
+    voiceScrollSpeed=adjustedVoiceScrollSpeed(voiceScrollSpeed,action);
+    if(voiceScrollMotion)startVoiceScroll(voiceScrollMotion.target,voiceScrollMotion.to);
+    return true;
+  }
+
+  function performVoiceScroll(action,requestedSpeed=''){
     if(!workspaceVisible||transitionActive)return false;
     const target=voiceScrollTarget({
       assistantMode:document.body.classList.contains('assistant-mode'),
@@ -1883,8 +1951,12 @@
       mainPanel:document.querySelector('.content > .main-panel'),
       scrollingElement:document.scrollingElement
     });
-    if(!target||typeof target.scrollTo!=='function')return false;
-    target.scrollTo({top:voiceScrollTop(action,target),behavior:'smooth'});
+    if(!target)return false;
+    if(lastScrollTarget&&lastScrollTarget!==target)resetVoiceScrollContext();
+    lastScrollTarget=target;
+    if(Object.hasOwn(voiceScrollDurations,requestedSpeed))voiceScrollSpeed=requestedSpeed;
+    startVoiceScroll(target,voiceScrollTop(action,target));
+    lastVoiceUiAction=action;
     return true;
   }
 
@@ -1927,7 +1999,18 @@
       return {started:false,completion:Promise.resolve(false)};
     }
     if(action.startsWith('scroll_')){
-      const started=performVoiceScroll(action);
+      if(action==='scroll_faster'||action==='scroll_slower'){
+        const started=changeVoiceScrollSpeed(action);
+        if(!started)notifyVoice(voiceMessage('navigationUnavailable'));
+        return {started,completion:Promise.resolve(started)};
+      }
+      if(action==='scroll_stop'){
+        const started=cancelVoiceScroll();
+        if(started)lastVoiceUiAction='scroll_stop';
+        else notifyVoice(voiceMessage('navigationUnavailable'));
+        return {started,completion:Promise.resolve(started)};
+      }
+      const started=performVoiceScroll(action,navigation?.scroll_speed);
       if(!started)notifyVoice(voiceMessage('navigationUnavailable'));
       return {started,completion:Promise.resolve(started)};
     }
@@ -1948,6 +2031,7 @@
       return {started:false,completion:Promise.resolve(false)};
     }
     const completion=showWorkspace(plan.target).then(()=>{
+      if(plan.current!==voiceWorkspaceTarget)resetVoiceScrollContext();
       voiceWorkspaceTarget=plan.current;
       voiceWorkspaceHistory=plan.history;
       return true;

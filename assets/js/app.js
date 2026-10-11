@@ -2664,18 +2664,31 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       repairs: { view: "car", tab: "history", filter: "repairs" },
       maintenance: { view: "car", tab: "history", filter: "maintenance" },
       technicalData: { view: "car", tab: "data" },
+      technicalConsumables: { view: "car", tab: "data", section: "consumables" },
       activeProblems: { view: "car", tab: "history", filter: "problems" },
+    });
+
+    const pulsWorkspaceDestinations = Object.freeze({
+      workspace: { target: "conversation", labels: { en: "Workspace", ru: "Рабочий экран" }, aliases: ["main interface", "основной интерфейс"], requiresVehicle: false },
+      my_vehicle: { target: "car", labels: { en: "My Vehicle", ru: "Мой автомобиль" }, aliases: ["my car", "моя машина"], requiresVehicle: false },
+      technical_data: { target: "technicalData", labels: { en: "Technical Data", ru: "Технические данные" }, aliases: ["specifications", "характеристики"], requiresVehicle: true },
+      technical_consumables: { target: "technicalConsumables", labels: { en: "Filters and consumables", ru: "Фильтры и расходники" }, aliases: ["filters", "фильтры"], parent: "technical_data", requiresVehicle: true },
+      vehicle_history: { target: "vehicleHistory", labels: { en: "Vehicle History", ru: "История автомобиля" }, aliases: ["history", "история"], requiresVehicle: true },
+      repairs: { target: "repairs", labels: { en: "Repairs", ru: "Ремонты" }, aliases: [], parent: "vehicle_history", requiresVehicle: true },
+      maintenance: { target: "maintenance", labels: { en: "Maintenance", ru: "Обслуживание" }, aliases: [], parent: "vehicle_history", requiresVehicle: true },
+      active_problems: { target: "activeProblems", labels: { en: "Active Problems", ru: "Активные проблемы" }, aliases: [], parent: "vehicle_history", requiresVehicle: true },
     });
 
     window.PulsWorkspace = {
       routes: pulsWorkspaceRoutes,
+      destinations: pulsWorkspaceDestinations,
       async show(target = {}) {
-        const { view = "assistant", tab = "", filter = "" } = typeof target === "string"
+        const { view = "assistant", tab = "", filter = "", section = "" } = typeof target === "string"
           ? (pulsWorkspaceRoutes[target] || pulsWorkspaceRoutes.conversation)
           : target;
         const viewLoad = showView(view);
         const carLoad = view === "car" && tab
-          ? window.PulsCar?.navigate?.({ tab, filter })
+          ? window.PulsCar?.navigate?.({ tab, filter, section })
           : null;
         await Promise.all([viewLoad, carLoad].filter(Boolean).map((value) => Promise.resolve(value)));
       }

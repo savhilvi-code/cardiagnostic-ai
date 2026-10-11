@@ -78,6 +78,11 @@ assert.equal(voiceScroll.top('scroll_down',chatScroll),550);
 assert.equal(voiceScroll.top('scroll_up',chatScroll),0);
 assert.equal(voiceScroll.top('scroll_top',pageScroll),0);
 assert.equal(voiceScroll.top('scroll_bottom',pageScroll),1700);
+assert.equal(voiceScroll.top('scroll_down',chatScroll),550,"speed must not alter step distance");
+assert.equal(voiceScroll.adjustSpeed('normal','scroll_faster'),'fast');
+assert.equal(voiceScroll.adjustSpeed('normal','scroll_slower'),'slow');
+assert.ok(voiceScroll.durations.fast<voiceScroll.durations.normal);
+assert.ok(voiceScroll.durations.normal<voiceScroll.durations.slow);
 
 let finishTransition;
 let finishAudio;
@@ -147,6 +152,7 @@ const authSource=readFileSync(new URL("./assets/js/auth.js",import.meta.url),"ut
 const modeSelectionSource=readFileSync(new URL("./assets/js/mode-selection.js",import.meta.url),"utf8");
 const styleSource=readFileSync(new URL("./assets/css/style.css",import.meta.url),"utf8");
 const voiceStyleSource=readFileSync(new URL("./assets/css/voice-mode.css",import.meta.url),"utf8");
+const carSource=readFileSync(new URL("./assets/pages/car.js",import.meta.url),"utf8");
 const greetingManifest=JSON.parse(readFileSync(new URL("./assets/audio/voice-greetings/manifest.v1.json",import.meta.url),"utf8"));
 const navigationManifest=JSON.parse(readFileSync(new URL("./assets/audio/voice-acknowledgements/manifest.v1.json",import.meta.url),"utf8"));
 assert.match(voiceSource,/pulsVoiceStatus/);
@@ -212,5 +218,15 @@ assert.match(voiceSource,/action\.startsWith\('scroll_'\)[\s\S]*?performVoiceScr
 assert.match(voiceSource,/action==='text_interface'[\s\S]*?closeToText\(\)/,"text command must use the existing text-mode lifecycle");
 assert.match(voiceSource,/function stopVoiceSession[\s\S]*?voiceSessionEpoch\+\+[\s\S]*?releaseMicrophone\(\)/,"text exit invalidates pending turns and releases the microphone");
 assert.match(voiceSource,/if\(epoch!==voiceSessionEpoch\|\|!active\|\|!voiceSessionActive\)return;[\s\S]*?lastGenuineActivityAt/,"late voice responses must not reactivate UI after exit");
+assert.match(voiceSource,/last_ui_action/);
+assert.match(voiceSource,/voice_presentation/);
+assert.match(voiceSource,/function cancelVoiceScroll\(\)[\s\S]*?cancelAnimationFrame/);
+assert.match(voiceSource,/function resetVoiceScrollContext\(\)[\s\S]*?voiceScrollSpeed='normal'/);
+assert.match(voiceSource,/plan\.current!==voiceWorkspaceTarget\)resetVoiceScrollContext\(\)/,"changing views must clear stale scroll context");
+assert.match(voiceSource,/technical_consumables:'technicalConsumables'/);
+assert.match(appSource,/technicalConsumables:\s*\{ view: "car", tab: "data", section: "consumables" \}/);
+assert.match(appSource,/technical_consumables:\s*\{ target: "technicalConsumables"/);
+assert.match(carSource,/data-car-data-section="\$\{esc\(key\)\}"/);
+assert.match(carSource,/group\.open=true;[\s\S]*?group\.scrollIntoView/);
 
 console.log("voice-mode VAD, recorder, error UI and greeting isolation checks passed");
