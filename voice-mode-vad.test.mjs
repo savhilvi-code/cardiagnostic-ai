@@ -38,6 +38,18 @@ assert.ok(stateSeven.beamGate(.65,0)>0,"beam reveals immediately after collapse 
 assert.equal(stateSeven.beamGate(.60,0),1);
 assert.equal(stateSeven.beamGate(.80,1),1,"Voice → Text timing remains unchanged");
 
+const idle=window.PulsVoiceIdle;
+assert.equal(idle.shouldEnter({now:29999,lastActivity:0,timeout:30000}),false);
+assert.equal(idle.shouldEnter({now:30000,lastActivity:0,timeout:30000}),true);
+assert.equal(idle.shouldEnter({now:45000,lastActivity:0,timeout:30000,utteranceActive:true}),false);
+assert.equal(idle.shouldEnter({now:45000,lastActivity:0,timeout:30000,processing:true}),false);
+
+for(const [width,height] of [[375,812],[390,844],[768,1024],[1024,768],[1440,900],[1920,1080]]){
+  const geometry=window.PulsVoiceLayout.geometry(width,height);
+  assert.equal(geometry.cx,width/2,`${width}x${height} must remain horizontally centered`);
+  assert.equal(geometry.cy,height*.47);
+}
+
 class FakeRecorder {
   constructor(){this.mimeType="audio/webm;codecs=opus";this.state="inactive";this.listeners=new Map();}
   addEventListener(type,callback){this.listeners.set(type,callback);}
@@ -81,6 +93,7 @@ assert.equal(canceled.length,0,"cancellation discards stale audio");
 const voiceSource=readFileSync(new URL("./assets/js/voice-mode.js",import.meta.url),"utf8");
 const appSource=readFileSync(new URL("./assets/js/app.js",import.meta.url),"utf8");
 const styleSource=readFileSync(new URL("./assets/css/style.css",import.meta.url),"utf8");
+const voiceStyleSource=readFileSync(new URL("./assets/css/voice-mode.css",import.meta.url),"utf8");
 const greetingManifest=JSON.parse(readFileSync(new URL("./assets/audio/voice-greetings/manifest.v1.json",import.meta.url),"utf8"));
 assert.match(voiceSource,/pulsVoiceStatus/);
 assert.doesNotMatch(appSource,/showGreeting\s*\(/,"the fixed greeting must not enter the main message workspace");
@@ -91,6 +104,11 @@ assert.equal(greetingManifest.greetings.en.text,window.PulsVoiceGreeting.text("e
 assert.match(voiceSource,/greetingManifestUrl='assets\/audio\/voice-greetings\/manifest\.v1\.json'/);
 assert.doesNotMatch(voiceSource,/showVoiceStatus\(startupGreeting/,"startup greeting must be audio-only");
 assert.doesNotMatch(voiceSource,/\/api\/voice\/greeting/,"startup playback must not make repeated TTS requests");
+assert.doesNotMatch(voiceSource,/status===422\?voiceMessage\('empty'\)/,"empty transcription must remain silent");
+assert.match(voiceSource,/dataset\.inactivityMs\)\|\|30000/);
+assert.match(voiceSource,/is-pending/);
+assert.match(voiceStyleSource,/\.puls-voice-control\.is-pending::before/);
+assert.match(voiceStyleSource,/@media \(max-width: 480px\)[\s\S]*?\.puls-voice-canvas\s*\{[\s\S]*?transform:\s*scale\(1\.05\)/);
 for(const language of ["ru","en"]){
   const file=greetingManifest.greetings[language].file;
   const audio=new Uint8Array(readFileSync(new URL(`./assets/audio/voice-greetings/${file}`,import.meta.url)));
@@ -104,6 +122,7 @@ assert.match(voiceSource,/transitionProgress=1;transitionTarget=0/);
 assert.match(styleSource,/body\.assistant-mode\.chat-active \.messages\s*\{[^}]*padding-top:\s*var\(--puls-readable-top-inset\)/s);
 assert.match(voiceSource,/setState\('thinking'\)/);
 assert.match(voiceSource,/setState\('responding'\)/);
-assert.match(voiceSource,/processingUtterance=false;vadGate\.reset\(\);setState\('listening'\)/);
+assert.match(voiceSource,/processingUtterance=false;vadGate\.reset\(\);settleVoiceListeningState\(\)/);
+assert.doesNotMatch(voiceSource,/blob\.size<512[\s\S]{0,160}notifyVoice/,"local silence must not show a warning");
 
 console.log("voice-mode VAD, recorder, error UI and greeting isolation checks passed");

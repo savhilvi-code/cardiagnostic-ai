@@ -86,14 +86,17 @@
   inset: 2px;
   content: "";
   border-radius: 50%;
-  background: rgba(38, 220, 255, .18);
-  box-shadow: 0 0 24px rgba(8, 108, 255, .72);
+  border: 1px solid rgba(38, 220, 255, .72);
+  background: rgba(38, 220, 255, .06);
+  box-shadow: 0 0 18px rgba(8, 108, 255, .58);
   opacity: 0;
   transform: scale(.72);
   transition: opacity 160ms ease, transform 160ms ease;
 }
 
-.puls-voice-control:active::before {
+.puls-voice-control:active::before,
+.puls-voice-control.is-pending::before,
+.puls-voice-control.is-active::before {
   opacity: 1;
   transform: scale(1);
 }
@@ -186,6 +189,11 @@ body.voice-workspace-mode #app .main-panel {
 }
 
 @media (max-width: 480px) {
+  .puls-voice-canvas {
+    transform: scale(1.05);
+    transform-origin: 50% 47%;
+  }
+
   .puls-voice-controls {
     bottom: max(20px, env(safe-area-inset-bottom));
     gap: 32px;

@@ -100,6 +100,14 @@
     if(target!==0)return 1;
     return 1-stateSevenSmoothstep(.60,stateSevenWorkspaceCollapseComplete,progress);
   }
+  function shouldEnterVoiceIdle({now,lastActivity,timeout,utteranceActive=false,processing=false}){
+    return !utteranceActive&&!processing&&now-lastActivity>=timeout;
+  }
+  function voiceViewportGeometry(width,height){
+    const resolvedWidth=Math.max(1,Number(width)||1);
+    const resolvedHeight=Math.max(1,Number(height)||1);
+    return {width:resolvedWidth,height:resolvedHeight,cx:resolvedWidth*.5,cy:resolvedHeight*.47};
+  }
   // A pure seam used by the focused VAD regression test.
   window.PulsVoiceVad={createVadGate};
   window.PulsVoiceGreeting={text:startupGreeting};
@@ -109,6 +117,8 @@
     workspaceOpen:stateSevenWorkspaceOpen,
     beamGate:stateSevenBeamGate
   };
+  window.PulsVoiceIdle={shouldEnter:shouldEnterVoiceIdle};
+  window.PulsVoiceLayout={geometry:voiceViewportGeometry};
 
   const root = document.getElementById('pulsVoiceMode');
   const canvas = document.getElementById('pulsVoiceCanvas');
@@ -120,6 +130,7 @@
   const statusText = document.getElementById('pulsVoiceStatus');
   if (!root || !canvas || !workspace || !controls || !attachButton || !toggleButton || !keyboardButton || !statusText) return;
   const ctx = canvas.getContext('2d');
+  const voiceInactivityMs=Math.max(1000,Number(root.dataset.inactivityMs)||30000);
   let transitionProgress = 0, transitionTarget = 0, transitionLast = 0;
   let transitionActive = false;
   let pendingVoiceStart = false;
@@ -143,6 +154,7 @@
   let currentPlayback = null;
   let voiceSessionEpoch = 0;
   let startupGreetingPlayed = false;
+  let lastGenuineActivityAt=0;
   const vadGate=createVadGate();
   let statusTimer=0;
   let greetingManifestPromise=null;
@@ -228,8 +240,10 @@
   }
 
   function resize() {
-    W = window.innerWidth;
-    H = window.innerHeight;
+    const bounds=root.getBoundingClientRect();
+    const geometry=voiceViewportGeometry(bounds.width||window.innerWidth,bounds.height||window.innerHeight);
+    W = geometry.width;
+    H = geometry.height;
     canvas.width = Math.ceil(W * dpr);
     canvas.height = Math.ceil(H * dpr);
     canvas.style.width = W + 'px';
@@ -237,8 +251,8 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
-    CX = W * 0.5;
-    CY = H * 0.47;
+    CX = geometry.cx;
+    CY = geometry.cy;
     SX = Math.min(W, H) * 0.40;
     SY = Math.min(W, H) * 0.29;
     ringR = Math.min(W, H) * 0.102;
@@ -286,6 +300,7 @@
   }
 
   window.addEventListener('resize', () => { if (active) resize(); });
+  window.visualViewport?.addEventListener('resize',()=>{if(active)resize();});
 
   function setState(next){
     if (!validStates.has(next)) return;
@@ -1396,6 +1411,14 @@
     updateToggleControl();
   }
 
+  function settleVoiceListeningState(now=performance.now()){
+    const idle=shouldEnterVoiceIdle({
+      now,lastActivity:lastGenuineActivityAt,timeout:voiceInactivityMs,
+      utteranceActive:vadGate.active,processing:processingUtterance
+    });
+    setState(idle?'standby':'listening');
+  }
+
   function base64AudioUrl(audio){
     const type=String(audio?.content_type||'audio/mpeg');
     const data=String(audio?.data_base64||'');
@@ -1473,7 +1496,7 @@
     if(!voiceSessionActive||epoch!==voiceSessionEpoch||(processingUtterance&&!finalized))return;
     if(blob.size<512){
       processingUtterance=false;
-      vadGate.reset();notifyVoice(voiceMessage('empty'));setState('listening');
+      vadGate.reset();settleVoiceListeningState();
       return;
     }
     processingUtterance=true;
@@ -1502,6 +1525,7 @@
         const error=new Error(payload.detail||`Voice API returned ${response.status}`);
         error.status=response.status;throw error;
       }
+      lastGenuineActivityAt=performance.now();
       await bridge.completeTurn(payload,turn.owner);
       if(epoch!==voiceSessionEpoch||!active||!voiceSessionActive)return;
       if(payload.audio){
@@ -1512,10 +1536,11 @@
       }
     }catch(error){
       console.warn('PULS voice pipeline failure',{stage:'request',mimeType:diagnostics.mimeType,audioBytes:diagnostics.audioBytes,httpStatus:Number(error?.status)||null,providerRequestId:null});
-      notifyVoice(error?.status===422?voiceMessage('empty'):voiceMessage('failed'));
+      if(error?.status===422)console.info('PULS voice pipeline',{stage:'no_speech',httpStatus:422});
+      else notifyVoice(voiceMessage('failed'));
     }finally{
       if(epoch===voiceSessionEpoch&&active&&voiceSessionActive){
-        processingUtterance=false;vadGate.reset();setState('listening');
+        processingUtterance=false;vadGate.reset();settleVoiceListeningState();
       }
     }
   }
@@ -1528,18 +1553,20 @@
     const rms=Math.sqrt(power/microphoneSamples.length);
     window.PULSVoiceVisual.setAudioLevel('listening',Math.max(0,Math.min(1,(rms-.008)*9)));
     if(!processingUtterance){
-      const decision=vadGate.sample(rms,performance.now());
+      const now=performance.now();
+      const decision=vadGate.sample(rms,now);
       if(decision==='start'){
         // Starting on the first VAD-positive frame preserves a complete WebM
         // container. It may omit at most the onset before that analyser frame;
         // slicing an earlier recorder would reintroduce headerless WebM data.
+        if(state==='standby')setState('listening');
         if(!recorderLifecycle.start(microphoneStream,mimeType,{epoch}))vadGate.reset();
       }else if(decision==='end'){
         processingUtterance=true;
         if(!recorderLifecycle.stop()){
-          processingUtterance=false;vadGate.reset();setState('listening');
+          processingUtterance=false;vadGate.reset();settleVoiceListeningState(now);
         }
-      }
+      }else if(shouldEnterVoiceIdle({now,lastActivity:lastGenuineActivityAt,timeout:voiceInactivityMs,utteranceActive:vadGate.active,processing:false})&&state!=='standby')setState('standby');
     }
     vadFrame=requestAnimationFrame(()=>monitorVoiceActivity(epoch,mimeType));
   }
@@ -1573,6 +1600,7 @@
       await playStartupGreeting(epoch);
       if(epoch!==voiceSessionEpoch||!active||!voiceSessionActive)return;
       processingUtterance=false;vadGate.reset();
+      lastGenuineActivityAt=performance.now();
       setState('listening');
       monitorVoiceActivity(epoch,mimeType);
     }catch(error){
@@ -1586,8 +1614,16 @@
 
   function updateToggleControl(){
     toggleButton.classList.toggle('is-running',voiceSessionActive);
+    toggleButton.classList.toggle('is-active',voiceSessionActive);
     toggleButton.setAttribute('aria-pressed',String(voiceSessionActive));
     toggleButton.setAttribute('aria-label',voiceSessionActive?'Stop Voice Mode':'Play Voice Mode');
+  }
+
+  function setControlPending(button,pending){
+    button.classList.toggle('is-pending',pending);
+    button.toggleAttribute('disabled',pending);
+    if(pending)button.setAttribute('aria-busy','true');
+    else button.removeAttribute('aria-busy');
   }
 
   function revealControls(){
@@ -1620,6 +1656,7 @@
     resetWorkspaceSurface();
     document.body.classList.remove('voice-mode-active');
     controls.classList.remove('is-visible');
+    setControlPending(keyboardButton,false);
     root.hidden=true;
     root.setAttribute('aria-hidden','true');
     window.dispatchEvent(new CustomEvent('puls-voice-mode-change',{detail:{active:false,source:'keyboard'}}));
@@ -1709,14 +1746,35 @@
   root.addEventListener('pointerdown',revealControls);
   document.addEventListener('pointerdown',()=>{if(active&&workspaceVisible)revealControls();},{passive:true});
   controls.addEventListener('pointerdown',event=>event.stopPropagation());
-  attachButton.addEventListener('click',()=>{revealControls();window.PulsAttachments?.choose?.();});
-  toggleButton.addEventListener('click',()=>{
-    if(voiceSessionActive)stopVoiceSession({standby:true});
-    else void startVoiceSession();
-    revealControls();
-    window.dispatchEvent(new CustomEvent('puls-voice-session-toggle',{detail:{active:voiceSessionActive}}));
+  attachButton.addEventListener('click',()=>{
+    if(attachButton.classList.contains('is-pending'))return;
+    revealControls();setControlPending(attachButton,true);
+    const input=document.getElementById('chatAttachmentInput');
+    let settled=false;
+    const settleOnFocus=()=>requestAnimationFrame(settle);
+    const settle=()=>{
+      if(settled)return;
+      settled=true;setControlPending(attachButton,false);
+      input?.removeEventListener('change',settle);
+      window.removeEventListener('focus',settleOnFocus);
+    };
+    input?.addEventListener('change',settle,{once:true});
+    window.addEventListener('focus',settleOnFocus,{once:true});
+    try{window.PulsAttachments?.choose?.();}catch{settle();}
   });
-  keyboardButton.addEventListener('click',closeToText);
+  toggleButton.addEventListener('click',async()=>{
+    if(toggleButton.classList.contains('is-pending'))return;
+    revealControls();setControlPending(toggleButton,true);
+    try{
+      if(voiceSessionActive)stopVoiceSession({standby:true});
+      else await startVoiceSession();
+      window.dispatchEvent(new CustomEvent('puls-voice-session-toggle',{detail:{active:voiceSessionActive}}));
+    }finally{setControlPending(toggleButton,false);updateToggleControl();}
+  });
+  keyboardButton.addEventListener('click',()=>{
+    if(keyboardButton.classList.contains('is-pending'))return;
+    setControlPending(keyboardButton,true);closeToText();
+  });
   window.addEventListener('puls-mode-selected',event=>{if(event.detail?.mode==='voice')open({source:'mode-selection'});});
 
   window.PulsVoiceMode={open,closeToText,showWorkspace,hideWorkspace,setState,isActive:()=>active,isWorkspaceVisible:()=>workspaceVisible};
