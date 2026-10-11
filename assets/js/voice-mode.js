@@ -110,7 +110,7 @@
   }
   const voiceNavigationTargets=Object.freeze({
     workspace:'conversation',vehicle:'car',my_vehicle:'car',technical_data:'technicalData',technical_consumables:'technicalConsumables',vehicle_history:'vehicleHistory',
-    repairs:'repairs',maintenance:'maintenance',active_problems:'activeProblems'
+    repairs:'repairs',maintenance:'maintenance',active_problems:'activeProblems',settings:'settings'
   });
   const voiceNavigationActions=new Set([
     ...Object.keys(voiceNavigationTargets),'back','voice_interface','scroll_down','scroll_up',
@@ -140,6 +140,20 @@
     if(action==='scroll_faster')return levels[Math.min(levels.length-1,index+1)];
     if(action==='scroll_slower')return levels[Math.max(0,index-1)];
     return levels[index];
+  }
+  function createVoiceTurnOrder(){
+    let sessionId='';
+    let nextTurn=0;
+    let latestTurn=0;
+    let lastCompletedTurn=0;
+    return {
+      startSession(id){sessionId=String(id||'');nextTurn=0;latestTurn=0;lastCompletedTurn=0;},
+      begin(){const turn={sessionId,id:++nextTurn};latestTurn=turn.id;return turn;},
+      isCurrent(turn){return Boolean(sessionId&&turn?.sessionId===sessionId&&turn?.id===latestTurn);},
+      complete(turn){if(!this.isCurrent(turn))return false;lastCompletedTurn=turn.id;return true;},
+      invalidate(){sessionId='';latestTurn=++nextTurn;},
+      snapshot(){return {sessionId,latestTurn,lastCompletedTurn};}
+    };
   }
   function voiceNavigationPlan(action,current='conversation',history=[]){
     const safeHistory=Array.isArray(history)?history.filter(Boolean):[];
@@ -180,6 +194,7 @@
     target:voiceScrollTarget,top:voiceScrollTop,adjustSpeed:adjustedVoiceScrollSpeed,
     durations:voiceScrollDurations
   };
+  window.PulsVoiceTurnOrder={create:createVoiceTurnOrder};
 
   const root = document.getElementById('pulsVoiceMode');
   const canvas = document.getElementById('pulsVoiceCanvas');
@@ -221,6 +236,9 @@
   let processingUtterance = false;
   let currentPlayback = null;
   let voiceSessionEpoch = 0;
+  const voiceTurnOrder=createVoiceTurnOrder();
+  let pendingVoiceAction='';
+  let voiceVehicleId='';
   let startupGreetingPlayed = false;
   let lastGenuineActivityAt=0;
   const vadGate=createVadGate();
@@ -1482,6 +1500,9 @@
 
   function stopVoiceSession({standby=true}={}){
     voiceSessionEpoch++;
+    voiceTurnOrder.invalidate();
+    pendingVoiceAction='';
+    voiceVehicleId='';
     voiceSessionActive=false;
     processingUtterance=false;
     releaseMicrophone();
@@ -1621,6 +1642,7 @@
       return;
     }
     processingUtterance=true;
+    const voiceTurn=voiceTurnOrder.begin();
     setState('thinking');
     const diagnostics={stage:'submit',mimeType:blob.type||'audio/webm',audioBytes:blob.size};
     console.info('PULS voice pipeline',diagnostics);
@@ -1628,6 +1650,10 @@
       const bridge=window.PulsVoiceBridge;
       if(!bridge)throw new Error('VOICE_BRIDGE_UNAVAILABLE');
       const turn=await bridge.prepareTurn();
+      if(!voiceTurnOrder.isCurrent(voiceTurn)||epoch!==voiceSessionEpoch)return;
+      const nextVehicleId=String(turn.context?.vehicle_id||'');
+      if(voiceVehicleId&&nextVehicleId!==voiceVehicleId)resetVoiceScrollContext();
+      voiceVehicleId=nextVehicleId;
       const form=new FormData();
       form.append('audio',blob,blob.type.includes('ogg')?'utterance.ogg':'utterance.webm');
       form.append('language',turn.language||voiceLanguage());
@@ -1641,6 +1667,10 @@
       form.append('voice_presentation',workspaceVisible?'workspace':'voice');
       form.append('scroll_speed',voiceScrollSpeed);
       form.append('scroll_active',String(Boolean(voiceScrollMotion)));
+      form.append('voice_session_id',voiceTurn.sessionId);
+      form.append('voice_turn_id',String(voiceTurn.id));
+      form.append('last_completed_voice_turn_id',String(voiceTurnOrder.snapshot().lastCompletedTurn||''));
+      form.append('pending_ui_action',pendingVoiceAction);
       form.append('available_actions',[
         ...voiceNavigationActions,
         ...Object.keys(window.PulsWorkspace?.destinations||{})
@@ -1655,11 +1685,11 @@
         const error=new Error(payload.detail||`Voice API returned ${response.status}`);
         error.status=response.status;throw error;
       }
-      if(epoch!==voiceSessionEpoch||!active||!voiceSessionActive)return;
+      if(epoch!==voiceSessionEpoch||!active||!voiceSessionActive||!voiceTurnOrder.isCurrent(voiceTurn))return;
       lastGenuineActivityAt=performance.now();
       if(payload.navigation){
         await coordinateVoiceNavigation(payload.navigation,{
-          dispatch:dispatchVoiceNavigation,
+          dispatch:navigation=>dispatchVoiceNavigation(navigation,voiceTurn),
           prepareAudio:async()=>{
             try{return await prepareNavigationAcknowledgement(payload.navigation,turn,payload.audio);}
             catch{
@@ -1669,7 +1699,7 @@
             }
           },
           playAudio:prepared=>{
-            if(epoch!==voiceSessionEpoch||!active||!voiceSessionActive)return false;
+            if(epoch!==voiceSessionEpoch||!active||!voiceSessionActive||!voiceTurnOrder.isCurrent(voiceTurn))return false;
             const playback=prepared?.source
               ?playAudioSource(prepared.source,epoch,{revoke:prepared.revoke===true})
               :playVoiceResponse(prepared?.audio,epoch);
@@ -1679,23 +1709,28 @@
             });
           }
         });
+        if(voiceTurnOrder.complete(voiceTurn))pendingVoiceAction='';
         return;
       }
       resetVoiceScrollContext();
+      if(!voiceTurnOrder.isCurrent(voiceTurn))return;
       await bridge.completeTurn(payload,turn.owner);
-      if(epoch!==voiceSessionEpoch||!active||!voiceSessionActive)return;
+      if(epoch!==voiceSessionEpoch||!active||!voiceSessionActive||!voiceTurnOrder.isCurrent(voiceTurn))return;
       if(payload.audio){
         try{await playVoiceResponse(payload.audio,epoch);}
         catch{console.warn('PULS voice pipeline failure',{stage:'playback'});notifyVoice(voiceMessage('playback'));}
       }else if(payload.tts_error){
         notifyVoice(payload.tts_error);
       }
+      voiceTurnOrder.complete(voiceTurn);
     }catch(error){
       console.warn('PULS voice pipeline failure',{stage:'request',mimeType:diagnostics.mimeType,audioBytes:diagnostics.audioBytes,httpStatus:Number(error?.status)||null,providerRequestId:null});
-      if(error?.status===422)console.info('PULS voice pipeline',{stage:'no_speech',httpStatus:422});
-      else notifyVoice(voiceMessage('failed'));
+      if(voiceTurnOrder.isCurrent(voiceTurn)){
+        if(error?.status===422)console.info('PULS voice pipeline',{stage:'no_speech',httpStatus:422});
+        else notifyVoice(voiceMessage('failed'));
+      }
     }finally{
-      if(epoch===voiceSessionEpoch&&active&&voiceSessionActive){
+      if(epoch===voiceSessionEpoch&&active&&voiceSessionActive&&voiceTurnOrder.isCurrent(voiceTurn)){
         processingUtterance=false;vadGate.reset();settleVoiceListeningState();
       }
     }
@@ -1738,6 +1773,10 @@
       notifyVoice(voiceMessage('unsupported'));setState('standby');return;
     }
     const epoch=++voiceSessionEpoch;
+    const sessionId=globalThis.crypto?.randomUUID?.()||`voice-${Date.now()}-${epoch}`;
+    voiceTurnOrder.startSession(sessionId);
+    pendingVoiceAction='';
+    voiceVehicleId='';
     voiceSessionActive=true;processingUtterance=false;updateToggleControl();
     try{
       microphoneStream=await navigator.mediaDevices.getUserMedia({
@@ -1960,10 +1999,12 @@
     return true;
   }
 
-  async function showWorkspace(target={view:'assistant'}){
+  async function showWorkspace(target={view:'assistant'},{isCurrent=()=>true}={}){
     if(!active)open({source:'workspace'});
     if(workspaceVisible&&!transitionActive){
+      if(!isCurrent())return false;
       await Promise.resolve(window.PulsWorkspace?.show?.(target));
+      if(!isCurrent())return false;
       workspace.inert=false;
       document.body.classList.add('voice-workspace-mode','voice-workspace-visible');
       return true;
@@ -1984,11 +2025,14 @@
       transitionActive=true;
     },3000);
     await workspaceReady;
+    if(!isCurrent())return false;
     await Promise.resolve(window.PulsWorkspace?.show?.(target));
-    return true;
+    return isCurrent();
   }
 
-  function dispatchVoiceNavigation(navigation){
+  function dispatchVoiceNavigation(navigation,voiceTurn){
+    const isCurrent=()=>!voiceTurn||voiceTurnOrder.isCurrent(voiceTurn);
+    if(!isCurrent())return {started:false,completion:Promise.resolve(false)};
     const action=validatedVoiceNavigationAction(navigation?.action);
     if(!action){
       notifyVoice(voiceMessage('navigationUnavailable'));
@@ -2030,10 +2074,14 @@
       notifyVoice(voiceMessage('navigationUnavailable'));
       return {started:false,completion:Promise.resolve(false)};
     }
-    const completion=showWorkspace(plan.target).then(()=>{
+    pendingVoiceAction=action;
+    const completion=showWorkspace(plan.target,{isCurrent}).then(completed=>{
+      if(!completed||!isCurrent())return false;
       if(plan.current!==voiceWorkspaceTarget)resetVoiceScrollContext();
       voiceWorkspaceTarget=plan.current;
       voiceWorkspaceHistory=plan.history;
+      lastVoiceUiAction=action;
+      pendingVoiceAction='';
       return true;
     }).catch(error=>{
       console.warn('PULS voice pipeline failure',{stage:'navigation',action:String(navigation?.action||'')});

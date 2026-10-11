@@ -2666,6 +2666,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       technicalData: { view: "car", tab: "data" },
       technicalConsumables: { view: "car", tab: "data", section: "consumables" },
       activeProblems: { view: "car", tab: "history", filter: "problems" },
+      settings: { view: "settings" },
     });
 
     const pulsWorkspaceDestinations = Object.freeze({
@@ -2677,6 +2678,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       repairs: { target: "repairs", labels: { en: "Repairs", ru: "Ремонты" }, aliases: [], parent: "vehicle_history", requiresVehicle: true },
       maintenance: { target: "maintenance", labels: { en: "Maintenance", ru: "Обслуживание" }, aliases: [], parent: "vehicle_history", requiresVehicle: true },
       active_problems: { target: "activeProblems", labels: { en: "Active Problems", ru: "Активные проблемы" }, aliases: [], parent: "vehicle_history", requiresVehicle: true },
+      settings: { target: "settings", labels: { en: "Settings", ru: "Настройки" }, aliases: ["preferences", "параметры"], requiresVehicle: false },
     });
 
     window.PulsWorkspace = {

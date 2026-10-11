@@ -84,6 +84,17 @@ assert.equal(voiceScroll.adjustSpeed('normal','scroll_slower'),'slow');
 assert.ok(voiceScroll.durations.fast<voiceScroll.durations.normal);
 assert.ok(voiceScroll.durations.normal<voiceScroll.durations.slow);
 
+const turnOrder=window.PulsVoiceTurnOrder.create();
+turnOrder.startSession('session-a');
+const oldTurn=turnOrder.begin();
+const currentTurn=turnOrder.begin();
+assert.equal(turnOrder.isCurrent(oldTurn),false,"an older async turn cannot overwrite newer UI state");
+assert.equal(turnOrder.isCurrent(currentTurn),true);
+assert.equal(turnOrder.complete(currentTurn),true);
+assert.equal(turnOrder.snapshot().lastCompletedTurn,currentTurn.id);
+turnOrder.invalidate();
+assert.equal(turnOrder.isCurrent(currentTurn),false,"terminated sessions reject pending results");
+
 let finishTransition;
 let finishAudio;
 const navigationEvents=[];
@@ -178,7 +189,7 @@ assert.doesNotMatch(voiceStyleSource,/body\.voice-workspace-mode #app > \.topbar
 assert.match(voiceSource,/if\(workspaceVisible&&!transitionActive\)/,"subsequent navigation must not replay State 7");
 assert.match(voiceSource,/waitForWorkspaceState\(true\)/,"first navigation must wait for the existing State 7 reveal");
 assert.match(voiceSource,/if\(payload\.navigation\)/,"frontend must consume the backend navigation response field");
-assert.match(voiceSource,/dispatch:dispatchVoiceNavigation/,"backend navigation must reach the workspace dispatcher");
+assert.match(voiceSource,/dispatch:navigation=>dispatchVoiceNavigation\(navigation,voiceTurn\)/,"backend navigation must reach the ordered workspace dispatcher");
 assert.match(voiceSource,/await workspaceReady;[\s\S]*?PulsWorkspace\?\.show\?\.\(target\)/,"first target must be applied after State 7 completes");
 assert.match(voiceSource,/action==='voice_interface'[\s\S]*?waitForWorkspaceState\(false\)[\s\S]*?hideWorkspace\(\)/,"return-to-voice must use the existing reverse State 7 lifecycle");
 assert.match(voiceSource,/const transitionDuration = 2400/,"approved State 7 duration must remain unchanged");
@@ -223,9 +234,15 @@ assert.match(voiceSource,/voice_presentation/);
 assert.match(voiceSource,/function cancelVoiceScroll\(\)[\s\S]*?cancelAnimationFrame/);
 assert.match(voiceSource,/function resetVoiceScrollContext\(\)[\s\S]*?voiceScrollSpeed='normal'/);
 assert.match(voiceSource,/plan\.current!==voiceWorkspaceTarget\)resetVoiceScrollContext\(\)/,"changing views must clear stale scroll context");
+assert.match(voiceSource,/voiceTurnOrder\.startSession/);
+assert.match(voiceSource,/voice_session_id/);
+assert.match(voiceSource,/last_completed_voice_turn_id/);
+assert.match(voiceSource,/showWorkspace\(plan\.target,\{isCurrent\}\)/,"State 7 completion must not apply an obsolete target");
+assert.match(voiceSource,/voiceSessionActive&&voiceTurnOrder\.isCurrent\(voiceTurn\)/,"stale turn cleanup must not reactivate Listening");
 assert.match(voiceSource,/technical_consumables:'technicalConsumables'/);
 assert.match(appSource,/technicalConsumables:\s*\{ view: "car", tab: "data", section: "consumables" \}/);
 assert.match(appSource,/technical_consumables:\s*\{ target: "technicalConsumables"/);
+assert.match(appSource,/settings:\s*\{ target: "settings"/);
 assert.match(carSource,/data-car-data-section="\$\{esc\(key\)\}"/);
 assert.match(carSource,/group\.open=true;[\s\S]*?group\.scrollIntoView/);
 
