@@ -40,7 +40,7 @@
   </script>
   <link rel="stylesheet" href="assets/css/style.css?v=20261011-voice-ux1">
   <link rel="stylesheet" href="assets/css/mode-selection.css?v=20261005-mobile-wave-particles1">
-  <link rel="stylesheet" href="assets/css/voice-mode.css?v=20261011-phase3a-integrated1">
+  <link rel="stylesheet" href="assets/css/voice-mode.css?v=20261011-unified-mode1">
 </head>
 <body class="puls-splash-active" data-auth-state="guest">
   <div class="puls-splash-screen" id="pulsSplashScreen" aria-hidden="true">
@@ -75,7 +75,11 @@
             </svg>
           </span>
         </button>
-        <span class="puls-voice-header-label" data-voice-state="idle" aria-hidden="true"><span>Voice Mode</span><span class="puls-voice-header-audiogram"><i></i><i></i><i></i><i></i><i></i></span></span>
+        <div class="puls-voice-header-label" data-mode="text" data-voice-state="idle" data-text-state="idle" aria-label="PULS interaction mode">
+          <button class="puls-header-mode-control puls-voice-header-audiogram" type="button" data-puls-header-mode="voice" aria-label="Switch to Voice Mode"><i></i><i></i><i></i><i></i><i></i></button>
+          <button class="puls-header-mode-label" type="button" data-puls-header-mode-toggle>Text Mode</button>
+          <button class="puls-header-mode-control puls-text-header-icon" type="button" data-puls-header-mode="text" aria-label="Switch to Text Mode"><svg viewBox="0 0 28 22" aria-hidden="true"><path d="M4 3.5h20v13H10l-5 3v-3H4z"></path><circle cx="10" cy="10" r="1.2"></circle><circle cx="14" cy="10" r="1.2"></circle><circle cx="18" cy="10" r="1.2"></circle></svg></button>
+        </div>
         <button class="system-pill" id="systemPill" type="button">Sign in / Register</button>
       </div>
     </header>
@@ -598,12 +602,12 @@
   <div class="toast" id="toast"></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/js/supabaseClient.js?v=20260531-22"></script>
-  <script src="assets/js/auth.js?v=20261011-voice-onboarding1"></script>
+  <script src="assets/js/auth.js?v=20261011-unified-mode1"></script>
   <script src="assets/js/config.js?v=20260706-01"></script>
   <script src="assets/js/chat-session.js?v=20260927-attachment-first1"></script>
   <script src="assets/pages/car.js?v=20261011-voice-navigation1"></script>
-  <script src="assets/js/mode-selection.js?v=20261011-voice-onboarding1"></script>
-  <script src="assets/js/app.js?v=20261011-phase3a2"></script>
-  <script src="assets/js/voice-mode.js?v=20261011-phase3a2"></script>
+  <script src="assets/js/mode-selection.js?v=20261011-unified-mode1"></script>
+  <script src="assets/js/app.js?v=20261011-unified-mode1"></script>
+  <script src="assets/js/voice-mode.js?v=20261011-unified-mode1"></script>
 </body>
 </html>

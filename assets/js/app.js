@@ -4052,6 +4052,113 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
     // Voice Mode uses the same authenticated chat/session contract as the
     // composer. It never renders or persists a parallel transcript.
+    const modeHeader = document.querySelector(".puls-voice-header-label");
+    const modeHeaderLabel = modeHeader?.querySelector(".puls-header-mode-label");
+    window.PulsModeHeader = {
+      mode: "text",
+      setMode(mode) {
+        const next = mode === "voice" ? "voice" : "text";
+        this.mode = next;
+        if (modeHeader) modeHeader.dataset.mode = next;
+        if (modeHeaderLabel) modeHeaderLabel.textContent = next === "voice" ? "Voice Mode" : "Text Mode";
+      },
+      setTextBusy(busy) {
+        if (modeHeader) modeHeader.dataset.textState = busy ? "thinking" : "idle";
+      }
+    };
+
+    let dictationSession = null;
+    let dictationStarting = false;
+    function dictationButton() { return document.querySelector('[data-action="voice"]'); }
+    function releaseDictationStream(session) {
+      clearTimeout(session?.timeout);
+      session?.stream?.getTracks?.().forEach((track) => track.stop());
+      const button = dictationButton();
+      button?.classList.remove("is-dictating");
+      button?.setAttribute("aria-pressed", "false");
+    }
+    async function uploadDictation(blob) {
+      if (!blob?.size) return;
+      const headers = await backendAuthHeaders();
+      if (!headers.Authorization) throw new Error("AUTH_REQUIRED");
+      const form = new FormData();
+      form.append("audio", blob, blob.type.includes("ogg") ? "dictation.ogg" : "dictation.webm");
+      form.append("language", getLanguage());
+      const response = await fetch(`${API_BASE_URL}/api/voice/transcribe`, { method: "POST", headers, body: form, cache: "no-store" });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.detail || `Dictation returned ${response.status}`);
+      const text = String(payload.text || "").trim();
+      if (!text) return;
+      const input = $("#promptInput");
+      if (!input) return;
+      const prefix = input.value && !/\s$/.test(input.value) ? " " : "";
+      input.value += `${prefix}${text}`;
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.focus();
+    }
+    function stopDictation({ submit = true } = {}) {
+      const session = dictationSession;
+      if (!session) return Promise.resolve(false);
+      session.submit = submit;
+      if (session.recorder.state !== "inactive") session.recorder.stop();
+      return session.done;
+    }
+    async function startDictation() {
+      if (dictationSession) return stopDictation({ submit: true });
+      if (dictationStarting) return false;
+      if (window.PulsVoiceMode?.isSessionActive?.()) return false;
+      if (!window.pulsCurrentUser?.id) { window.openAuthModal?.(); return false; }
+      if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+        toast(getLanguage() === "ru" ? "Голосовой ввод не поддерживается." : "Voice dictation is not supported.");
+        return false;
+      }
+      let stream = null;
+      dictationStarting = true;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false });
+        if (window.PulsVoiceMode?.isSessionActive?.()) { stream.getTracks().forEach((track) => track.stop()); return false; }
+        const mimeType = ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus"].find((type) => MediaRecorder.isTypeSupported?.(type)) || "";
+        const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+        let resolveDone;
+        const session = { stream, recorder, chunks: [], submit: true, timeout: 0, done: new Promise((resolve) => { resolveDone = resolve; }) };
+        dictationSession = session;
+        recorder.addEventListener("dataavailable", (event) => { if (event.data?.size) session.chunks.push(event.data); });
+        recorder.addEventListener("stop", async () => {
+          if (dictationSession === session) dictationSession = null;
+          releaseDictationStream(session);
+          try {
+            if (session.submit) await uploadDictation(new Blob(session.chunks, { type: recorder.mimeType || mimeType || "audio/webm" }));
+            resolveDone(true);
+          } catch (error) {
+            console.warn("PULS dictation failed", { stage: "transcription", name: String(error?.name || "Error") });
+            toast(getLanguage() === "ru" ? "Не удалось распознать речь." : "Speech could not be transcribed.");
+            resolveDone(false);
+          }
+        }, { once: true });
+        recorder.addEventListener("error", () => {
+          session.submit = false;
+          if (recorder.state !== "inactive") recorder.stop();
+          else {
+            if (dictationSession === session) dictationSession = null;
+            releaseDictationStream(session);
+            resolveDone(false);
+          }
+        }, { once: true });
+        recorder.start();
+        session.timeout = setTimeout(() => { void stopDictation({ submit: true }); }, 30000);
+        const button = dictationButton();
+        button?.classList.add("is-dictating");
+        button?.setAttribute("aria-pressed", "true");
+        return true;
+      } catch (error) {
+        stream?.getTracks?.().forEach((track) => track.stop());
+        console.warn("PULS dictation microphone failed", { name: String(error?.name || "Error") });
+        toast(getLanguage() === "ru" ? "Разрешите доступ к микрофону." : "Allow microphone access for dictation.");
+        return false;
+      } finally { dictationStarting = false; }
+    }
+    window.PulsDictation = { toggle: startDictation, cancel: () => stopDictation({ submit: false }), isActive: () => Boolean(dictationSession) };
+
     window.PulsVoiceBridge = {
       async prepareTurn() {
         const owner = window.pulsCurrentUser?.id || "";
@@ -4138,6 +4245,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       let loading = null;
 
       window.PulsChat.sending = true;
+      window.PulsModeHeader?.setTextBusy(true);
       if (attachmentMessageId && pendingChatAttachment === pending) pendingChatAttachment = null;
       if (attachmentMessageId) input.value = "";
       syncPendingAttachmentComposer();
@@ -4224,6 +4332,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           }
         } finally {
           window.PulsChat.sending = false;
+          window.PulsModeHeader?.setTextBusy(false);
           syncPendingAttachmentComposer();
           if (attachmentSendSucceeded) await preserveMessagesScroll(() => window.PulsChat.refresh());
         }
@@ -4578,11 +4687,27 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           event.preventDefault();
           chooseChatAttachment(action);
         } else if (action === "voice") {
-          window.PulsVoiceMode?.open?.({ source: "composer" });
+          void window.PulsDictation?.toggle?.();
         } else {
           toast(t("toast.demo"));
         }
       });
+
+      document.querySelector(".puls-voice-header-label")?.addEventListener("click", async (event) => {
+        const explicit = event.target.closest("[data-puls-header-mode]")?.dataset.pulsHeaderMode;
+        const target = explicit || (window.PulsModeHeader?.mode === "voice" ? "text" : "voice");
+        if (target === window.PulsModeHeader?.mode) return;
+        if (target === "voice") {
+          await window.PulsDictation?.cancel?.();
+          window.PulsVoiceMode?.open?.({ source: "header" });
+        } else {
+          window.PulsVoiceMode?.closeToText?.();
+        }
+      });
+      window.addEventListener("puls-voice-mode-change", (event) => {
+        window.PulsModeHeader?.setMode(event.detail?.active ? "voice" : "text");
+      });
+      window.PulsModeHeader?.setMode("text");
 
       document.addEventListener("keydown", (event) => {
         if (event.key === "Escape") {

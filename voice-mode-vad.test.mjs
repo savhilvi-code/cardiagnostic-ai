@@ -163,6 +163,7 @@ const authSource=readFileSync(new URL("./assets/js/auth.js",import.meta.url),"ut
 const modeSelectionSource=readFileSync(new URL("./assets/js/mode-selection.js",import.meta.url),"utf8");
 const styleSource=readFileSync(new URL("./assets/css/style.css",import.meta.url),"utf8");
 const voiceStyleSource=readFileSync(new URL("./assets/css/voice-mode.css",import.meta.url),"utf8");
+const indexSource=readFileSync(new URL("./index.html",import.meta.url),"utf8");
 const carSource=readFileSync(new URL("./assets/pages/car.js",import.meta.url),"utf8");
 const greetingManifest=JSON.parse(readFileSync(new URL("./assets/audio/voice-greetings/manifest.v1.json",import.meta.url),"utf8"));
 const navigationManifest=JSON.parse(readFileSync(new URL("./assets/audio/voice-acknowledgements/manifest.v1.json",import.meta.url),"utf8"));
@@ -198,6 +199,10 @@ assert.match(voiceSource,/if\(voiceSessionActive\)return/,"navigation must not c
 assert.match(voiceSource,/headerIndicator\.dataset\.voiceState/);
 assert.match(voiceStyleSource,/data-voice-state="thinking"[\s\S]*?#ff9a32/);
 assert.match(voiceStyleSource,/data-voice-state="speaking"/);
+assert.match(indexSource,/puls-voice-header-audiogram[\s\S]*puls-header-mode-label[\s\S]*puls-text-header-icon/,"header mode controls keep one fixed icon-label-icon order");
+assert.match(voiceStyleSource,/\.puls-header-mode-label\s*\{[^}]*width:\s*86px/s,"mode label uses a fixed-width slot");
+assert.match(voiceStyleSource,/\.puls-header-mode-control,[\s\S]*?border:\s*0/s,"mode switch remains borderless");
+assert.match(voiceStyleSource,/data-mode="text"\]\[data-text-state="thinking"\][\s\S]*?#ff9a32/,"text processing reuses the active orange state");
 assert.match(authSource,/puls_mode_selection_completed/);
 assert.doesNotMatch(authSource,/event !== "SIGNED_IN"/,"restored SIGNED_IN must not directly open onboarding");
 assert.match(modeSelectionSource,/completePulsModeOnboarding/);
@@ -243,6 +248,15 @@ assert.match(voiceSource,/technical_consumables:'technicalConsumables'/);
 assert.match(appSource,/technicalConsumables:\s*\{ view: "car", tab: "data", section: "consumables" \}/);
 assert.match(appSource,/technical_consumables:\s*\{ target: "technicalConsumables"/);
 assert.match(appSource,/settings:\s*\{ target: "settings"/);
+assert.match(appSource,/\/api\/voice\/transcribe/);
+assert.match(appSource,/PulsDictation\s*=\s*\{ toggle: startDictation/);
+assert.match(appSource,/input\.value \+= `\$\{prefix\}\$\{text\}`/,"dictation inserts editable text without submitting");
+assert.match(appSource,/action === "voice"[\s\S]*?PulsDictation\?\.toggle/,"composer microphone starts dictation");
+assert.doesNotMatch(appSource,/action === "voice"[\s\S]{0,100}PulsVoiceMode\?\.open/,"composer microphone must not enter Voice Mode");
+assert.match(voiceSource,/await window\.PulsDictation\?\.cancel\?\.\(\)/,"Voice Mode takes exclusive microphone ownership");
+assert.match(authSource,/puls_mode_selection_completed/);
+assert.match(authSource,/puls_mode_selection_required/);
+assert.match(authSource,/supabaseClient\.auth\.updateUser/);
 assert.match(carSource,/data-car-data-section="\$\{esc\(key\)\}"/);
 assert.match(carSource,/group\.open=true;[\s\S]*?group\.scrollIntoView/);
 

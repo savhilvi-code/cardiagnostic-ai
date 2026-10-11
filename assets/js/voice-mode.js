@@ -1772,6 +1772,7 @@
     if(!navigator.mediaDevices?.getUserMedia||typeof MediaRecorder==='undefined'){
       notifyVoice(voiceMessage('unsupported'));setState('standby');return;
     }
+    await window.PulsDictation?.cancel?.();
     const epoch=++voiceSessionEpoch;
     const sessionId=globalThis.crypto?.randomUUID?.()||`voice-${Date.now()}-${epoch}`;
     voiceTurnOrder.startSession(sessionId);
@@ -2131,7 +2132,7 @@
   });
   window.addEventListener('puls-mode-selected',event=>{if(event.detail?.mode==='voice')open({source:'mode-selection'});});
 
-  window.PulsVoiceMode={open,closeToText,showWorkspace,hideWorkspace,setState,isActive:()=>active,isWorkspaceVisible:()=>workspaceVisible};
+  window.PulsVoiceMode={open,closeToText,showWorkspace,hideWorkspace,setState,isActive:()=>active,isSessionActive:()=>voiceSessionActive,isWorkspaceVisible:()=>workspaceVisible};
   window.PULSVoiceVisual.setState=setState;
   root.hidden=true;
   root.setAttribute('aria-hidden','true');

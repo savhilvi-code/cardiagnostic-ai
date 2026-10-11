@@ -70,11 +70,42 @@ function modeSelectionStorageKey(userId = window.pulsCurrentUser?.id) {
   return userId ? `${MODE_SELECTION_COMPLETED_KEY}:${userId}` : "";
 }
 
+function persistModeSelectionComplete(user = window.pulsCurrentUser) {
+  if (!window.supabaseClient || !user?.id || user.user_metadata?.puls_mode_selection_completed === true) return;
+  user.user_metadata = {
+    ...(user.user_metadata || {}),
+    puls_mode_selection_completed: true,
+    puls_mode_selection_required: false
+  };
+  void (async () => {
+    const { error } = await window.supabaseClient.auth.updateUser({
+      data: {
+        puls_mode_selection_completed: true,
+        puls_mode_selection_required: false
+      }
+    });
+    if (error) console.warn("Could not persist mode onboarding:", error.message);
+  })();
+}
+
 function isModeSelectionComplete(userId = window.pulsCurrentUser?.id) {
+  const user = window.pulsCurrentUser;
+  if (user?.id === userId) {
+    if (user.user_metadata?.puls_mode_selection_completed === true) return true;
+  }
   const key = modeSelectionStorageKey(userId);
   if (!key) return false;
-  try { return window.localStorage.getItem(key) === "1"; }
-  catch { return false; }
+  try {
+    if (window.localStorage.getItem(key) === "1") {
+      persistModeSelectionComplete(user);
+      return true;
+    }
+  } catch { /* Continue with durable account state. */ }
+  if (user?.id === userId && user.user_metadata?.puls_mode_selection_required !== true) {
+    persistModeSelectionComplete(user);
+    return true;
+  }
+  return false;
 }
 
 function completeModeSelection(userId = window.pulsCurrentUser?.id) {
@@ -82,6 +113,7 @@ function completeModeSelection(userId = window.pulsCurrentUser?.id) {
   if (!key) return;
   try { window.localStorage.setItem(key, "1"); }
   catch { /* Storage restrictions must not block mode selection. */ }
+  if (window.pulsCurrentUser?.id === userId) persistModeSelectionComplete(window.pulsCurrentUser);
 }
 
 function showModeSelectionForNewUser(user) {
@@ -124,6 +156,7 @@ async function updateProfileBlock() {
   authBtn.style.display = "none";
   logoutBtn.style.display = "inline-flex";
   if (deleteProfileBtn) deleteProfileBtn.style.display = "inline-flex";
+  showModeSelectionForNewUser(user);
 }
 
 async function syncAuthUserProfile(user) {
@@ -212,7 +245,8 @@ async function registerUser(email, password) {
 
   const { data, error } = await window.supabaseClient.auth.signUp({
     email,
-    password
+    password,
+    options: { data: { puls_mode_selection_required: true } }
   });
 
   if (error) {
