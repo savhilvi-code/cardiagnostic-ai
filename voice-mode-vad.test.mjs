@@ -275,7 +275,9 @@ assert.match(appSource,/analysis\.peak = Math\.max\(\.12, input, analysis\.peak 
 assert.match(appSource,/analysis\.history\.shift\(\)[\s\S]*?analysis\.history\.push\(analysis\.level < \.025 \? 0 : analysis\.level\)/,"each new microphone sample enters on the right while prior samples shift left");
 assert.match(appSource,/now - analysis\.lastSampleAt >= 104/,"captured waveform history scrolls exactly twice as slowly");
 assert.match(appSource,/renderDictationWaveform\(waveform, analysis\.history\)/,"one authoritative renderer draws the captured amplitude history");
-assert.match(styleSource,/\.composer:has\(\.composer-shell\[data-dictation-state="recording"\]\)[\s\S]*?inset 0 0 16px rgba\(8, 125, 255, \.2\)/,"recording adds only the composer perimeter's blue inset glow");
+assert.match(styleSource,/\.composer:has\(\.composer-shell\[data-dictation-state="recording"\]\)[\s\S]*?inset 0 0 24px rgba\(8, 125, 255, \.3\)/,"recording adds a soft blue glow inward from the composer perimeter");
+const recordingGlowBlock=styleSource.match(/\.composer:has\(\.composer-shell\[data-dictation-state="recording"\]\),[\s\S]*?\{([^}]]*)\}/)?.[1]||"";
+assert.doesNotMatch(recordingGlowBlock,/inset 0 0 0 1px/,"recording glow must not imitate a replacement border");
 assert.doesNotMatch(styleSource,/dictation-reveal|puls-dictation-fallback/,"obsolete reveal masks and synchronized fallback waves are removed");
 assert.match(appSource,/getLanguage\(\) === "ru" \? "Расшифровка…" : "Transcribing…"/,"pending transcription uses the selected interface language");
 assert.match(styleSource,/data-dictation-state="transcribing"\] \.puls-dictation-transcribing\s*\{[^}]*opacity:\s*1[^}]*visibility:\s*visible/s,"the subtle transcription label replaces the fading waveform while STT is pending");
