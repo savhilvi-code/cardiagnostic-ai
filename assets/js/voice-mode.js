@@ -109,7 +109,7 @@
     return {width:resolvedWidth,height:resolvedHeight,cx:resolvedWidth*.5,cy:resolvedHeight*.47};
   }
   const voiceNavigationTargets=Object.freeze({
-    vehicle:'car',technical_data:'technicalData',vehicle_history:'vehicleHistory',
+    workspace:'conversation',vehicle:'car',technical_data:'technicalData',vehicle_history:'vehicleHistory',
     repairs:'repairs',maintenance:'maintenance',active_problems:'activeProblems'
   });
   function voiceNavigationPlan(action,current='conversation',history=[]){
@@ -1770,8 +1770,8 @@
 
   async function showWorkspace(target={view:'assistant'}){
     if(!active)open({source:'workspace'});
-    await Promise.resolve(window.PulsWorkspace?.show?.(target));
     if(workspaceVisible&&!transitionActive){
+      await Promise.resolve(window.PulsWorkspace?.show?.(target));
       workspace.inert=false;
       document.body.classList.add('voice-workspace-mode','voice-workspace-visible');
       return true;
@@ -1791,7 +1791,9 @@
       transitionLast=0;
       transitionActive=true;
     },3000);
-    return workspaceReady;
+    await workspaceReady;
+    await Promise.resolve(window.PulsWorkspace?.show?.(target));
+    return true;
   }
 
   async function dispatchVoiceNavigation(navigation){

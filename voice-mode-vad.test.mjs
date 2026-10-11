@@ -51,6 +51,7 @@ for(const [width,height] of [[375,812],[390,844],[768,1024],[1024,768],[1280,800
 }
 
 const navigation=window.PulsVoiceNavigation;
+assert.equal(navigation.plan('workspace','conversation',[]).target,'conversation');
 let navigationState=navigation.plan('vehicle','conversation',[]);
 assert.equal(navigationState.target,'car');
 assert.deepEqual(navigationState.history,['conversation']);
@@ -127,6 +128,9 @@ assert.match(voiceStyleSource,/body\.voice-workspace-visible \.puls-voice-header
 assert.doesNotMatch(voiceStyleSource,/body\.voice-workspace-mode #app > \.topbar/,"existing header must remain available in Voice workspace");
 assert.match(voiceSource,/if\(workspaceVisible&&!transitionActive\)/,"subsequent navigation must not replay State 7");
 assert.match(voiceSource,/waitForWorkspaceState\(true\)/,"first navigation must wait for the existing State 7 reveal");
+assert.match(voiceSource,/if\(payload\.navigation\)/,"frontend must consume the backend navigation response field");
+assert.match(voiceSource,/await dispatchVoiceNavigation\(payload\.navigation\)/,"backend navigation must reach the workspace dispatcher");
+assert.match(voiceSource,/await workspaceReady;[\s\S]*?PulsWorkspace\?\.show\?\.\(target\)/,"first target must be applied after State 7 completes");
 assert.match(appSource,/repairs:\s*\{ view: "car", tab: "history", filter: "repairs" \}/);
 assert.match(voiceStyleSource,/@media \(max-width: 480px\)[\s\S]*?\.puls-voice-canvas\s*\{[\s\S]*?transform:\s*scale\(1\.05\)/);
 for(const language of ["ru","en"]){
