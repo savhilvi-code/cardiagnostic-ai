@@ -2744,6 +2744,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       const pending = pendingChatAttachment;
       const hasText = Boolean($("#promptInput")?.value.trim());
       const hasReadyAttachment = Boolean(pending?.state === "ready" && pending?.messageId);
+      if (window.PulsDictation?.isRecording?.()) return true;
+      if (window.PulsDictation?.isActive?.()) return false;
       return !window.PulsChat?.sending
         && activeChatAttachmentUploads === 0
         && (!pending || pending.state === "ready")
@@ -4083,6 +4085,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     let dictationSession = null;
     let dictationStarting = false;
     let dictationTranscriptionController = null;
+    let dictationTranscriptionOwnerId = "";
+    let dictationSequence = 0;
     let dictationPressTimer = 0;
     let dictationStopAcknowledgedUntil = 0;
     function dictationButton() { return document.querySelector('[data-action="voice"]'); }
@@ -4114,9 +4118,70 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         : state === "transcribing"
           ? (getLanguage() === "ru" ? "Распознавание речи" : "Transcribing speech")
           : (getLanguage() === "ru" ? "Голосовой ввод" : "Voice dictation"));
+      syncPendingAttachmentComposer();
+    }
+    function setDictationWaveformLevel(waveform, level) {
+      if (!waveform) return;
+      [0.48, 0.72, 1, 0.82, 0.58].forEach((weight, index) => {
+        waveform.style.setProperty(`--dictation-scale-${index + 1}`, (0.04 + level * weight).toFixed(3));
+      });
+    }
+    function stopDictationAnalysis(session) {
+      const analysis = session?.analysis;
+      $("#promptInput")?.closest(".composer-shell")?.classList.remove("is-dictation-analysis-fallback");
+      if (!analysis) return;
+      cancelAnimationFrame(analysis.frame);
+      analysis.source?.disconnect?.();
+      void analysis.context?.close?.().catch?.(() => {});
+      setDictationWaveformLevel(analysis.waveform, 0);
+      session.analysis = null;
+    }
+    function startDictationAnalysis(session) {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      const waveform = document.querySelector(".puls-dictation-waveform");
+      const shell = $("#promptInput")?.closest(".composer-shell");
+      shell?.classList.remove("is-dictation-analysis-fallback");
+      if (!AudioContextClass || !waveform) {
+        shell?.classList.add("is-dictation-analysis-fallback");
+        return;
+      }
+      let context = null;
+      try {
+        context = new AudioContextClass();
+        const source = context.createMediaStreamSource(session.stream);
+        const analyser = context.createAnalyser();
+        analyser.fftSize = 256;
+        analyser.smoothingTimeConstant = .82;
+        source.connect(analyser);
+        const samples = new Uint8Array(analyser.fftSize);
+        const analysis = { context, source, analyser, samples, waveform, frame: 0, level: 0 };
+        session.analysis = analysis;
+        void context.resume?.().catch?.(() => {});
+        const update = () => {
+          if (dictationSession !== session || session.completion) return;
+          analyser.getByteTimeDomainData(samples);
+          let power = 0;
+          for (const byte of samples) {
+            const sample = (byte - 128) / 128;
+            power += sample * sample;
+          }
+          const rms = Math.sqrt(power / samples.length);
+          const target = Math.max(0, Math.min(1, (rms - .008) * 9));
+          const smoothing = target > analysis.level ? .24 : .11;
+          analysis.level += (target - analysis.level) * smoothing;
+          setDictationWaveformLevel(waveform, analysis.level);
+          analysis.frame = requestAnimationFrame(update);
+        };
+        analysis.frame = requestAnimationFrame(update);
+      } catch (error) {
+        void context?.close?.().catch?.(() => {});
+        shell?.classList.add("is-dictation-analysis-fallback");
+        console.warn("PULS dictation visual analyser unavailable", { name: String(error?.name || "Error") });
+      }
     }
     function releaseDictationStream(session) {
       clearTimeout(session?.timeout);
+      stopDictationAnalysis(session);
       session?.stream?.getTracks?.().forEach((track) => track.stop());
     }
     async function uploadDictation(blob, signal) {
@@ -4140,21 +4205,24 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       input.dispatchEvent(new Event("input", { bubbles: true }));
       input.focus();
     }
-    function stopDictation({ submit = true } = {}) {
+    function stopDictation({ completion = "review" } = {}) {
       const session = dictationSession;
       if (!session) {
-        if (!submit && dictationTranscriptionController) {
+        if (completion === "cancel" && dictationTranscriptionController) {
+          dictationSequence += 1;
           dictationTranscriptionController.abort();
           return Promise.resolve(true);
         }
         return Promise.resolve(false);
       }
-      session.submit = submit;
+      if (session.completion) return session.done;
+      session.completion = completion;
+      if (completion === "cancel") dictationSequence += 1;
       if (session.recorder.state !== "inactive") session.recorder.stop();
       return session.done;
     }
     async function startDictation() {
-      if (dictationSession) return stopDictation({ submit: true });
+      if (dictationSession) return stopDictation({ completion: "review" });
       if (dictationStarting || dictationTranscriptionController) return false;
       if (window.PulsVoiceMode?.isSessionActive?.()) return false;
       if (!window.pulsCurrentUser?.id) { window.openAuthModal?.(); return false; }
@@ -4170,29 +4238,54 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         const mimeType = ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus"].find((type) => MediaRecorder.isTypeSupported?.(type)) || "";
         const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
         let resolveDone;
-        const session = { stream, recorder, chunks: [], submit: true, timeout: 0, done: new Promise((resolve) => { resolveDone = resolve; }) };
+        const session = {
+          id: ++dictationSequence,
+          ownerId: window.pulsCurrentUser?.id || "",
+          stream,
+          recorder,
+          chunks: [],
+          completion: "",
+          timeout: 0,
+          analysis: null,
+          done: new Promise((resolve) => { resolveDone = resolve; })
+        };
         dictationSession = session;
         recorder.addEventListener("dataavailable", (event) => { if (event.data?.size) session.chunks.push(event.data); });
         recorder.addEventListener("stop", async () => {
           if (dictationSession === session) dictationSession = null;
           releaseDictationStream(session);
-          if (!session.submit) {
+          const completion = session.completion || "review";
+          if (completion === "cancel") {
             setDictationVisualState("idle");
             resolveDone(true);
             return;
           }
           const controller = new AbortController();
           dictationTranscriptionController = controller;
+          dictationTranscriptionOwnerId = session.ownerId;
           setDictationVisualState("transcribing");
           try {
             const text = await uploadDictation(new Blob(session.chunks, { type: recorder.mimeType || mimeType || "audio/webm" }), controller.signal);
             await awaitDictationStopAcknowledgement();
-            if (controller.signal.aborted) {
+            const isCurrent = session.id === dictationSequence
+              && session.ownerId === (window.pulsCurrentUser?.id || "");
+            if (controller.signal.aborted || !isCurrent) {
               const aborted = new Error("Dictation cancelled");
               aborted.name = "AbortError";
               throw aborted;
             }
+            if (!text) {
+              toast(getLanguage() === "ru" ? "Речь не распознана." : "No speech was recognized.");
+              resolveDone(false);
+              return;
+            }
             insertDictationText(text);
+            if (completion === "send" && dictationTranscriptionController === controller) {
+              dictationTranscriptionController = null;
+              dictationTranscriptionOwnerId = "";
+            }
+            setDictationVisualState("idle");
+            if (completion === "send") await sendPrompt(true);
             resolveDone(true);
           } catch (error) {
             if (error?.name !== "AbortError") {
@@ -4202,11 +4295,13 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
             resolveDone(false);
           } finally {
             if (dictationTranscriptionController === controller) dictationTranscriptionController = null;
+            if (!dictationTranscriptionController) dictationTranscriptionOwnerId = "";
             setDictationVisualState("idle");
           }
         }, { once: true });
         recorder.addEventListener("error", () => {
-          session.submit = false;
+          session.completion = "cancel";
+          dictationSequence += 1;
           if (recorder.state !== "inactive") recorder.stop();
           else {
             if (dictationSession === session) dictationSession = null;
@@ -4216,10 +4311,16 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           }
         }, { once: true });
         recorder.start();
-        session.timeout = setTimeout(() => { void stopDictation({ submit: true }); }, 30000);
+        startDictationAnalysis(session);
+        session.timeout = setTimeout(() => { void stopDictation({ completion: "review" }); }, 30000);
         setDictationVisualState("recording");
         return true;
       } catch (error) {
+        if (dictationSession?.stream === stream) {
+          stopDictationAnalysis(dictationSession);
+          dictationSession = null;
+          dictationSequence += 1;
+        }
         stream?.getTracks?.().forEach((track) => track.stop());
         setDictationVisualState("idle");
         console.warn("PULS dictation microphone failed", { name: String(error?.name || "Error") });
@@ -4227,7 +4328,14 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         return false;
       } finally { dictationStarting = false; }
     }
-    window.PulsDictation = { toggle: startDictation, cancel: () => stopDictation({ submit: false }), isActive: () => Boolean(dictationSession || dictationTranscriptionController) };
+    window.PulsDictation = {
+      toggle: startDictation,
+      cancel: () => stopDictation({ completion: "cancel" }),
+      send: () => stopDictation({ completion: "send" }),
+      isActive: () => Boolean(dictationSession || dictationTranscriptionController),
+      isRecording: () => Boolean(dictationSession && !dictationSession.completion),
+      ownerId: () => dictationSession?.ownerId || dictationTranscriptionOwnerId
+    };
 
     window.PulsVoiceBridge = {
       async prepareTurn() {
@@ -4298,7 +4406,13 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       input.style.overflowY = contentHeight > maxTextHeight ? "auto" : "hidden";
     }
 
-    async function sendPrompt() {
+    async function sendPrompt(fromDictation = false) {
+      const dictationSubmit = fromDictation === true;
+      if (!dictationSubmit && window.PulsDictation?.isRecording?.()) {
+        await window.PulsDictation.send();
+        return;
+      }
+      if (!dictationSubmit && window.PulsDictation?.isActive?.()) return;
       const input = $("#promptInput");
       const prompt = input.value.trim();
       const pending = pendingChatAttachment;
@@ -4509,6 +4623,10 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         window.addEventListener("puls-auth-change", async (event) => {
           const authLoadingOperation = beginPulsViewLoading();
           try {
+            const dictationOwner = window.PulsDictation?.ownerId?.();
+            if (dictationOwner && dictationOwner !== (event.detail?.user?.id || "")) {
+              await window.PulsDictation.cancel();
+            }
             window.PulsChat.authChanged();
             chatInitialRestoreComplete = false;
             chatAutoFollow = true;

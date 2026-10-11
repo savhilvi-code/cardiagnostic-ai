@@ -130,8 +130,8 @@ body.voice-workspace-visible .system-pill {
 .puls-voice-header-audiogram i:nth-child(5) { animation-delay: -.88s; }
 .puls-voice-header-label[data-mode="voice"][data-voice-state="listening"] .puls-voice-header-audiogram { color: var(--puls-mode-input); filter: drop-shadow(0 0 5px rgba(67,191,255,.24)); }
 .puls-voice-header-label[data-mode="voice"][data-voice-state="listening"] .puls-voice-header-audiogram i { animation-name: puls-voice-header-listening; animation-duration: 1.05s; }
-.puls-voice-header-label[data-mode="voice"][data-voice-state="thinking"] .puls-voice-header-audiogram,
-.puls-voice-header-label[data-mode="voice"][data-voice-state="speaking"] .puls-voice-header-audiogram { color: var(--puls-mode-processing); filter: drop-shadow(0 0 5px rgba(255,154,50,.22)); }
+.puls-voice-header-label[data-mode="voice"][data-voice-state="thinking"] .puls-voice-header-audiogram { color: var(--puls-mode-processing); filter: drop-shadow(0 0 5px rgba(255,154,50,.22)); }
+.puls-voice-header-label[data-mode="voice"][data-voice-state="speaking"] .puls-voice-header-audiogram { color: var(--puls-mode-input); filter: drop-shadow(0 0 5px rgba(67,191,255,.24)); }
 .puls-voice-header-label[data-mode="voice"][data-voice-state="thinking"] .puls-voice-header-audiogram i { animation-name: puls-voice-header-thinking; animation-duration: 1.2s; }
 .puls-voice-header-label[data-mode="voice"][data-voice-state="speaking"] .puls-voice-header-audiogram i { animation-name: puls-voice-header-speaking; animation-duration: .62s; }
 
