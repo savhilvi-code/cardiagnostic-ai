@@ -4108,8 +4108,14 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       const button = dictationButton();
       if (!button) return;
       const shell = $("#promptInput")?.closest(".composer-shell");
+      const transcribingLabel = document.querySelector(".puls-dictation-transcribing");
       button.dataset.dictationState = state;
       if (shell) shell.dataset.dictationState = state;
+      if (transcribingLabel) {
+        transcribingLabel.textContent = state === "transcribing"
+          ? (getLanguage() === "ru" ? "Расшифровка…" : "Transcribing…")
+          : "";
+      }
       button.classList.toggle("is-dictating", state === "recording");
       button.disabled = state === "transcribing";
       button.setAttribute("aria-pressed", String(state === "recording"));
@@ -4120,11 +4126,13 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           : (getLanguage() === "ru" ? "Голосовой ввод" : "Voice dictation"));
       syncPendingAttachmentComposer();
     }
-    function setDictationWaveformLevel(waveform, level) {
+    function setDictationWaveformLevel(waveform, level, reveal = 0) {
       if (!waveform) return;
       [0.48, 0.72, 1, 0.82, 0.58].forEach((weight, index) => {
         waveform.style.setProperty(`--dictation-scale-${index + 1}`, (0.04 + level * weight).toFixed(3));
       });
+      const visibleShare = Math.max(0, Math.min(1, reveal));
+      waveform.style.setProperty("--dictation-reveal-inset", `${((1 - visibleShare) * 100).toFixed(2)}%`);
     }
     function stopDictationAnalysis(session) {
       const analysis = session?.analysis;
@@ -4133,7 +4141,6 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       cancelAnimationFrame(analysis.frame);
       analysis.source?.disconnect?.();
       void analysis.context?.close?.().catch?.(() => {});
-      setDictationWaveformLevel(analysis.waveform, 0);
       session.analysis = null;
     }
     function startDictationAnalysis(session) {
@@ -4154,8 +4161,9 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         analyser.smoothingTimeConstant = .82;
         source.connect(analyser);
         const samples = new Uint8Array(analyser.fftSize);
-        const analysis = { context, source, analyser, samples, waveform, frame: 0, level: 0 };
+        const analysis = { context, source, analyser, samples, waveform, frame: 0, level: 0, reveal: 0 };
         session.analysis = analysis;
+        setDictationWaveformLevel(waveform, 0, 0);
         void context.resume?.().catch?.(() => {});
         const update = () => {
           if (dictationSession !== session || session.completion) return;
@@ -4169,7 +4177,10 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           const target = Math.max(0, Math.min(1, (rms - .008) * 9));
           const smoothing = target > analysis.level ? .24 : .11;
           analysis.level += (target - analysis.level) * smoothing;
-          setDictationWaveformLevel(waveform, analysis.level);
+          const revealTarget = target > .035 ? 1 : 0;
+          const revealSmoothing = revealTarget > analysis.reveal ? .075 : .035;
+          analysis.reveal += (revealTarget - analysis.reveal) * revealSmoothing;
+          setDictationWaveformLevel(waveform, analysis.level, analysis.reveal);
           analysis.frame = requestAnimationFrame(update);
         };
         analysis.frame = requestAnimationFrame(update);
