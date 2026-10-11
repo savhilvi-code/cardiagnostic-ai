@@ -399,7 +399,8 @@
 
   function setState(next){
     if (!validStates.has(next)) return;
-    if(headerIndicator)headerIndicator.dataset.voiceState=next==='responding'?'speaking':next==='thinking'?'thinking':next==='listening'?'listening':'idle';
+    const headerState=next==='responding'?'speaking':next==='thinking'?'thinking':'idle';
+    if(headerIndicator&&headerIndicator.dataset.voiceState!==headerState)headerIndicator.dataset.voiceState=headerState;
     if (next === state && previousState === null) return;
     previousState = state;
     previousStateSince = stateSince;
@@ -1746,6 +1747,8 @@
     if(!processingUtterance){
       const now=performance.now();
       const decision=vadGate.sample(rms,now);
+      const headerState=vadGate.active?'listening':'idle';
+      if(headerIndicator?.dataset.mode==='voice'&&headerIndicator.dataset.voiceState!==headerState)headerIndicator.dataset.voiceState=headerState;
       if(decision==='start'){
         // Starting on the first VAD-positive frame preserves a complete WebM
         // container. It may omit at most the onset before that analyser frame;

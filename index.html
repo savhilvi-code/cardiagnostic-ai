@@ -38,9 +38,9 @@
     "logo": "https://pulscar.co/assets/img/puls-logo.png"
   }
   </script>
-  <link rel="stylesheet" href="assets/css/style.css?v=20261011-voice-ux1">
+  <link rel="stylesheet" href="assets/css/style.css?v=20261011-mode-indicator1">
   <link rel="stylesheet" href="assets/css/mode-selection.css?v=20261005-mobile-wave-particles1">
-  <link rel="stylesheet" href="assets/css/voice-mode.css?v=20261011-unified-mode1">
+  <link rel="stylesheet" href="assets/css/voice-mode.css?v=20261011-mode-indicator1">
 </head>
 <body class="puls-splash-active" data-auth-state="guest">
   <div class="puls-splash-screen" id="pulsSplashScreen" aria-hidden="true">
@@ -334,7 +334,11 @@
 
               <div class="composer-actions-spacer"></div>
 
-              <button class="composer-icon-btn voice-btn" type="button" data-action="voice" aria-label="Голосовой ввод">🎙</button>
+              <button class="composer-icon-btn voice-btn" type="button" data-action="voice" data-dictation-state="idle" aria-label="Голосовой ввод" aria-pressed="false">
+                <span class="voice-btn-mic" aria-hidden="true">🎙</span>
+                <span class="voice-btn-stop" aria-hidden="true"></span>
+                <span class="puls-dictation-audiogram" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+              </button>
               <button class="send" id="sendBtn" type="button" aria-label="Отправить">➤</button>
             </div>
           </div>
@@ -607,7 +611,7 @@
   <script src="assets/js/chat-session.js?v=20260927-attachment-first1"></script>
   <script src="assets/pages/car.js?v=20261011-voice-navigation1"></script>
   <script src="assets/js/mode-selection.js?v=20261011-unified-mode1"></script>
-  <script src="assets/js/app.js?v=20261011-unified-mode1"></script>
-  <script src="assets/js/voice-mode.js?v=20261011-unified-mode1"></script>
+  <script src="assets/js/app.js?v=20261011-mode-indicator1"></script>
+  <script src="assets/js/voice-mode.js?v=20261011-mode-indicator1"></script>
 </body>
 </html>

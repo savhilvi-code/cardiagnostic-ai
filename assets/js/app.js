@@ -2751,6 +2751,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     }
 
     function syncPendingAttachmentComposer() {
+      window.PulsModeHeader?.setTextInput(Boolean($("#promptInput")?.value.trim()));
       const pending = pendingChatAttachment;
       const card = $("#composerPendingAttachment");
       const name = $("#composerPendingAttachmentName");
@@ -4056,6 +4057,13 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     const modeHeaderLabel = modeHeader?.querySelector(".puls-header-mode-label");
     window.PulsModeHeader = {
       mode: "text",
+      textBusy: false,
+      textInputActive: false,
+      renderTextState() {
+        if (!modeHeader) return;
+        const next = this.textBusy ? "thinking" : this.textInputActive ? "typing" : "idle";
+        if (modeHeader.dataset.textState !== next) modeHeader.dataset.textState = next;
+      },
       setMode(mode) {
         const next = mode === "voice" ? "voice" : "text";
         this.mode = next;
@@ -4063,28 +4071,44 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         if (modeHeaderLabel) modeHeaderLabel.textContent = next === "voice" ? "Voice Mode" : "Text Mode";
       },
       setTextBusy(busy) {
-        if (modeHeader) modeHeader.dataset.textState = busy ? "thinking" : "idle";
+        this.textBusy = Boolean(busy);
+        this.renderTextState();
+      },
+      setTextInput(active) {
+        this.textInputActive = Boolean(active);
+        this.renderTextState();
       }
     };
 
     let dictationSession = null;
     let dictationStarting = false;
+    let dictationTranscriptionController = null;
     function dictationButton() { return document.querySelector('[data-action="voice"]'); }
+    function setDictationVisualState(state = "idle") {
+      const button = dictationButton();
+      if (!button) return;
+      button.dataset.dictationState = state;
+      button.classList.toggle("is-dictating", state === "recording");
+      button.disabled = state === "transcribing";
+      button.setAttribute("aria-pressed", String(state === "recording"));
+      button.setAttribute("aria-label", state === "recording"
+        ? (getLanguage() === "ru" ? "Остановить голосовой ввод" : "Stop voice dictation")
+        : state === "transcribing"
+          ? (getLanguage() === "ru" ? "Распознавание речи" : "Transcribing speech")
+          : (getLanguage() === "ru" ? "Голосовой ввод" : "Voice dictation"));
+    }
     function releaseDictationStream(session) {
       clearTimeout(session?.timeout);
       session?.stream?.getTracks?.().forEach((track) => track.stop());
-      const button = dictationButton();
-      button?.classList.remove("is-dictating");
-      button?.setAttribute("aria-pressed", "false");
     }
-    async function uploadDictation(blob) {
+    async function uploadDictation(blob, signal) {
       if (!blob?.size) return;
       const headers = await backendAuthHeaders();
       if (!headers.Authorization) throw new Error("AUTH_REQUIRED");
       const form = new FormData();
       form.append("audio", blob, blob.type.includes("ogg") ? "dictation.ogg" : "dictation.webm");
       form.append("language", getLanguage());
-      const response = await fetch(`${API_BASE_URL}/api/voice/transcribe`, { method: "POST", headers, body: form, cache: "no-store" });
+      const response = await fetch(`${API_BASE_URL}/api/voice/transcribe`, { method: "POST", headers, body: form, cache: "no-store", signal });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.detail || `Dictation returned ${response.status}`);
       const text = String(payload.text || "").trim();
@@ -4098,14 +4122,20 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     }
     function stopDictation({ submit = true } = {}) {
       const session = dictationSession;
-      if (!session) return Promise.resolve(false);
+      if (!session) {
+        if (!submit && dictationTranscriptionController) {
+          dictationTranscriptionController.abort();
+          return Promise.resolve(true);
+        }
+        return Promise.resolve(false);
+      }
       session.submit = submit;
       if (session.recorder.state !== "inactive") session.recorder.stop();
       return session.done;
     }
     async function startDictation() {
       if (dictationSession) return stopDictation({ submit: true });
-      if (dictationStarting) return false;
+      if (dictationStarting || dictationTranscriptionController) return false;
       if (window.PulsVoiceMode?.isSessionActive?.()) return false;
       if (!window.pulsCurrentUser?.id) { window.openAuthModal?.(); return false; }
       if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
@@ -4126,13 +4156,26 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         recorder.addEventListener("stop", async () => {
           if (dictationSession === session) dictationSession = null;
           releaseDictationStream(session);
+          if (!session.submit) {
+            setDictationVisualState("idle");
+            resolveDone(true);
+            return;
+          }
+          const controller = new AbortController();
+          dictationTranscriptionController = controller;
+          setDictationVisualState("transcribing");
           try {
-            if (session.submit) await uploadDictation(new Blob(session.chunks, { type: recorder.mimeType || mimeType || "audio/webm" }));
+            await uploadDictation(new Blob(session.chunks, { type: recorder.mimeType || mimeType || "audio/webm" }), controller.signal);
             resolveDone(true);
           } catch (error) {
-            console.warn("PULS dictation failed", { stage: "transcription", name: String(error?.name || "Error") });
-            toast(getLanguage() === "ru" ? "Не удалось распознать речь." : "Speech could not be transcribed.");
+            if (error?.name !== "AbortError") {
+              console.warn("PULS dictation failed", { stage: "transcription", name: String(error?.name || "Error") });
+              toast(getLanguage() === "ru" ? "Не удалось распознать речь." : "Speech could not be transcribed.");
+            }
             resolveDone(false);
+          } finally {
+            if (dictationTranscriptionController === controller) dictationTranscriptionController = null;
+            setDictationVisualState("idle");
           }
         }, { once: true });
         recorder.addEventListener("error", () => {
@@ -4141,23 +4184,23 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           else {
             if (dictationSession === session) dictationSession = null;
             releaseDictationStream(session);
+            setDictationVisualState("idle");
             resolveDone(false);
           }
         }, { once: true });
         recorder.start();
         session.timeout = setTimeout(() => { void stopDictation({ submit: true }); }, 30000);
-        const button = dictationButton();
-        button?.classList.add("is-dictating");
-        button?.setAttribute("aria-pressed", "true");
+        setDictationVisualState("recording");
         return true;
       } catch (error) {
         stream?.getTracks?.().forEach((track) => track.stop());
+        setDictationVisualState("idle");
         console.warn("PULS dictation microphone failed", { name: String(error?.name || "Error") });
         toast(getLanguage() === "ru" ? "Разрешите доступ к микрофону." : "Allow microphone access for dictation.");
         return false;
       } finally { dictationStarting = false; }
     }
-    window.PulsDictation = { toggle: startDictation, cancel: () => stopDictation({ submit: false }), isActive: () => Boolean(dictationSession) };
+    window.PulsDictation = { toggle: startDictation, cancel: () => stopDictation({ submit: false }), isActive: () => Boolean(dictationSession || dictationTranscriptionController) };
 
     window.PulsVoiceBridge = {
       async prepareTurn() {

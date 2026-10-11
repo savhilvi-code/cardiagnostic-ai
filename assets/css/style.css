@@ -2341,6 +2341,72 @@ body.assistant-mode .assistant-right {
   font-size: 21px;
 }
 
+.voice-btn-mic { display: inline; }
+.voice-btn-stop,
+.puls-dictation-audiogram { display: none; }
+
+.voice-btn[data-dictation-state="recording"],
+.voice-btn[data-dictation-state="transcribing"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.voice-btn[data-dictation-state="recording"] .voice-btn-mic,
+.voice-btn[data-dictation-state="transcribing"] .voice-btn-mic { display: none; }
+
+.voice-btn[data-dictation-state="recording"] .voice-btn-stop,
+.voice-btn[data-dictation-state="transcribing"] .voice-btn-stop {
+  display: block;
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 1px;
+  background: currentColor;
+}
+
+.puls-dictation-audiogram {
+  width: 18px;
+  height: 14px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.voice-btn[data-dictation-state="recording"] .puls-dictation-audiogram,
+.voice-btn[data-dictation-state="transcribing"] .puls-dictation-audiogram { display: inline-flex; }
+
+.puls-dictation-audiogram i {
+  width: 2px;
+  height: 5px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: .55;
+}
+
+.voice-btn[data-dictation-state="recording"] { color: #43bfff; }
+.voice-btn[data-dictation-state="recording"] .puls-dictation-audiogram i {
+  animation: puls-voice-header-listening 1.05s ease-in-out infinite;
+}
+
+.voice-btn[data-dictation-state="transcribing"] {
+  color: #ff9a32;
+  cursor: wait;
+  opacity: 1;
+}
+.voice-btn[data-dictation-state="transcribing"] .puls-dictation-audiogram i {
+  animation: puls-voice-header-thinking 1.2s ease-in-out infinite;
+}
+
+.puls-dictation-audiogram i:nth-child(2) { animation-delay: -.18s !important; }
+.puls-dictation-audiogram i:nth-child(3) { animation-delay: -.36s !important; }
+.puls-dictation-audiogram i:nth-child(4) { animation-delay: -.54s !important; }
+.puls-dictation-audiogram i:nth-child(5) { animation-delay: -.72s !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .puls-dictation-audiogram i { animation: none !important; height: 6px; }
+}
+
 .send {
   background: linear-gradient(180deg, #087dff, #064bc2) !important;
   border-color: var(--blue) !important;
