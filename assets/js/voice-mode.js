@@ -109,9 +109,16 @@
     return {width:resolvedWidth,height:resolvedHeight,cx:resolvedWidth*.5,cy:resolvedHeight*.47};
   }
   const voiceNavigationTargets=Object.freeze({
-    workspace:'conversation',vehicle:'car',technical_data:'technicalData',vehicle_history:'vehicleHistory',
+    workspace:'conversation',vehicle:'car',my_vehicle:'car',technical_data:'technicalData',vehicle_history:'vehicleHistory',
     repairs:'repairs',maintenance:'maintenance',active_problems:'activeProblems'
   });
+  const voiceNavigationActions=new Set([
+    ...Object.keys(voiceNavigationTargets),'back','voice_interface'
+  ]);
+  function validatedVoiceNavigationAction(action){
+    const normalized=String(action||'');
+    return voiceNavigationActions.has(normalized)?normalized:null;
+  }
   function voiceNavigationPlan(action,current='conversation',history=[]){
     const safeHistory=Array.isArray(history)?history.filter(Boolean):[];
     if(action==='back'){
@@ -143,7 +150,10 @@
   };
   window.PulsVoiceIdle={shouldEnter:shouldEnterVoiceIdle};
   window.PulsVoiceLayout={geometry:voiceViewportGeometry};
-  window.PulsVoiceNavigation={plan:voiceNavigationPlan,targets:voiceNavigationTargets,coordinate:coordinateVoiceNavigation};
+  window.PulsVoiceNavigation={
+    plan:voiceNavigationPlan,targets:voiceNavigationTargets,coordinate:coordinateVoiceNavigation,
+    validateAction:validatedVoiceNavigationAction
+  };
 
   const root = document.getElementById('pulsVoiceMode');
   const canvas = document.getElementById('pulsVoiceCanvas');
@@ -187,6 +197,8 @@
   let statusTimer=0;
   let greetingManifestPromise=null;
   const greetingManifestUrl='assets/audio/voice-greetings/manifest.v1.json';
+  let navigationAcknowledgementManifestPromise=null;
+  const navigationAcknowledgementManifestUrl='assets/audio/voice-acknowledgements/manifest.v1.json';
   const recorderLifecycle=createRecorderLifecycle({
     createRecorder(stream,mimeType){return new MediaRecorder(stream,mimeType?{mimeType}:undefined);},
     onBlob(blob,{epoch}){
@@ -1500,6 +1512,35 @@
     return (await response.json()).audio||null;
   }
 
+  function navigationAssetAction(action){
+    return action==='vehicle'?'my_vehicle':action;
+  }
+
+  async function cachedNavigationAcknowledgementSource(navigation,language){
+    try{
+      navigationAcknowledgementManifestPromise??=fetch(navigationAcknowledgementManifestUrl,{cache:'no-cache'})
+        .then(response=>response.ok?response.json():null)
+        .catch(()=>null);
+      const manifest=await navigationAcknowledgementManifestPromise;
+      const locale=String(language||'').toLowerCase().startsWith('ru')?'ru':'en';
+      const action=navigationAssetAction(validatedVoiceNavigationAction(navigation?.action));
+      const entry=action?manifest?.acknowledgements?.[locale]?.[action]:null;
+      if(manifest?.voice!=='marin'||entry?.available!==true||!entry?.file)return null;
+      const response=await fetch(`assets/audio/voice-acknowledgements/${encodeURIComponent(entry.file)}`,{cache:'force-cache'});
+      if(!response.ok)return null;
+      const blob=await response.blob();
+      if(!blob.size)return null;
+      return URL.createObjectURL(blob);
+    }catch{return null;}
+  }
+
+  async function prepareNavigationAcknowledgement(navigation,turn,payloadAudio){
+    const source=await cachedNavigationAcknowledgementSource(navigation,turn.language||voiceLanguage());
+    if(source)return {source,revoke:true};
+    const audio=payloadAudio||await requestNavigationAcknowledgement(navigation,turn);
+    return audio?{audio}:null;
+  }
+
   async function cachedGreetingSource(language){
     try{
       // Revalidate the tiny version manifest; the versioned MP3 itself remains
@@ -1575,16 +1616,19 @@
         await coordinateVoiceNavigation(payload.navigation,{
           dispatch:dispatchVoiceNavigation,
           prepareAudio:async()=>{
-            try{return payload.audio||await requestNavigationAcknowledgement(payload.navigation,turn);}
+            try{return await prepareNavigationAcknowledgement(payload.navigation,turn,payload.audio);}
             catch{
               console.warn('PULS voice pipeline failure',{stage:'navigation_acknowledgement'});
               notifyVoice(voiceMessage('playback'));
               return null;
             }
           },
-          playAudio:audio=>{
+          playAudio:prepared=>{
             if(epoch!==voiceSessionEpoch||!active||!voiceSessionActive)return false;
-            return playVoiceResponse(audio,epoch).catch(()=>{
+            const playback=prepared?.source
+              ?playAudioSource(prepared.source,epoch,{revoke:prepared.revoke===true})
+              :playVoiceResponse(prepared?.audio,epoch);
+            return playback.catch(()=>{
               console.warn('PULS voice pipeline failure',{stage:'navigation_playback'});
               notifyVoice(voiceMessage('playback'));
             });
@@ -1828,17 +1872,22 @@
   }
 
   function dispatchVoiceNavigation(navigation){
+    const action=validatedVoiceNavigationAction(navigation?.action);
+    if(!action){
+      notifyVoice(voiceMessage('navigationUnavailable'));
+      return {started:false,completion:Promise.resolve(false)};
+    }
     if(navigation?.available===false){
       notifyVoice(navigation.failure_message||voiceMessage('navigationUnavailable'));
       return {started:false,completion:Promise.resolve(false)};
     }
-    if(navigation?.action==='voice_interface'){
+    if(action==='voice_interface'){
       if(!workspaceVisible||transitionActive)return {started:true,completion:Promise.resolve(true)};
       const voiceReady=waitForWorkspaceState(false);
       hideWorkspace();
       return {started:true,completion:voiceReady};
     }
-    const plan=voiceNavigationPlan(navigation?.action,voiceWorkspaceTarget,voiceWorkspaceHistory);
+    const plan=voiceNavigationPlan(action,voiceWorkspaceTarget,voiceWorkspaceHistory);
     if(!plan.target){
       notifyVoice(voiceMessage('navigationUnavailable'));
       return {started:false,completion:Promise.resolve(false)};

@@ -62,6 +62,9 @@ navigationState=navigation.plan('back',navigationState.current,navigationState.h
 assert.equal(navigationState.target,'car');
 assert.deepEqual(navigationState.history,['conversation']);
 assert.equal(navigation.plan('unsupported','car',[]).target,null);
+assert.equal(navigation.plan('my_vehicle','conversation',[]).target,'car');
+assert.equal(navigation.validateAction('my_vehicle'),'my_vehicle');
+assert.equal(navigation.validateAction('javascript:alert(1)'),null,"unknown model actions must be rejected");
 
 let finishTransition;
 let finishAudio;
@@ -132,6 +135,7 @@ const modeSelectionSource=readFileSync(new URL("./assets/js/mode-selection.js",i
 const styleSource=readFileSync(new URL("./assets/css/style.css",import.meta.url),"utf8");
 const voiceStyleSource=readFileSync(new URL("./assets/css/voice-mode.css",import.meta.url),"utf8");
 const greetingManifest=JSON.parse(readFileSync(new URL("./assets/audio/voice-greetings/manifest.v1.json",import.meta.url),"utf8"));
+const navigationManifest=JSON.parse(readFileSync(new URL("./assets/audio/voice-acknowledgements/manifest.v1.json",import.meta.url),"utf8"));
 assert.match(voiceSource,/pulsVoiceStatus/);
 assert.doesNotMatch(appSource,/showGreeting\s*\(/,"the fixed greeting must not enter the main message workspace");
 assert.equal(greetingManifest.available,true,"the two prerecorded greeting assets are active");
@@ -149,13 +153,15 @@ assert.match(voiceSource,/is-pending/);
 assert.match(voiceStyleSource,/\.puls-voice-control\.is-pending::before/);
 assert.match(voiceStyleSource,/0 0 34px rgba\(8, 108, 255, \.28\)/);
 assert.match(voiceStyleSource,/body\.voice-workspace-visible \.puls-voice-header-label/);
+assert.match(voiceStyleSource,/grid-template-columns:\s*minmax\(0, 1fr\) auto minmax\(0, 1fr\)/,"voice header uses symmetric side tracks for geometric centering");
+assert.match(voiceStyleSource,/body\.voice-workspace-visible \.puls-voice-header-label\s*\{[^}]*position:\s*static/s);
 assert.doesNotMatch(voiceStyleSource,/body\.voice-workspace-mode #app > \.topbar/,"existing header must remain available in Voice workspace");
 assert.match(voiceSource,/if\(workspaceVisible&&!transitionActive\)/,"subsequent navigation must not replay State 7");
 assert.match(voiceSource,/waitForWorkspaceState\(true\)/,"first navigation must wait for the existing State 7 reveal");
 assert.match(voiceSource,/if\(payload\.navigation\)/,"frontend must consume the backend navigation response field");
 assert.match(voiceSource,/dispatch:dispatchVoiceNavigation/,"backend navigation must reach the workspace dispatcher");
 assert.match(voiceSource,/await workspaceReady;[\s\S]*?PulsWorkspace\?\.show\?\.\(target\)/,"first target must be applied after State 7 completes");
-assert.match(voiceSource,/navigation\?\.action==='voice_interface'[\s\S]*?waitForWorkspaceState\(false\)[\s\S]*?hideWorkspace\(\)/,"return-to-voice must use the existing reverse State 7 lifecycle");
+assert.match(voiceSource,/action==='voice_interface'[\s\S]*?waitForWorkspaceState\(false\)[\s\S]*?hideWorkspace\(\)/,"return-to-voice must use the existing reverse State 7 lifecycle");
 assert.match(voiceSource,/const transitionDuration = 2400/,"approved State 7 duration must remain unchanged");
 assert.match(voiceSource,/workspaceTimer=setTimeout\([\s\S]*?3000\)/,"approved State 7 start timing must remain unchanged");
 assert.match(voiceSource,/if\(voiceSessionActive\)return/,"navigation must not create a duplicate microphone session");
@@ -182,5 +188,11 @@ assert.match(voiceSource,/setState\('thinking'\)/);
 assert.match(voiceSource,/setState\('responding'\)/);
 assert.match(voiceSource,/processingUtterance=false;vadGate\.reset\(\);settleVoiceListeningState\(\)/);
 assert.doesNotMatch(voiceSource,/blob\.size<512[\s\S]{0,160}notifyVoice/,"local silence must not show a warning");
+assert.equal(navigationManifest.voice,'marin');
+assert.equal(navigationManifest.acknowledgements.ru.my_vehicle.text,'Открываю автомобиль.');
+assert.equal(navigationManifest.acknowledgements.en.voice_interface.text,'Returning.');
+assert.equal(navigationManifest.acknowledgements.ru.workspace.available,false,"missing paid assets must be declared unavailable");
+assert.match(voiceSource,/entry\?\.available!==true\|\|!entry\?\.file/);
+assert.match(voiceSource,/payloadAudio\|\|await requestNavigationAcknowledgement/,"missing cached assets must use runtime TTS fallback");
 
 console.log("voice-mode VAD, recorder, error UI and greeting isolation checks passed");

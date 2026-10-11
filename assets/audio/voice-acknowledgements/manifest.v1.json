@@ -1,0 +1,28 @@
+{
+  "asset_version": "navigation-acknowledgements-v1",
+  "voice": "marin",
+  "acknowledgements": {
+    "ru": {
+      "workspace": {"text": "Открываю.", "available": false, "file": null},
+      "my_vehicle": {"text": "Открываю автомобиль.", "available": false, "file": null},
+      "technical_data": {"text": "Открываю технические данные.", "available": false, "file": null},
+      "vehicle_history": {"text": "Открываю историю.", "available": false, "file": null},
+      "repairs": {"text": "Показываю ремонты.", "available": false, "file": null},
+      "maintenance": {"text": "Показываю обслуживание.", "available": false, "file": null},
+      "active_problems": {"text": "Показываю активные проблемы.", "available": false, "file": null},
+      "back": {"text": "Возвращаюсь назад.", "available": false, "file": null},
+      "voice_interface": {"text": "Возвращаюсь.", "available": false, "file": null}
+    },
+    "en": {
+      "workspace": {"text": "Opening.", "available": false, "file": null},
+      "my_vehicle": {"text": "Opening your vehicle.", "available": false, "file": null},
+      "technical_data": {"text": "Opening technical data.", "available": false, "file": null},
+      "vehicle_history": {"text": "Opening history.", "available": false, "file": null},
+      "repairs": {"text": "Showing repairs.", "available": false, "file": null},
+      "maintenance": {"text": "Showing maintenance.", "available": false, "file": null},
+      "active_problems": {"text": "Showing active problems.", "available": false, "file": null},
+      "back": {"text": "Going back.", "available": false, "file": null},
+      "voice_interface": {"text": "Returning.", "available": false, "file": null}
+    }
+  }
+}

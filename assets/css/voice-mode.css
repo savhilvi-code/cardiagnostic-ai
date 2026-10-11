@@ -39,6 +39,45 @@ body.voice-workspace-visible .puls-voice-header-label {
   display: inline-flex;
 }
 
+body.voice-workspace-visible .topbar-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+}
+
+body.voice-workspace-visible .brand-nav-toggle {
+  min-width: 0;
+  max-width: 100%;
+  justify-self: start;
+}
+
+body.voice-workspace-visible .puls-voice-header-label {
+  position: static;
+  grid-column: 2;
+  justify-self: center;
+  transform: none;
+}
+
+body.voice-workspace-visible .system-pill {
+  min-width: 0;
+  max-width: 100%;
+  justify-self: end;
+}
+
+@media (max-width: 600px) {
+  body.voice-workspace-visible .puls-voice-header-label {
+    gap: 5px;
+    font-size: 12px;
+  }
+
+  body.voice-workspace-visible .puls-voice-header-audiogram {
+    width: 22px;
+  }
+
+  body.voice-workspace-visible .puls-voice-header-audiogram i {
+    width: 2px;
+  }
+}
+
 .puls-voice-header-audiogram {
   display: inline-flex;
   width: 27px;
