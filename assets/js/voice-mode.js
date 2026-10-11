@@ -85,8 +85,8 @@
   }
   function startupGreeting(language='en'){
     return String(language).toLowerCase().startsWith('ru')
-      ? 'Привет! Я Пульс, твой автомобильный помощник. Хочешь, расскажу, чем я могу тебе помочь?'
-      : "Hi! I'm PULS, your automotive assistant. Want me to tell you what I can help you with?";
+      ? 'Привет! Пульс на связи. Как твои дела?'
+      : 'Hi! PULS here. How are you doing?';
   }
   // A pure seam used by the focused VAD regression test.
   window.PulsVoiceVad={createVadGate};
@@ -105,6 +105,8 @@
   const ctx = canvas.getContext('2d');
   let transitionProgress = 0, transitionTarget = 0, transitionLast = 0;
   let transitionActive = false;
+  let pendingVoiceStart = false;
+  let pendingTextExit = false;
   const transitionDuration = 2400;
   let active = false;
   let running = false;
@@ -126,6 +128,8 @@
   let startupGreetingPlayed = false;
   const vadGate=createVadGate();
   let statusTimer=0;
+  let greetingManifestPromise=null;
+  const greetingManifestUrl='assets/audio/voice-greetings/manifest.v1.json';
   const recorderLifecycle=createRecorderLifecycle({
     createRecorder(stream,mimeType){return new MediaRecorder(stream,mimeType?{mimeType}:undefined);},
     onBlob(blob,{epoch}){
@@ -1253,6 +1257,14 @@
           stateSince=time-2000;
         }
         window.dispatchEvent(new CustomEvent('puls-voice-workspace-change',{detail:{open:workspaceVisible}}));
+        if(workspaceVisible&&pendingTextExit){
+          finishTextModeTransition();
+          return;
+        }
+        if(!workspaceVisible&&pendingVoiceStart){
+          pendingVoiceStart=false;
+          void startVoiceSession();
+        }
       }
       animationFrame=requestAnimationFrame(tick);return;
     }
@@ -1373,8 +1385,7 @@
     return data?`data:${type};base64,${data}`:'';
   }
 
-  async function playVoiceResponse(audio,epoch){
-    const source=base64AudioUrl(audio);
+  async function playAudioSource(source,epoch,{revoke=false}={}){
     if(!source)return false;
     const element=new Audio(source);
     currentPlayback=element;
@@ -1395,8 +1406,32 @@
       if(visualConnected)window.PULSVoiceVisual.disconnectAudioElement?.(element);
       if(currentPlayback===element)currentPlayback=null;
       element.removeAttribute('src');element.load();
+      if(revoke)URL.revokeObjectURL(source);
       if(epoch===voiceSessionEpoch)window.PULSVoiceVisual.setAudioLevel('responding',0);
     }
+  }
+
+  function playVoiceResponse(audio,epoch){
+    return playAudioSource(base64AudioUrl(audio),epoch);
+  }
+
+  async function cachedGreetingSource(language){
+    try{
+      // Revalidate the tiny version manifest; the versioned MP3 itself remains
+      // force-cached. A voice change is published as a new manifest URL.
+      greetingManifestPromise??=fetch(greetingManifestUrl,{cache:'no-cache'})
+        .then(response=>response.ok?response.json():null)
+        .catch(()=>null);
+      const manifest=await greetingManifestPromise;
+      const entry=manifest?.available===true?manifest?.greetings?.[language]:null;
+      if(!entry?.file||entry.text!==startupGreeting(language))return null;
+      const response=await fetch(`assets/audio/voice-greetings/${encodeURIComponent(entry.file)}`,{cache:'force-cache'});
+      if(!response.ok)return null;
+      const blob=await response.blob();
+      if(!blob.size)return null;
+      console.info('PULS voice pipeline',{stage:'greeting_cache',assetVersion:manifest.asset_version,voice:manifest.voice});
+      return URL.createObjectURL(blob);
+    }catch{return null;}
   }
 
   async function playStartupGreeting(epoch){
@@ -1407,6 +1442,13 @@
     showVoiceStatus(startupGreeting(language),'greeting',{persistent:true});
     try{
       if(!bridge)throw new Error('VOICE_BRIDGE_UNAVAILABLE');
+      const cachedSource=await cachedGreetingSource(language);
+      if(cachedSource){
+        if(epoch===voiceSessionEpoch&&active&&voiceSessionActive){
+          await playAudioSource(cachedSource,epoch,{revoke:true});
+        }else URL.revokeObjectURL(cachedSource);
+        return;
+      }
       const turn=await bridge.prepareTurn();
       const form=new FormData();
       form.append('language',language);
@@ -1570,40 +1612,8 @@
     workspace.inert=false;
   }
 
-  function open({source='unknown'}={}){
-    if(active){revealControls();if(!voiceSessionActive)void startVoiceSession();return;}
-    active=true;
-    startupGreetingPlayed=false;
-    root.hidden=false;
-    root.setAttribute('aria-hidden','false');
-    root.dataset.source=source;
-    root.style.backgroundColor='#00030a';
-    document.body.classList.add('voice-mode-active');
-    window.PulsModeSelection?.hide?.();
-    workspace.inert=true;
-    workspace.setAttribute('aria-hidden','true');
-    workspace.style.opacity='0';
-    workspace.style.clipPath='inset(50% 0 50% 0)';
-    workspace.style.webkitClipPath=workspace.style.clipPath;
-    voiceSessionActive=false;
-    updateToggleControl();
-    controls.classList.remove('is-visible');
-    resize();
-    previousState=null;
-    state='summon';
-    stateSince=performance.now();
-    blendStarted=stateSince;
-    lastSpatialSmoothFrame=0;
-    running=true;
-    cancelAnimationFrame(animationFrame);
-    animationFrame=requestAnimationFrame(tick);
-    window.dispatchEvent(new CustomEvent('puls-voice-mode-change',{detail:{active:true,source}}));
-    void startVoiceSession();
-  }
-
-  function closeToText(){
-    if(!active)return;
-    stopVoiceSession({standby:false});
+  function finishTextModeTransition(){
+    pendingTextExit=false;pendingVoiceStart=false;
     active=false;running=false;
     clearTimeout(controlsTimer);clearTimeout(workspaceTimer);
     cancelAnimationFrame(animationFrame);
@@ -1612,8 +1622,63 @@
     controls.classList.remove('is-visible');
     root.hidden=true;
     root.setAttribute('aria-hidden','true');
-    window.PulsWorkspace?.show?.({view:'assistant'});
     window.dispatchEvent(new CustomEvent('puls-voice-mode-change',{detail:{active:false,source:'keyboard'}}));
+  }
+
+  function open({source='unknown'}={}){
+    if(active){
+      revealControls();
+      if(pendingTextExit)return;
+      if(workspaceVisible&&!transitionActive)hideWorkspace();
+      else if(!transitionActive&&!voiceSessionActive)void startVoiceSession();
+      return;
+    }
+    active=true;
+    startupGreetingPlayed=false;
+    root.hidden=false;
+    root.setAttribute('aria-hidden','false');
+    root.dataset.source=source;
+    root.style.backgroundColor='#00030a';
+    document.body.classList.add('voice-mode-active','voice-workspace-mode');
+    window.PulsModeSelection?.hide?.();
+    workspace.inert=true;
+    workspace.setAttribute('aria-hidden','false');
+    workspace.style.opacity='1';
+    workspace.style.clipPath='inset(0 0 0 0)';
+    workspace.style.webkitClipPath=workspace.style.clipPath;
+    workspace.style.transform='scaleX(1)';
+    voiceSessionActive=false;
+    updateToggleControl();
+    controls.classList.remove('is-visible');
+    resize();
+    previousState=null;
+    state='disappearing';
+    stateBeforeWorkspace='summon';
+    stateSince=performance.now();
+    blendStarted=stateSince;
+    lastSpatialSmoothFrame=0;
+    running=true;
+    workspaceVisible=true;
+    pendingTextExit=false;
+    pendingVoiceStart=true;
+    transitionProgress=1;transitionTarget=0;transitionLast=0;transitionActive=true;
+    root.classList.add('is-workspace-visible');
+    cancelAnimationFrame(animationFrame);
+    animationFrame=requestAnimationFrame(tick);
+    window.dispatchEvent(new CustomEvent('puls-voice-mode-change',{detail:{active:true,source}}));
+  }
+
+  function closeToText(){
+    if(!active||pendingTextExit)return;
+    stopVoiceSession({standby:false});
+    pendingVoiceStart=false;
+    if(workspaceVisible&&!transitionActive){
+      finishTextModeTransition();
+      window.PulsWorkspace?.show?.({view:'assistant'});
+      return;
+    }
+    pendingTextExit=true;
+    void showWorkspace({view:'assistant'});
   }
 
   async function showWorkspace(target={view:'assistant'}){

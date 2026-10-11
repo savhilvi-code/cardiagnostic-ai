@@ -4805,6 +4805,13 @@ body.assistant-mode.chat-active .assistant-chat {
   padding-top: 0 !important;
 }
 
+/* At the true chat start, clear the overlay header; this padding scrolls
+   away with the messages and does not alter the existing header gestures. */
+body.assistant-mode.chat-active .messages {
+  padding-top: var(--puls-readable-top-inset) !important;
+  scroll-padding-top: var(--puls-readable-top-inset) !important;
+}
+
 /* One quota component: centered dialog on wide layouts, bottom sheet on phones. */
 .request-limit-modal {
   position: fixed;

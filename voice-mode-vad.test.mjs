@@ -19,11 +19,11 @@ assert.equal(gate.sample(0.06, 32050), "end", "a bounded utterance prevents endl
 
 assert.equal(
   window.PulsVoiceGreeting.text("ru"),
-  "Привет! Я Пульс, твой автомобильный помощник. Хочешь, расскажу, чем я могу тебе помочь?"
+  "Привет! Пульс на связи. Как твои дела?"
 );
 assert.equal(
   window.PulsVoiceGreeting.text("en"),
-  "Hi! I'm PULS, your automotive assistant. Want me to tell you what I can help you with?"
+  "Hi! PULS here. How are you doing?"
 );
 
 class FakeRecorder {
@@ -68,8 +68,18 @@ assert.equal(canceled.length,0,"cancellation discards stale audio");
 
 const voiceSource=readFileSync(new URL("./assets/js/voice-mode.js",import.meta.url),"utf8");
 const appSource=readFileSync(new URL("./assets/js/app.js",import.meta.url),"utf8");
+const styleSource=readFileSync(new URL("./assets/css/style.css",import.meta.url),"utf8");
+const greetingManifest=JSON.parse(readFileSync(new URL("./assets/audio/voice-greetings/manifest.v1.json",import.meta.url),"utf8"));
 assert.match(voiceSource,/pulsVoiceStatus/);
 assert.doesNotMatch(appSource,/showGreeting\s*\(/,"the fixed greeting must not enter the main message workspace");
+assert.equal(greetingManifest.available,false,"paid greeting generation remains an explicit one-time action");
+assert.equal(greetingManifest.greetings.ru.text,window.PulsVoiceGreeting.text("ru"));
+assert.equal(greetingManifest.greetings.en.text,window.PulsVoiceGreeting.text("en"));
+assert.match(voiceSource,/greetingManifestUrl='assets\/audio\/voice-greetings\/manifest\.v1\.json'/);
+assert.match(voiceSource,/workspaceVisible&&pendingTextExit/);
+assert.match(voiceSource,/!workspaceVisible&&pendingVoiceStart/);
+assert.match(voiceSource,/transitionProgress=1;transitionTarget=0/);
+assert.match(styleSource,/body\.assistant-mode\.chat-active \.messages\s*\{[^}]*padding-top:\s*var\(--puls-readable-top-inset\)/s);
 assert.match(voiceSource,/setState\('thinking'\)/);
 assert.match(voiceSource,/setState\('responding'\)/);
 assert.match(voiceSource,/processingUtterance=false;vadGate\.reset\(\);setState\('listening'\)/);

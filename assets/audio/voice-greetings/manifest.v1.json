@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "asset_version": "v1",
+  "available": false,
+  "tts_model": "gpt-4o-mini-tts",
+  "voice": null,
+  "greetings": {
+    "ru": {
+      "text": "Привет! Пульс на связи. Как твои дела?",
+      "file": null
+    },
+    "en": {
+      "text": "Hi! PULS here. How are you doing?",
+      "file": null
+    }
+  }
+}
