@@ -26,6 +26,18 @@ assert.equal(
   "Hi! PULS here. How are you doing?"
 );
 
+const stateSeven=window.PulsVoiceStateSeven;
+assert.equal(stateSeven.workspaceCollapseComplete,.66);
+for(let progress=.67;progress<=1;progress+=.01){
+  assert.ok(stateSeven.workspaceOpen(progress)>0);
+  assert.equal(stateSeven.beamGate(progress,0),0,"Text → Voice beam must remain hidden while workspace is open");
+}
+assert.equal(stateSeven.workspaceOpen(.66),0);
+assert.equal(stateSeven.beamGate(.66,0),0,"beam reveal starts only at collapse completion");
+assert.ok(stateSeven.beamGate(.65,0)>0,"beam reveals immediately after collapse on the reverse timeline");
+assert.equal(stateSeven.beamGate(.60,0),1);
+assert.equal(stateSeven.beamGate(.80,1),1,"Voice → Text timing remains unchanged");
+
 class FakeRecorder {
   constructor(){this.mimeType="audio/webm;codecs=opus";this.state="inactive";this.listeners=new Map();}
   addEventListener(type,callback){this.listeners.set(type,callback);}

@@ -88,10 +88,27 @@
       ? 'Привет! Пульс на связи. Как твои дела?'
       : 'Hi! PULS here. How are you doing?';
   }
+  const stateSevenWorkspaceCollapseComplete=.66;
+  function stateSevenSmoothstep(edge0,edge1,value){
+    const unit=Math.max(0,Math.min(1,(value-edge0)/(edge1-edge0)));
+    return unit*unit*(3-2*unit);
+  }
+  function stateSevenWorkspaceOpen(progress){
+    return stateSevenSmoothstep(stateSevenWorkspaceCollapseComplete,.99,progress);
+  }
+  function stateSevenBeamGate(progress,target){
+    if(target!==0)return 1;
+    return 1-stateSevenSmoothstep(.60,stateSevenWorkspaceCollapseComplete,progress);
+  }
   // A pure seam used by the focused VAD regression test.
   window.PulsVoiceVad={createVadGate};
   window.PulsVoiceGreeting={text:startupGreeting};
   window.PulsVoiceRecorder={createLifecycle:createRecorderLifecycle};
+  window.PulsVoiceStateSeven={
+    workspaceCollapseComplete:stateSevenWorkspaceCollapseComplete,
+    workspaceOpen:stateSevenWorkspaceOpen,
+    beamGate:stateSevenBeamGate
+  };
 
   const root = document.getElementById('pulsVoiceMode');
   const canvas = document.getElementById('pulsVoiceCanvas');
@@ -1179,7 +1196,7 @@
       ctx.fillStyle=halo;ctx.fillRect(CX-flashRadius,CY-flashRadius,flashRadius*2,flashRadius*2);
       ctx.shadowColor='#26dcff';ctx.shadowBlur=20+burst*42;ctx.fillStyle=`rgba(205,245,255,${Math.min(1,coreVisibility+burst*.8)})`;ctx.beginPath();ctx.arc(CX,CY,2.7+burst*4.5,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
     }
-    const lineOpacity=smoothstep(.49,.60,p)*(1-smoothstep(.79,.99,p));
+    const lineOpacity=smoothstep(.49,.60,p)*(1-smoothstep(.79,.99,p))*stateSevenBeamGate(p,transitionTarget);
     if(lineOpacity>0){
       const halfWidth=W*.56*linePhase;
       const grad=ctx.createLinearGradient(CX-halfWidth,CY,CX+halfWidth,CY);
@@ -1197,7 +1214,7 @@
     // The WORKSPACE ITSELF folds into the central horizontal slit.
     // On reverse playback: full page -> compressed horizontal slit -> point -> voice grid.
     // Clip the actual DOM page rather than merely fading it out.
-    const open=smoothstep(.66,.99,p);
+    const open=stateSevenWorkspaceOpen(p);
     const halfHeight=50*open;
     workspace.style.clipPath=`inset(${(50-halfHeight).toFixed(3)}% 0 ${(50-halfHeight).toFixed(3)}% 0)`;
     workspace.style.webkitClipPath=workspace.style.clipPath;
