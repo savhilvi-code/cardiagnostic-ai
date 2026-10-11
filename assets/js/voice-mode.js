@@ -125,6 +125,13 @@
     if(target===current)return {target,current,history:safeHistory};
     return {target,current:target,history:[...safeHistory,current].filter(Boolean).slice(-12)};
   }
+  async function coordinateVoiceNavigation(navigation,{dispatch,prepareAudio,playAudio}){
+    const run=dispatch(navigation);
+    if(!run?.started)return false;
+    const audioTask=Promise.resolve().then(prepareAudio).then(audio=>audio?playAudio(audio):false);
+    await Promise.allSettled([run.completion,audioTask]);
+    return true;
+  }
   // A pure seam used by the focused VAD regression test.
   window.PulsVoiceVad={createVadGate};
   window.PulsVoiceGreeting={text:startupGreeting};
@@ -136,7 +143,7 @@
   };
   window.PulsVoiceIdle={shouldEnter:shouldEnterVoiceIdle};
   window.PulsVoiceLayout={geometry:voiceViewportGeometry};
-  window.PulsVoiceNavigation={plan:voiceNavigationPlan,targets:voiceNavigationTargets};
+  window.PulsVoiceNavigation={plan:voiceNavigationPlan,targets:voiceNavigationTargets,coordinate:coordinateVoiceNavigation};
 
   const root = document.getElementById('pulsVoiceMode');
   const canvas = document.getElementById('pulsVoiceCanvas');
@@ -1565,14 +1572,24 @@
       }
       lastGenuineActivityAt=performance.now();
       if(payload.navigation){
-        const navigated=await dispatchVoiceNavigation(payload.navigation);
-        if(!navigated)return;
-        if(epoch!==voiceSessionEpoch||!active||!voiceSessionActive)return;
-        try{
-          const acknowledgementAudio=payload.audio||await requestNavigationAcknowledgement(payload.navigation,turn);
-          if(acknowledgementAudio)await playVoiceResponse(acknowledgementAudio,epoch);
-        }
-        catch{console.warn('PULS voice pipeline failure',{stage:'navigation_playback'});notifyVoice(voiceMessage('playback'));}
+        await coordinateVoiceNavigation(payload.navigation,{
+          dispatch:dispatchVoiceNavigation,
+          prepareAudio:async()=>{
+            try{return payload.audio||await requestNavigationAcknowledgement(payload.navigation,turn);}
+            catch{
+              console.warn('PULS voice pipeline failure',{stage:'navigation_acknowledgement'});
+              notifyVoice(voiceMessage('playback'));
+              return null;
+            }
+          },
+          playAudio:audio=>{
+            if(epoch!==voiceSessionEpoch||!active||!voiceSessionActive)return false;
+            return playVoiceResponse(audio,epoch).catch(()=>{
+              console.warn('PULS voice pipeline failure',{stage:'navigation_playback'});
+              notifyVoice(voiceMessage('playback'));
+            });
+          }
+        });
         return;
       }
       await bridge.completeTurn(payload,turn.owner);
@@ -1810,33 +1827,32 @@
     return true;
   }
 
-  async function dispatchVoiceNavigation(navigation){
+  function dispatchVoiceNavigation(navigation){
     if(navigation?.available===false){
       notifyVoice(navigation.failure_message||voiceMessage('navigationUnavailable'));
-      return false;
+      return {started:false,completion:Promise.resolve(false)};
     }
     if(navigation?.action==='voice_interface'){
-      if(!workspaceVisible||transitionActive)return true;
+      if(!workspaceVisible||transitionActive)return {started:true,completion:Promise.resolve(true)};
       const voiceReady=waitForWorkspaceState(false);
       hideWorkspace();
-      await voiceReady;
-      return true;
+      return {started:true,completion:voiceReady};
     }
     const plan=voiceNavigationPlan(navigation?.action,voiceWorkspaceTarget,voiceWorkspaceHistory);
     if(!plan.target){
       notifyVoice(voiceMessage('navigationUnavailable'));
-      return false;
+      return {started:false,completion:Promise.resolve(false)};
     }
-    try{
-      await showWorkspace(plan.target);
+    const completion=showWorkspace(plan.target).then(()=>{
       voiceWorkspaceTarget=plan.current;
       voiceWorkspaceHistory=plan.history;
       return true;
-    }catch(error){
+    }).catch(error=>{
       console.warn('PULS voice pipeline failure',{stage:'navigation',action:String(navigation?.action||'')});
       notifyVoice(voiceMessage('navigationUnavailable'));
       return false;
-    }
+    });
+    return {started:true,completion};
   }
 
   function hideWorkspace(){

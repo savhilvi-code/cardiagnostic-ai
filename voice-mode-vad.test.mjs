@@ -63,6 +63,28 @@ assert.equal(navigationState.target,'car');
 assert.deepEqual(navigationState.history,['conversation']);
 assert.equal(navigation.plan('unsupported','car',[]).target,null);
 
+let finishTransition;
+let finishAudio;
+const navigationEvents=[];
+const coordinated=navigation.coordinate({action:'workspace'}, {
+  dispatch(){
+    navigationEvents.push('dispatch');
+    return {started:true,completion:new Promise(resolve=>{finishTransition=resolve;})};
+  },
+  prepareAudio(){
+    navigationEvents.push('prepare-audio');
+    return new Promise(resolve=>{finishAudio=resolve;});
+  },
+  playAudio(){navigationEvents.push('play-audio');return Promise.resolve(true);}
+});
+await Promise.resolve();
+assert.deepEqual(navigationEvents,['dispatch','prepare-audio'],"UI dispatch and acknowledgement preparation must start together");
+finishAudio({data_base64:'mock'});
+await new Promise(resolve=>setTimeout(resolve,0));
+assert.ok(navigationEvents.includes('play-audio'),"acknowledgement playback must not wait for State 7 completion");
+finishTransition(true);
+assert.equal(await coordinated,true);
+
 class FakeRecorder {
   constructor(){this.mimeType="audio/webm;codecs=opus";this.state="inactive";this.listeners=new Map();}
   addEventListener(type,callback){this.listeners.set(type,callback);}
@@ -131,10 +153,12 @@ assert.doesNotMatch(voiceStyleSource,/body\.voice-workspace-mode #app > \.topbar
 assert.match(voiceSource,/if\(workspaceVisible&&!transitionActive\)/,"subsequent navigation must not replay State 7");
 assert.match(voiceSource,/waitForWorkspaceState\(true\)/,"first navigation must wait for the existing State 7 reveal");
 assert.match(voiceSource,/if\(payload\.navigation\)/,"frontend must consume the backend navigation response field");
-assert.match(voiceSource,/await dispatchVoiceNavigation\(payload\.navigation\)/,"backend navigation must reach the workspace dispatcher");
+assert.match(voiceSource,/dispatch:dispatchVoiceNavigation/,"backend navigation must reach the workspace dispatcher");
 assert.match(voiceSource,/await workspaceReady;[\s\S]*?PulsWorkspace\?\.show\?\.\(target\)/,"first target must be applied after State 7 completes");
 assert.match(voiceSource,/navigation\?\.action==='voice_interface'[\s\S]*?waitForWorkspaceState\(false\)[\s\S]*?hideWorkspace\(\)/,"return-to-voice must use the existing reverse State 7 lifecycle");
-assert.ok(voiceSource.indexOf("await dispatchVoiceNavigation(payload.navigation)")<voiceSource.indexOf("requestNavigationAcknowledgement(payload.navigation,turn)"),"navigation dispatch must begin before acknowledgement TTS");
+assert.match(voiceSource,/const transitionDuration = 2400/,"approved State 7 duration must remain unchanged");
+assert.match(voiceSource,/workspaceTimer=setTimeout\([\s\S]*?3000\)/,"approved State 7 start timing must remain unchanged");
+assert.match(voiceSource,/if\(voiceSessionActive\)return/,"navigation must not create a duplicate microphone session");
 assert.match(voiceSource,/headerIndicator\.dataset\.voiceState/);
 assert.match(voiceStyleSource,/data-voice-state="thinking"[\s\S]*?#ff9a32/);
 assert.match(voiceStyleSource,/data-voice-state="speaking"/);
