@@ -108,6 +108,23 @@
     const resolvedHeight=Math.max(1,Number(height)||1);
     return {width:resolvedWidth,height:resolvedHeight,cx:resolvedWidth*.5,cy:resolvedHeight*.47};
   }
+  const voiceNavigationTargets=Object.freeze({
+    vehicle:'car',technical_data:'technicalData',vehicle_history:'vehicleHistory',
+    repairs:'repairs',maintenance:'maintenance',active_problems:'activeProblems'
+  });
+  function voiceNavigationPlan(action,current='conversation',history=[]){
+    const safeHistory=Array.isArray(history)?history.filter(Boolean):[];
+    if(action==='back'){
+      if(!safeHistory.length)return {target:null,current,history:safeHistory};
+      const nextHistory=safeHistory.slice(0,-1);
+      const target=safeHistory.at(-1);
+      return {target,current:target,history:nextHistory};
+    }
+    const target=voiceNavigationTargets[action]||null;
+    if(!target)return {target:null,current,history:safeHistory};
+    if(target===current)return {target,current,history:safeHistory};
+    return {target,current:target,history:[...safeHistory,current].filter(Boolean).slice(-12)};
+  }
   // A pure seam used by the focused VAD regression test.
   window.PulsVoiceVad={createVadGate};
   window.PulsVoiceGreeting={text:startupGreeting};
@@ -119,6 +136,7 @@
   };
   window.PulsVoiceIdle={shouldEnter:shouldEnterVoiceIdle};
   window.PulsVoiceLayout={geometry:voiceViewportGeometry};
+  window.PulsVoiceNavigation={plan:voiceNavigationPlan,targets:voiceNavigationTargets};
 
   const root = document.getElementById('pulsVoiceMode');
   const canvas = document.getElementById('pulsVoiceCanvas');
@@ -143,6 +161,8 @@
   let workspaceTimer = 0;
   let voiceSessionActive = false;
   let workspaceVisible = false;
+  let voiceWorkspaceTarget='conversation';
+  let voiceWorkspaceHistory=[];
   let stateBeforeWorkspace = 'standby';
   let microphoneStream = null;
   let microphoneContext = null;
@@ -1277,10 +1297,11 @@
         workspaceVisible=transitionProgress===1;
         if(workspaceVisible){
           root.classList.add('is-workspace-visible');
+          document.body.classList.add('voice-workspace-visible');
           workspace.inert=false;
         } else {
           root.classList.remove('is-workspace-visible');
-          document.body.classList.remove('voice-workspace-mode');
+          document.body.classList.remove('voice-workspace-mode','voice-workspace-visible');
           workspace.style.opacity='0';
           workspace.style.clipPath='inset(50% 0 50% 0)';
           workspace.style.webkitClipPath=workspace.style.clipPath;
@@ -1348,7 +1369,8 @@
       recording:ru?'Не удалось записать голос. Попробуйте ещё раз.':'The voice recording failed. Please try again.',
       empty:ru?'Речь не распознана. Попробуйте ещё раз.':'No speech was recognized. Please try again.',
       failed:ru?'Голосовой запрос не выполнен. Попробуйте ещё раз.':'The voice request failed. Please try again.',
-      playback:ru?'Не удалось воспроизвести голосовой ответ.':'The voice response could not be played.'
+      playback:ru?'Не удалось воспроизвести голосовой ответ.':'The voice response could not be played.',
+      navigationUnavailable:ru?'Не удалось открыть этот раздел.':'This section could not be opened.'
     };
     return messages[key]||messages.failed;
   }
@@ -1529,6 +1551,16 @@
         error.status=response.status;throw error;
       }
       lastGenuineActivityAt=performance.now();
+      if(payload.navigation){
+        const navigated=await dispatchVoiceNavigation(payload.navigation);
+        if(!navigated)return;
+        if(epoch!==voiceSessionEpoch||!active||!voiceSessionActive)return;
+        if(payload.audio){
+          try{await playVoiceResponse(payload.audio,epoch);}
+          catch{console.warn('PULS voice pipeline failure',{stage:'navigation_playback'});notifyVoice(voiceMessage('playback'));}
+        }else if(payload.tts_error)notifyVoice(payload.tts_error);
+        return;
+      }
       await bridge.completeTurn(payload,turn.owner);
       if(epoch!==voiceSessionEpoch||!active||!voiceSessionActive)return;
       if(payload.audio){
@@ -1641,7 +1673,7 @@
     transitionProgress=0;transitionTarget=0;transitionLast=0;transitionActive=false;
     workspaceVisible=false;
     root.classList.remove('is-workspace-visible');
-    document.body.classList.remove('voice-workspace-mode');
+    document.body.classList.remove('voice-workspace-mode','voice-workspace-visible');
     workspace.style.removeProperty('opacity');
     workspace.style.removeProperty('clip-path');
     workspace.style.removeProperty('-webkit-clip-path');
@@ -1674,12 +1706,15 @@
       return;
     }
     active=true;
+    voiceWorkspaceTarget='conversation';
+    voiceWorkspaceHistory=[];
     startupGreetingPlayed=false;
     root.hidden=false;
     root.setAttribute('aria-hidden','false');
     root.dataset.source=source;
     root.style.backgroundColor='#00030a';
     document.body.classList.add('voice-mode-active','voice-workspace-mode');
+    document.body.classList.remove('voice-workspace-visible');
     window.PulsModeSelection?.hide?.();
     workspace.inert=true;
     workspace.setAttribute('aria-hidden','false');
@@ -1721,14 +1756,32 @@
     void showWorkspace({view:'assistant'});
   }
 
+  function waitForWorkspaceState(open){
+    if(workspaceVisible===open&&!transitionActive)return Promise.resolve(true);
+    return new Promise(resolve=>{
+      const handle=event=>{
+        if(Boolean(event.detail?.open)!==open)return;
+        window.removeEventListener('puls-voice-workspace-change',handle);
+        resolve(true);
+      };
+      window.addEventListener('puls-voice-workspace-change',handle);
+    });
+  }
+
   async function showWorkspace(target={view:'assistant'}){
     if(!active)open({source:'workspace'});
     await Promise.resolve(window.PulsWorkspace?.show?.(target));
+    if(workspaceVisible&&!transitionActive){
+      workspace.inert=false;
+      document.body.classList.add('voice-workspace-mode','voice-workspace-visible');
+      return true;
+    }
     clearTimeout(workspaceTimer);
     document.body.classList.add('voice-workspace-mode');
     workspace.inert=true;
     stateBeforeWorkspace=state==='disappearing'?'standby':state;
     setState('disappearing');
+    const workspaceReady=waitForWorkspaceState(true);
     // The approved DISAPPEARING state owns the collapse. State 7 begins at
     // its flash bridge, so the collapse is never duplicated.
     workspaceTimer=setTimeout(()=>{
@@ -1738,6 +1791,29 @@
       transitionLast=0;
       transitionActive=true;
     },3000);
+    return workspaceReady;
+  }
+
+  async function dispatchVoiceNavigation(navigation){
+    if(navigation?.available===false){
+      notifyVoice(navigation.failure_message||voiceMessage('navigationUnavailable'));
+      return false;
+    }
+    const plan=voiceNavigationPlan(navigation?.action,voiceWorkspaceTarget,voiceWorkspaceHistory);
+    if(!plan.target){
+      notifyVoice(voiceMessage('navigationUnavailable'));
+      return false;
+    }
+    try{
+      await showWorkspace(plan.target);
+      voiceWorkspaceTarget=plan.current;
+      voiceWorkspaceHistory=plan.history;
+      return true;
+    }catch(error){
+      console.warn('PULS voice pipeline failure',{stage:'navigation',action:String(navigation?.action||'')});
+      notifyVoice(voiceMessage('navigationUnavailable'));
+      return false;
+    }
   }
 
   function hideWorkspace(){

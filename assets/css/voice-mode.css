@@ -15,6 +15,28 @@
   pointer-events: none;
 }
 
+.topbar-inner {
+  position: relative;
+}
+
+.puls-voice-header-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: none;
+  color: #d8f5ff;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+body.voice-workspace-visible .puls-voice-header-label {
+  display: block;
+}
+
 .puls-voice-status {
   position: fixed;
   z-index: 4;
@@ -159,7 +181,6 @@ body.voice-workspace-mode #app {
   pointer-events: auto;
 }
 
-body.voice-workspace-mode #app > .topbar,
 body.voice-workspace-mode #app > .hero,
 body.voice-workspace-mode #app .side,
 body.voice-workspace-mode #app .composer {

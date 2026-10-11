@@ -2660,6 +2660,9 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       conversation: { view: "assistant" },
       car: { view: "car", tab: "overview" },
       serviceHistory: { view: "car", tab: "history", filter: "all" },
+      vehicleHistory: { view: "car", tab: "history", filter: "all" },
+      repairs: { view: "car", tab: "history", filter: "repairs" },
+      maintenance: { view: "car", tab: "history", filter: "maintenance" },
       technicalData: { view: "car", tab: "data" },
       activeProblems: { view: "car", tab: "history", filter: "problems" },
     });

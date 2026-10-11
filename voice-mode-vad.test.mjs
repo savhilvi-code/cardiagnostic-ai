@@ -50,6 +50,18 @@ for(const [width,height] of [[375,812],[390,844],[768,1024],[1024,768],[1280,800
   assert.equal(geometry.cy,height*.47);
 }
 
+const navigation=window.PulsVoiceNavigation;
+let navigationState=navigation.plan('vehicle','conversation',[]);
+assert.equal(navigationState.target,'car');
+assert.deepEqual(navigationState.history,['conversation']);
+navigationState=navigation.plan('technical_data',navigationState.current,navigationState.history);
+assert.equal(navigationState.target,'technicalData');
+assert.deepEqual(navigationState.history,['conversation','car']);
+navigationState=navigation.plan('back',navigationState.current,navigationState.history);
+assert.equal(navigationState.target,'car');
+assert.deepEqual(navigationState.history,['conversation']);
+assert.equal(navigation.plan('unsupported','car',[]).target,null);
+
 class FakeRecorder {
   constructor(){this.mimeType="audio/webm;codecs=opus";this.state="inactive";this.listeners=new Map();}
   addEventListener(type,callback){this.listeners.set(type,callback);}
@@ -111,6 +123,11 @@ assert.doesNotMatch(voiceSource,/visualCenter|viewportWidth/,"canvas coordinates
 assert.match(voiceSource,/is-pending/);
 assert.match(voiceStyleSource,/\.puls-voice-control\.is-pending::before/);
 assert.match(voiceStyleSource,/0 0 34px rgba\(8, 108, 255, \.28\)/);
+assert.match(voiceStyleSource,/body\.voice-workspace-visible \.puls-voice-header-label/);
+assert.doesNotMatch(voiceStyleSource,/body\.voice-workspace-mode #app > \.topbar/,"existing header must remain available in Voice workspace");
+assert.match(voiceSource,/if\(workspaceVisible&&!transitionActive\)/,"subsequent navigation must not replay State 7");
+assert.match(voiceSource,/waitForWorkspaceState\(true\)/,"first navigation must wait for the existing State 7 reveal");
+assert.match(appSource,/repairs:\s*\{ view: "car", tab: "history", filter: "repairs" \}/);
 assert.match(voiceStyleSource,/@media \(max-width: 480px\)[\s\S]*?\.puls-voice-canvas\s*\{[\s\S]*?transform:\s*scale\(1\.05\)/);
 for(const language of ["ru","en"]){
   const file=greetingManifest.greetings[language].file;
