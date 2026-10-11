@@ -2382,11 +2382,6 @@ body.assistant-mode .assistant-right {
 }
 
 .puls-dictation-waveform {
-  --dictation-scale-1: .04;
-  --dictation-scale-2: .04;
-  --dictation-scale-3: .04;
-  --dictation-scale-4: .04;
-  --dictation-scale-5: .04;
   position: absolute;
   z-index: 3;
   top: 50%;
@@ -2409,8 +2404,6 @@ body.assistant-mode .assistant-right {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  clip-path: inset(0 0 0 var(--dictation-reveal-inset, 100%));
-  transition: clip-path 70ms linear;
 }
 
 .puls-dictation-waveform::before {
@@ -2472,7 +2465,7 @@ body.assistant-mode .assistant-right {
 .composer-shell textarea { transition: opacity .16s ease; }
 
 .puls-dictation-bars i {
-  --dictation-scale: var(--dictation-scale-3);
+  --dictation-scale: .055;
   position: relative;
   z-index: 1;
   width: 1px;
@@ -2483,21 +2476,7 @@ body.assistant-mode .assistant-right {
   opacity: .82;
   transform-origin: center;
   transform: scaleY(var(--dictation-scale));
-  transition: transform 70ms linear, opacity 120ms ease;
-}
-
-.puls-dictation-bars i:nth-child(5n + 1) { --dictation-scale: var(--dictation-scale-1); }
-.puls-dictation-bars i:nth-child(5n + 2) { --dictation-scale: var(--dictation-scale-2); }
-.puls-dictation-bars i:nth-child(5n + 3) { --dictation-scale: var(--dictation-scale-3); }
-.puls-dictation-bars i:nth-child(5n + 4) { --dictation-scale: var(--dictation-scale-4); }
-.puls-dictation-bars i:nth-child(5n) { --dictation-scale: var(--dictation-scale-5); }
-
-.composer-shell.is-dictation-analysis-fallback[data-dictation-state="recording"] .puls-dictation-bars {
-  clip-path: inset(0);
-}
-
-.composer-shell.is-dictation-analysis-fallback[data-dictation-state="recording"] .puls-dictation-bars i {
-  animation: puls-dictation-fallback 1.7s ease-in-out infinite;
+  transition: transform 80ms linear, opacity 120ms ease;
 }
 
 @keyframes puls-dictation-press {
@@ -2509,11 +2488,6 @@ body.assistant-mode .assistant-right {
 @keyframes puls-dictation-dots {
   from { background-position: 0 center; }
   to { background-position: -12px center; }
-}
-
-@keyframes puls-dictation-fallback {
-  0%,100% { transform: scaleY(.12); opacity: .48; }
-  50% { transform: scaleY(.58); opacity: .82; }
 }
 
 @media (max-width: 480px) {
@@ -2532,18 +2506,9 @@ body.assistant-mode .assistant-right {
     margin: 0;
   }
 
-  .composer-shell[data-dictation-state="recording"] .puls-dictation-waveform {
-    animation: puls-dictation-reveal-mobile .22s ease-out both;
-  }
-
   .composer-actions .voice-btn {
     left: 3px;
   }
-}
-
-@keyframes puls-dictation-reveal-mobile {
-  from { clip-path: inset(0 0 0 100%); opacity: 0; }
-  to { clip-path: inset(0); opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {

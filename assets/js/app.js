@@ -4126,17 +4126,16 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           : (getLanguage() === "ru" ? "Голосовой ввод" : "Voice dictation"));
       syncPendingAttachmentComposer();
     }
-    function setDictationWaveformLevel(waveform, level, reveal = 0) {
+    function renderDictationWaveform(waveform, history) {
       if (!waveform) return;
-      [0.48, 0.72, 1, 0.82, 0.58].forEach((weight, index) => {
-        waveform.style.setProperty(`--dictation-scale-${index + 1}`, (0.04 + level * weight).toFixed(3));
+      const bars = waveform.querySelectorAll(".puls-dictation-bars i");
+      bars.forEach((bar, index) => {
+        const amplitude = Math.max(0, Math.min(1, history[index] || 0));
+        bar.style.setProperty("--dictation-scale", (0.055 + amplitude * 0.945).toFixed(3));
       });
-      const visibleShare = Math.max(0, Math.min(1, reveal));
-      waveform.style.setProperty("--dictation-reveal-inset", `${((1 - visibleShare) * 100).toFixed(2)}%`);
     }
     function stopDictationAnalysis(session) {
       const analysis = session?.analysis;
-      $("#promptInput")?.closest(".composer-shell")?.classList.remove("is-dictation-analysis-fallback");
       if (!analysis) return;
       cancelAnimationFrame(analysis.frame);
       analysis.source?.disconnect?.();
@@ -4146,12 +4145,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     function startDictationAnalysis(session) {
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
       const waveform = document.querySelector(".puls-dictation-waveform");
-      const shell = $("#promptInput")?.closest(".composer-shell");
-      shell?.classList.remove("is-dictation-analysis-fallback");
-      if (!AudioContextClass || !waveform) {
-        shell?.classList.add("is-dictation-analysis-fallback");
-        return;
-      }
+      if (!AudioContextClass || !waveform) return;
       let context = null;
       try {
         context = new AudioContextClass();
@@ -4161,11 +4155,16 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         analyser.smoothingTimeConstant = .82;
         source.connect(analyser);
         const samples = new Uint8Array(analyser.fftSize);
-        const analysis = { context, source, analyser, samples, waveform, frame: 0, level: 0, reveal: 0 };
+        const barCount = waveform.querySelectorAll(".puls-dictation-bars i").length;
+        const analysis = {
+          context, source, analyser, samples, waveform, frame: 0,
+          level: 0, peak: .12, lastSampleAt: 0,
+          history: Array.from({ length: barCount }, () => 0)
+        };
         session.analysis = analysis;
-        setDictationWaveformLevel(waveform, 0, 0);
+        renderDictationWaveform(waveform, analysis.history);
         void context.resume?.().catch?.(() => {});
-        const update = () => {
+        const update = (now) => {
           if (dictationSession !== session || session.completion) return;
           analyser.getByteTimeDomainData(samples);
           let power = 0;
@@ -4174,19 +4173,22 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
             power += sample * sample;
           }
           const rms = Math.sqrt(power / samples.length);
-          const target = Math.max(0, Math.min(1, (rms - .008) * 9));
-          const smoothing = target > analysis.level ? .24 : .11;
-          analysis.level += (target - analysis.level) * smoothing;
-          const revealTarget = target > .035 ? 1 : 0;
-          const revealSmoothing = revealTarget > analysis.reveal ? .075 : .035;
-          analysis.reveal += (revealTarget - analysis.reveal) * revealSmoothing;
-          setDictationWaveformLevel(waveform, analysis.level, analysis.reveal);
+          const input = Math.max(0, Math.min(1, (rms - .008) * 9));
+          analysis.peak = Math.max(.12, input, analysis.peak * .992);
+          const normalized = input < .018 ? 0 : Math.min(1, input / analysis.peak);
+          const smoothing = normalized > analysis.level ? .28 : .12;
+          analysis.level += (normalized - analysis.level) * smoothing;
+          if (!analysis.lastSampleAt || now - analysis.lastSampleAt >= 52) {
+            analysis.history.shift();
+            analysis.history.push(analysis.level < .025 ? 0 : analysis.level);
+            renderDictationWaveform(waveform, analysis.history);
+            analysis.lastSampleAt = now;
+          }
           analysis.frame = requestAnimationFrame(update);
         };
         analysis.frame = requestAnimationFrame(update);
       } catch (error) {
         void context?.close?.().catch?.(() => {});
-        shell?.classList.add("is-dictation-analysis-fallback");
         console.warn("PULS dictation visual analyser unavailable", { name: String(error?.name || "Error") });
       }
     }
