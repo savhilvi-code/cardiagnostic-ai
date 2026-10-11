@@ -157,6 +157,7 @@
   }
 
   function show() {
+    if (window.isPulsModeOnboardingComplete?.() || window.PulsVoiceMode?.isActive?.() || document.body.classList.contains("voice-workspace-mode")) return;
     root.hidden = false;
     buildParticles();
     const app = document.getElementById("app");
@@ -184,6 +185,7 @@
     card.addEventListener("click", () => {
       root.querySelectorAll(".puls-mode-card").forEach((candidate) => candidate.classList.toggle("selected", candidate === card));
       const mode = card.dataset.pulsMode;
+      window.completePulsModeOnboarding?.();
       window.dispatchEvent(new CustomEvent("puls-mode-selected", { detail: { mode } }));
       if (mode === "text") window.setTimeout(hide, 220);
     });

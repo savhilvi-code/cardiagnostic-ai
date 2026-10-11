@@ -105,6 +105,8 @@ assert.equal(canceled.length,0,"cancellation discards stale audio");
 
 const voiceSource=readFileSync(new URL("./assets/js/voice-mode.js",import.meta.url),"utf8");
 const appSource=readFileSync(new URL("./assets/js/app.js",import.meta.url),"utf8");
+const authSource=readFileSync(new URL("./assets/js/auth.js",import.meta.url),"utf8");
+const modeSelectionSource=readFileSync(new URL("./assets/js/mode-selection.js",import.meta.url),"utf8");
 const styleSource=readFileSync(new URL("./assets/css/style.css",import.meta.url),"utf8");
 const voiceStyleSource=readFileSync(new URL("./assets/css/voice-mode.css",import.meta.url),"utf8");
 const greetingManifest=JSON.parse(readFileSync(new URL("./assets/audio/voice-greetings/manifest.v1.json",import.meta.url),"utf8"));
@@ -131,6 +133,14 @@ assert.match(voiceSource,/waitForWorkspaceState\(true\)/,"first navigation must 
 assert.match(voiceSource,/if\(payload\.navigation\)/,"frontend must consume the backend navigation response field");
 assert.match(voiceSource,/await dispatchVoiceNavigation\(payload\.navigation\)/,"backend navigation must reach the workspace dispatcher");
 assert.match(voiceSource,/await workspaceReady;[\s\S]*?PulsWorkspace\?\.show\?\.\(target\)/,"first target must be applied after State 7 completes");
+assert.match(voiceSource,/navigation\?\.action==='voice_interface'[\s\S]*?waitForWorkspaceState\(false\)[\s\S]*?hideWorkspace\(\)/,"return-to-voice must use the existing reverse State 7 lifecycle");
+assert.ok(voiceSource.indexOf("await dispatchVoiceNavigation(payload.navigation)")<voiceSource.indexOf("requestNavigationAcknowledgement(payload.navigation,turn)"),"navigation dispatch must begin before acknowledgement TTS");
+assert.match(voiceSource,/headerIndicator\.dataset\.voiceState/);
+assert.match(voiceStyleSource,/data-voice-state="thinking"[\s\S]*?#ff9a32/);
+assert.match(voiceStyleSource,/data-voice-state="speaking"/);
+assert.match(authSource,/puls_mode_selection_completed/);
+assert.doesNotMatch(authSource,/event !== "SIGNED_IN"/,"restored SIGNED_IN must not directly open onboarding");
+assert.match(modeSelectionSource,/completePulsModeOnboarding/);
 assert.match(appSource,/repairs:\s*\{ view: "car", tab: "history", filter: "repairs" \}/);
 assert.match(voiceStyleSource,/@media \(max-width: 480px\)[\s\S]*?\.puls-voice-canvas\s*\{[\s\S]*?transform:\s*scale\(1\.05\)/);
 for(const language of ["ru","en"]){

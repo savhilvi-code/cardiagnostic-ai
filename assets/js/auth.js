@@ -1,6 +1,6 @@
 const AUTH_STATUS_READY = "Введите email и пароль.";
 const AUTH_STATUS_CONFIG = "Добавьте Supabase URL и anon key в assets/js/supabaseClient.js.";
-let modeSelectionAuthEntryUserId = null;
+const MODE_SELECTION_COMPLETED_KEY = "puls_mode_selection_completed";
 window.pulsAuthReady = Promise.resolve(null);
 
 function authText(key, fallback) {
@@ -62,16 +62,32 @@ function closeAuthModal() {
 
 function handleModeSelectionAuthEvent(event, session) {
   if (event === "SIGNED_OUT") {
-    modeSelectionAuthEntryUserId = null;
     window.PulsModeSelection?.hide();
-    return;
   }
-  if (event !== "SIGNED_IN") return;
-  const userId = session?.user?.id || null;
-  if (!userId || modeSelectionAuthEntryUserId === userId || !window.PulsModeSelection) return;
-  modeSelectionAuthEntryUserId = userId;
+}
+
+function modeSelectionStorageKey(userId = window.pulsCurrentUser?.id) {
+  return userId ? `${MODE_SELECTION_COMPLETED_KEY}:${userId}` : "";
+}
+
+function isModeSelectionComplete(userId = window.pulsCurrentUser?.id) {
+  const key = modeSelectionStorageKey(userId);
+  if (!key) return false;
+  try { return window.localStorage.getItem(key) === "1"; }
+  catch { return false; }
+}
+
+function completeModeSelection(userId = window.pulsCurrentUser?.id) {
+  const key = modeSelectionStorageKey(userId);
+  if (!key) return;
+  try { window.localStorage.setItem(key, "1"); }
+  catch { /* Storage restrictions must not block mode selection. */ }
+}
+
+function showModeSelectionForNewUser(user) {
+  if (!user?.id || isModeSelectionComplete(user.id)) return;
   closeAuthModal();
-  window.PulsModeSelection.show();
+  window.PulsModeSelection?.show();
 }
 
 async function updateProfileBlock() {
@@ -207,6 +223,7 @@ async function registerUser(email, password) {
   if (data.user) publishAuthState(data.user, await syncAuthUserProfile(data.user));
   setAuthStatus(authText("auth.registerSuccess", "Регистрация успешна. Проверьте почту для подтверждения."));
   await updateProfileBlock();
+  if (data.session?.user) showModeSelectionForNewUser(data.session.user);
 }
 
 async function loginUser(email, password) {
@@ -230,6 +247,7 @@ async function loginUser(email, password) {
   if (data.user) publishAuthState(data.user, await syncAuthUserProfile(data.user));
   closeAuthModal();
   await updateProfileBlock();
+  showModeSelectionForNewUser(data.user);
 }
 
 async function logoutUser() {
@@ -279,6 +297,8 @@ window.updateProfileBlock = updateProfileBlock;
 window.syncAuthUserProfile = syncAuthUserProfile;
 window.openAuthModal = openAuthModal;
 window.closeAuthModal = closeAuthModal;
+window.isPulsModeOnboardingComplete = isModeSelectionComplete;
+window.completePulsModeOnboarding = completeModeSelection;
 
 document.addEventListener("DOMContentLoaded", () => {
   window.pulsAuthReady = updateProfileBlock().catch((error) => {

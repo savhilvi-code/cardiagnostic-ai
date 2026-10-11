@@ -146,6 +146,7 @@
   const toggleButton = document.getElementById('pulsVoiceToggle');
   const keyboardButton = document.getElementById('pulsVoiceKeyboard');
   const statusText = document.getElementById('pulsVoiceStatus');
+  const headerIndicator = document.querySelector?.('.puls-voice-header-label')||null;
   if (!root || !canvas || !workspace || !controls || !attachButton || !toggleButton || !keyboardButton || !statusText) return;
   const ctx = canvas.getContext('2d');
   const voiceInactivityMs=Math.max(1000,Number(root.dataset.inactivityMs)||30000);
@@ -327,6 +328,7 @@
 
   function setState(next){
     if (!validStates.has(next)) return;
+    if(headerIndicator)headerIndicator.dataset.voiceState=next==='responding'?'speaking':next==='thinking'?'thinking':next==='listening'?'listening':'idle';
     if (next === state && previousState === null) return;
     previousState = state;
     previousStateSince = stateSince;
@@ -1480,6 +1482,17 @@
     return playAudioSource(base64AudioUrl(audio),epoch);
   }
 
+  async function requestNavigationAcknowledgement(navigation,turn){
+    const form=new FormData();
+    form.append('action',String(navigation?.action||''));
+    form.append('language',turn.language||voiceLanguage());
+    const response=await fetch(`${turn.apiBaseUrl}/api/voice/navigation-ack`,{
+      method:'POST',headers:turn.headers,body:form,cache:'no-store'
+    });
+    if(!response.ok)throw new Error(`Navigation acknowledgement returned ${response.status}`);
+    return (await response.json()).audio||null;
+  }
+
   async function cachedGreetingSource(language){
     try{
       // Revalidate the tiny version manifest; the versioned MP3 itself remains
@@ -1555,10 +1568,11 @@
         const navigated=await dispatchVoiceNavigation(payload.navigation);
         if(!navigated)return;
         if(epoch!==voiceSessionEpoch||!active||!voiceSessionActive)return;
-        if(payload.audio){
-          try{await playVoiceResponse(payload.audio,epoch);}
-          catch{console.warn('PULS voice pipeline failure',{stage:'navigation_playback'});notifyVoice(voiceMessage('playback'));}
-        }else if(payload.tts_error)notifyVoice(payload.tts_error);
+        try{
+          const acknowledgementAudio=payload.audio||await requestNavigationAcknowledgement(payload.navigation,turn);
+          if(acknowledgementAudio)await playVoiceResponse(acknowledgementAudio,epoch);
+        }
+        catch{console.warn('PULS voice pipeline failure',{stage:'navigation_playback'});notifyVoice(voiceMessage('playback'));}
         return;
       }
       await bridge.completeTurn(payload,turn.owner);
@@ -1800,6 +1814,13 @@
     if(navigation?.available===false){
       notifyVoice(navigation.failure_message||voiceMessage('navigationUnavailable'));
       return false;
+    }
+    if(navigation?.action==='voice_interface'){
+      if(!workspaceVisible||transitionActive)return true;
+      const voiceReady=waitForWorkspaceState(false);
+      hideWorkspace();
+      await voiceReady;
+      return true;
     }
     const plan=voiceNavigationPlan(navigation?.action,voiceWorkspaceTarget,voiceWorkspaceHistory);
     if(!plan.target){
