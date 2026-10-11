@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
+import { readFileSync } from "node:fs";
 
 globalThis.window = {};
 globalThis.document = { getElementById: () => null };
@@ -25,4 +26,52 @@ assert.equal(
   "Hi! I'm PULS, your automotive assistant. Want me to tell you what I can help you with?"
 );
 
-console.log("voice-mode VAD focused checks passed");
+class FakeRecorder {
+  constructor(){this.mimeType="audio/webm;codecs=opus";this.state="inactive";this.listeners=new Map();}
+  addEventListener(type,callback){this.listeners.set(type,callback);}
+  emit(type,event={}){this.listeners.get(type)?.(event);}
+  start(){this.state="recording";}
+  stop(){
+    this.state="inactive";
+    this.emit("dataavailable",{data:new Blob([
+      new Uint8Array([0x1a,0x45,0xdf,0xa3]),
+      new Uint8Array([0x01,0x02,0x03])
+    ],{type:this.mimeType})});
+    this.emit("stop");
+  }
+}
+
+const completed=[];
+const lifecycle=window.PulsVoiceRecorder.createLifecycle({
+  createRecorder:()=>new FakeRecorder(),
+  onBlob:(blob,context)=>completed.push({blob,context})
+});
+assert.equal(lifecycle.start({},"audio/webm;codecs=opus",{epoch:7}),true);
+assert.equal(lifecycle.start({},"audio/webm;codecs=opus",{epoch:8}),false,"overlapping recorders are rejected");
+assert.equal(lifecycle.stop(),true);
+assert.equal(completed.length,1,"one utterance produces one finalized submission");
+assert.equal(completed[0].context.epoch,7);
+assert.deepEqual(
+  Array.from(new Uint8Array(await completed[0].blob.arrayBuffer()).slice(0,4)),
+  [0x1a,0x45,0xdf,0xa3],
+  "the independently recorded utterance retains its WebM EBML header"
+);
+assert.equal(lifecycle.stop(),false,"a finalized utterance cannot be submitted twice");
+
+const canceled=[];
+const canceledLifecycle=window.PulsVoiceRecorder.createLifecycle({
+  createRecorder:()=>new FakeRecorder(),onBlob:blob=>canceled.push(blob)
+});
+assert.equal(canceledLifecycle.start({},"audio/webm",{}),true);
+canceledLifecycle.cancel();
+assert.equal(canceled.length,0,"cancellation discards stale audio");
+
+const voiceSource=readFileSync(new URL("./assets/js/voice-mode.js",import.meta.url),"utf8");
+const appSource=readFileSync(new URL("./assets/js/app.js",import.meta.url),"utf8");
+assert.match(voiceSource,/pulsVoiceStatus/);
+assert.doesNotMatch(appSource,/showGreeting\s*\(/,"the fixed greeting must not enter the main message workspace");
+assert.match(voiceSource,/setState\('thinking'\)/);
+assert.match(voiceSource,/setState\('responding'\)/);
+assert.match(voiceSource,/processingUtterance=false;vadGate\.reset\(\);setState\('listening'\)/);
+
+console.log("voice-mode VAD, recorder, error UI and greeting isolation checks passed");

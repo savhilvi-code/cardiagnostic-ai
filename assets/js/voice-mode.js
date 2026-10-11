@@ -30,6 +30,59 @@
       get active(){return active;}
     };
   }
+  function createRecorderLifecycle({createRecorder,onBlob,onError}){
+    let session=null;
+    return {
+      start(stream,mimeType,context={}){
+        if(session)return false;
+        let recorder;
+        try{recorder=createRecorder(stream,mimeType);}
+        catch(error){onError?.({error},context);return false;}
+        const current={recorder,chunks:[],canceled:false,mimeType:recorder.mimeType||mimeType||'audio/webm',context};
+        session=current;
+        recorder.addEventListener('dataavailable',event=>{
+          if(!current.canceled&&event.data?.size)current.chunks.push(event.data);
+        });
+        recorder.addEventListener('error',event=>{
+          current.canceled=true;
+          if(session===current)session=null;
+          current.chunks=[];
+          onError?.(event,current.context);
+        },{once:true});
+        recorder.addEventListener('stop',()=>{
+          if(session===current)session=null;
+          if(current.canceled)return;
+          const blob=new Blob(current.chunks,{type:current.mimeType});
+          current.chunks=[];
+          onBlob?.(blob,current.context);
+        },{once:true});
+        try{recorder.start();}
+        catch(error){
+          session=null;current.canceled=true;current.chunks=[];
+          onError?.({error},current.context);return false;
+        }
+        return true;
+      },
+      stop(){
+        if(!session||session.recorder.state!=='recording')return false;
+        try{session.recorder.stop();}
+        catch(error){
+          const current=session;session=null;current.canceled=true;current.chunks=[];
+          onError?.({error},current.context);return false;
+        }
+        return true;
+      },
+      cancel(){
+        const current=session;
+        if(!current)return;
+        session=null;current.canceled=true;current.chunks=[];
+        if(current.recorder.state!=='inactive'){
+          try{current.recorder.stop();}catch{/* Recorder may already be stopping. */}
+        }
+      },
+      get active(){return Boolean(session);}
+    };
+  }
   function startupGreeting(language='en'){
     return String(language).toLowerCase().startsWith('ru')
       ? 'Привет! Я Пульс, твой автомобильный помощник. Хочешь, расскажу, чем я могу тебе помочь?'
@@ -38,6 +91,7 @@
   // A pure seam used by the focused VAD regression test.
   window.PulsVoiceVad={createVadGate};
   window.PulsVoiceGreeting={text:startupGreeting};
+  window.PulsVoiceRecorder={createLifecycle:createRecorderLifecycle};
 
   const root = document.getElementById('pulsVoiceMode');
   const canvas = document.getElementById('pulsVoiceCanvas');
@@ -46,7 +100,8 @@
   const attachButton = document.getElementById('pulsVoiceAttach');
   const toggleButton = document.getElementById('pulsVoiceToggle');
   const keyboardButton = document.getElementById('pulsVoiceKeyboard');
-  if (!root || !canvas || !workspace || !controls || !attachButton || !toggleButton || !keyboardButton) return;
+  const statusText = document.getElementById('pulsVoiceStatus');
+  if (!root || !canvas || !workspace || !controls || !attachButton || !toggleButton || !keyboardButton || !statusText) return;
   const ctx = canvas.getContext('2d');
   let transitionProgress = 0, transitionTarget = 0, transitionLast = 0;
   let transitionActive = false;
@@ -64,15 +119,27 @@
   let microphoneSource = null;
   let microphoneAnalyser = null;
   let microphoneSamples = null;
-  let mediaRecorder = null;
   let vadFrame = 0;
-  let utteranceChunks = [];
-  let preRollChunks = [];
   let processingUtterance = false;
   let currentPlayback = null;
   let voiceSessionEpoch = 0;
   let startupGreetingPlayed = false;
   const vadGate=createVadGate();
+  let statusTimer=0;
+  const recorderLifecycle=createRecorderLifecycle({
+    createRecorder(stream,mimeType){return new MediaRecorder(stream,mimeType?{mimeType}:undefined);},
+    onBlob(blob,{epoch}){
+      if(epoch!==voiceSessionEpoch||!voiceSessionActive)return;
+      void submitUtterance(blob,epoch,{finalized:true});
+    },
+    onError(event,{epoch}){
+      if(epoch!==voiceSessionEpoch||!voiceSessionActive)return;
+      processingUtterance=false;vadGate.reset();
+      console.warn('PULS voice pipeline failure',{stage:'recording',name:String(event?.error?.name||'MediaRecorderError')});
+      notifyVoice(voiceMessage('recording'));
+      setState('listening');
+    }
+  });
 
   // Ultra-crisp render: modest supersampling above the native CSS DPR.
   // Cap the backing-store density to avoid excessive GPU/memory load on mobile.
@@ -1231,6 +1298,7 @@
     const messages={
       permission:ru?'Разрешите доступ к микрофону, чтобы использовать Voice Mode.':'Allow microphone access to use Voice Mode.',
       unsupported:ru?'Запись с микрофона не поддерживается этим браузером.':'Microphone recording is not supported by this browser.',
+      recording:ru?'Не удалось записать голос. Попробуйте ещё раз.':'The voice recording failed. Please try again.',
       empty:ru?'Речь не распознана. Попробуйте ещё раз.':'No speech was recognized. Please try again.',
       failed:ru?'Голосовой запрос не выполнен. Попробуйте ещё раз.':'The voice request failed. Please try again.',
       playback:ru?'Не удалось воспроизвести голосовой ответ.':'The voice response could not be played.'
@@ -1238,9 +1306,29 @@
     return messages[key]||messages.failed;
   }
 
+  function showVoiceStatus(message,kind='error',{persistent=false}={}){
+    clearTimeout(statusTimer);
+    statusText.textContent=String(message||'');
+    statusText.className=`puls-voice-status is-visible is-${kind}`;
+    statusText.hidden=false;
+    if(!persistent){
+      statusTimer=setTimeout(()=>{
+        statusText.classList.remove('is-visible');
+        statusText.hidden=true;
+      },3600);
+    }
+  }
+
+  function clearVoiceStatus(){
+    clearTimeout(statusTimer);statusTimer=0;
+    statusText.classList.remove('is-visible');
+    statusText.hidden=true;
+    statusText.textContent='';
+  }
+
   function notifyVoice(message){
     root.setAttribute('aria-label',`PULS Voice Mode. ${message}`);
-    window.PulsVoiceBridge?.notify?.(message);
+    showVoiceStatus(message,'error');
   }
 
   function recorderMimeType(){
@@ -1258,16 +1346,13 @@
 
   function releaseMicrophone(){
     cancelAnimationFrame(vadFrame);vadFrame=0;
-    if(mediaRecorder&&mediaRecorder.state!=='inactive'){
-      try{mediaRecorder.stop();}catch{/* Recorder may already be stopping. */}
-    }
-    mediaRecorder=null;
+    recorderLifecycle.cancel();
     microphoneSource?.disconnect();microphoneSource=null;
     microphoneAnalyser?.disconnect();microphoneAnalyser=null;
     microphoneSamples=null;
     if(microphoneContext){void microphoneContext.close().catch(()=>{});microphoneContext=null;}
     microphoneStream?.getTracks().forEach(track=>track.stop());microphoneStream=null;
-    vadGate.reset();utteranceChunks=[];preRollChunks=[];
+    vadGate.reset();
     window.PULSVoiceVisual.setAudioLevel('listening',0);
   }
 
@@ -1277,6 +1362,7 @@
     processingUtterance=false;
     releaseMicrophone();
     stopPlayback();
+    clearVoiceStatus();
     if(standby&&active)setState('standby');
     updateToggleControl();
   }
@@ -1298,7 +1384,7 @@
       try{
         window.PULSVoiceVisual.connectAudioElement?.(element);
         visualConnected=true;
-      }catch(error){console.warn('PULS response visualization unavailable:',error);}
+      }catch{console.warn('PULS voice pipeline failure',{stage:'response_visualization'});}
       await element.play();
       await new Promise((resolve,reject)=>{
         element.addEventListener('ended',resolve,{once:true});
@@ -1318,7 +1404,7 @@
     startupGreetingPlayed=true;
     const bridge=window.PulsVoiceBridge;
     const language=voiceLanguage().startsWith('ru')?'ru':'en';
-    bridge?.showGreeting?.(startupGreeting(language));
+    showVoiceStatus(startupGreeting(language),'greeting',{persistent:true});
     try{
       if(!bridge)throw new Error('VOICE_BRIDGE_UNAVAILABLE');
       const turn=await bridge.prepareTurn();
@@ -1335,14 +1421,23 @@
     }catch(error){
       // Greeting is an enhancement: microphone listening must remain available
       // even when TTS generation or browser playback is unavailable.
-      console.warn('PULS voice greeting unavailable:',error);
+      console.warn('PULS voice pipeline failure',{stage:'greeting',name:String(error?.name||'Error')});
+    }finally{
+      if(epoch===voiceSessionEpoch)clearVoiceStatus();
     }
   }
 
-  async function submitUtterance(blob,epoch){
-    if(processingUtterance||!voiceSessionActive||epoch!==voiceSessionEpoch||blob.size<512)return;
+  async function submitUtterance(blob,epoch,{finalized=false}={}){
+    if(!voiceSessionActive||epoch!==voiceSessionEpoch||(processingUtterance&&!finalized))return;
+    if(blob.size<512){
+      processingUtterance=false;
+      vadGate.reset();notifyVoice(voiceMessage('empty'));setState('listening');
+      return;
+    }
     processingUtterance=true;
     setState('thinking');
+    const diagnostics={stage:'submit',mimeType:blob.type||'audio/webm',audioBytes:blob.size};
+    console.info('PULS voice pipeline',diagnostics);
     try{
       const bridge=window.PulsVoiceBridge;
       if(!bridge)throw new Error('VOICE_BRIDGE_UNAVAILABLE');
@@ -1359,6 +1454,8 @@
         method:'POST',headers:turn.headers,body:form,cache:'no-store'
       });
       const payload=await response.json().catch(()=>({}));
+      const providerRequestId=payload?.transcription?.request_id||null;
+      console.info('PULS voice pipeline',{stage:'response',mimeType:diagnostics.mimeType,audioBytes:diagnostics.audioBytes,httpStatus:response.status,providerRequestId});
       if(!response.ok){
         const error=new Error(payload.detail||`Voice API returned ${response.status}`);
         error.status=response.status;throw error;
@@ -1367,25 +1464,18 @@
       if(epoch!==voiceSessionEpoch||!active||!voiceSessionActive)return;
       if(payload.audio){
         try{await playVoiceResponse(payload.audio,epoch);}
-        catch(error){console.warn('PULS voice playback failed:',error);notifyVoice(voiceMessage('playback'));}
+        catch{console.warn('PULS voice pipeline failure',{stage:'playback'});notifyVoice(voiceMessage('playback'));}
       }else if(payload.tts_error){
         notifyVoice(payload.tts_error);
       }
     }catch(error){
-      console.warn('PULS voice turn failed:',error);
+      console.warn('PULS voice pipeline failure',{stage:'request',mimeType:diagnostics.mimeType,audioBytes:diagnostics.audioBytes,httpStatus:Number(error?.status)||null,providerRequestId:null});
       notifyVoice(error?.status===422?voiceMessage('empty'):voiceMessage('failed'));
     }finally{
       if(epoch===voiceSessionEpoch&&active&&voiceSessionActive){
-        processingUtterance=false;vadGate.reset();utteranceChunks=[];preRollChunks=[];setState('listening');
+        processingUtterance=false;vadGate.reset();setState('listening');
       }
     }
-  }
-
-  function finishUtterance(epoch,mimeType){
-    if(!utteranceChunks.length)return;
-    const chunks=utteranceChunks;utteranceChunks=[];preRollChunks=[];
-    const blob=new Blob(chunks,{type:mimeType||chunks[0]?.type||'audio/webm'});
-    void submitUtterance(blob,epoch);
   }
 
   function monitorVoiceActivity(epoch,mimeType){
@@ -1398,8 +1488,16 @@
     if(!processingUtterance){
       const decision=vadGate.sample(rms,performance.now());
       if(decision==='start'){
-        utteranceChunks=preRollChunks.slice();preRollChunks=[];
-      }else if(decision==='end')finishUtterance(epoch,mimeType);
+        // Starting on the first VAD-positive frame preserves a complete WebM
+        // container. It may omit at most the onset before that analyser frame;
+        // slicing an earlier recorder would reintroduce headerless WebM data.
+        if(!recorderLifecycle.start(microphoneStream,mimeType,{epoch}))vadGate.reset();
+      }else if(decision==='end'){
+        processingUtterance=true;
+        if(!recorderLifecycle.stop()){
+          processingUtterance=false;vadGate.reset();setState('listening');
+        }
+      }
     }
     vadFrame=requestAnimationFrame(()=>monitorVoiceActivity(epoch,mimeType));
   }
@@ -1429,19 +1527,12 @@
       microphoneSamples=new Uint8Array(microphoneAnalyser.fftSize);
       microphoneSource.connect(microphoneAnalyser);
       const mimeType=recorderMimeType();
-      mediaRecorder=new MediaRecorder(microphoneStream,mimeType?{mimeType}:undefined);
-      mediaRecorder.addEventListener('dataavailable',event=>{
-        if(!event.data?.size||epoch!==voiceSessionEpoch||processingUtterance)return;
-        if(vadGate.active)utteranceChunks.push(event.data);
-        else{preRollChunks.push(event.data);if(preRollChunks.length>2)preRollChunks.shift();}
-      });
-      mediaRecorder.start(160);
       processingUtterance=true;
       await playStartupGreeting(epoch);
       if(epoch!==voiceSessionEpoch||!active||!voiceSessionActive)return;
-      processingUtterance=false;vadGate.reset();utteranceChunks=[];preRollChunks=[];
+      processingUtterance=false;vadGate.reset();
       setState('listening');
-      monitorVoiceActivity(epoch,mimeType||mediaRecorder.mimeType);
+      monitorVoiceActivity(epoch,mimeType);
     }catch(error){
       console.warn('PULS microphone start failed:',error);
       if(epoch===voiceSessionEpoch){

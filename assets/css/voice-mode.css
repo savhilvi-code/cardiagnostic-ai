@@ -15,6 +15,38 @@
   pointer-events: none;
 }
 
+.puls-voice-status {
+  position: fixed;
+  z-index: 4;
+  left: 50%;
+  top: calc(50% + clamp(92px, 15vh, 150px));
+  width: min(86vw, 520px);
+  margin: 0;
+  padding: 10px 14px;
+  color: #e8f8ff;
+  border: 1px solid rgba(38, 220, 255, .28);
+  border-radius: 12px;
+  background: rgba(2, 7, 13, .68);
+  box-shadow: 0 0 18px rgba(8, 108, 255, .16);
+  font-size: 14px;
+  line-height: 1.45;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 6px);
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.puls-voice-status.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.puls-voice-status.is-error {
+  color: #ffd89a;
+  border-color: rgba(255, 174, 66, .42);
+}
+
 .puls-voice-controls {
   position: fixed;
   z-index: 3;
