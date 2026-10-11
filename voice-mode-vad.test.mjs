@@ -44,21 +44,11 @@ assert.equal(idle.shouldEnter({now:30000,lastActivity:0,timeout:30000}),true);
 assert.equal(idle.shouldEnter({now:45000,lastActivity:0,timeout:30000,utteranceActive:true}),false);
 assert.equal(idle.shouldEnter({now:45000,lastActivity:0,timeout:30000,processing:true}),false);
 
-for(const [width,height] of [[375,812],[390,844],[768,1024],[1024,768],[1440,900],[1920,1080]]){
+for(const [width,height] of [[375,812],[390,844],[768,1024],[1024,768],[1280,800],[1440,900],[1920,1080]]){
   const geometry=window.PulsVoiceLayout.geometry(width,height);
   assert.equal(geometry.cx,width/2,`${width}x${height} must remain horizontally centered`);
   assert.equal(geometry.cy,height*.47);
 }
-assert.equal(
-  window.PulsVoiceLayout.geometry(1200,900,{desktop:true,containerLeft:180,viewportLeft:0,viewportWidth:1440}).cx,
-  540,
-  "desktop center must be translated from the visible viewport into canvas coordinates"
-);
-assert.equal(
-  window.PulsVoiceLayout.geometry(1024,768,{desktop:false,containerLeft:120,viewportLeft:0,viewportWidth:1280}).cx,
-  512,
-  "tablet positioning must retain the existing container-relative center"
-);
 
 class FakeRecorder {
   constructor(){this.mimeType="audio/webm;codecs=opus";this.state="inactive";this.listeners=new Map();}
@@ -116,6 +106,8 @@ assert.doesNotMatch(voiceSource,/showVoiceStatus\(startupGreeting/,"startup gree
 assert.doesNotMatch(voiceSource,/\/api\/voice\/greeting/,"startup playback must not make repeated TTS requests");
 assert.doesNotMatch(voiceSource,/status===422\?voiceMessage\('empty'\)/,"empty transcription must remain silent");
 assert.match(voiceSource,/dataset\.inactivityMs\)\|\|30000/);
+assert.match(voiceSource,/root\.clientWidth\|\|bounds\.width\|\|window\.innerWidth/);
+assert.doesNotMatch(voiceSource,/visualCenter|viewportWidth/,"canvas coordinates must not mix visual and layout viewports");
 assert.match(voiceSource,/is-pending/);
 assert.match(voiceStyleSource,/\.puls-voice-control\.is-pending::before/);
 assert.match(voiceStyleSource,/0 0 34px rgba\(8, 108, 255, \.28\)/);
