@@ -103,10 +103,12 @@
   function shouldEnterVoiceIdle({now,lastActivity,timeout,utteranceActive=false,processing=false}){
     return !utteranceActive&&!processing&&now-lastActivity>=timeout;
   }
-  function voiceViewportGeometry(width,height){
+  function voiceViewportGeometry(width,height,{desktop=false,containerLeft=0,viewportLeft=0,viewportWidth=width}={}){
     const resolvedWidth=Math.max(1,Number(width)||1);
     const resolvedHeight=Math.max(1,Number(height)||1);
-    return {width:resolvedWidth,height:resolvedHeight,cx:resolvedWidth*.5,cy:resolvedHeight*.47};
+    const visualCenter=Number(viewportLeft)+Math.max(1,Number(viewportWidth)||resolvedWidth)*.5;
+    const cx=desktop?visualCenter-Number(containerLeft||0):resolvedWidth*.5;
+    return {width:resolvedWidth,height:resolvedHeight,cx,cy:resolvedHeight*.47};
   }
   // A pure seam used by the focused VAD regression test.
   window.PulsVoiceVad={createVadGate};
@@ -241,7 +243,13 @@
 
   function resize() {
     const bounds=root.getBoundingClientRect();
-    const geometry=voiceViewportGeometry(bounds.width||window.innerWidth,bounds.height||window.innerHeight);
+    const visualViewport=window.visualViewport;
+    const geometry=voiceViewportGeometry(bounds.width||window.innerWidth,bounds.height||window.innerHeight,{
+      desktop:window.matchMedia('(min-width: 1025px)').matches,
+      containerLeft:bounds.left,
+      viewportLeft:visualViewport?.offsetLeft||0,
+      viewportWidth:visualViewport?.width||window.innerWidth
+    });
     W = geometry.width;
     H = geometry.height;
     canvas.width = Math.ceil(W * dpr);

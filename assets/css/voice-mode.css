@@ -86,9 +86,13 @@
   inset: 2px;
   content: "";
   border-radius: 50%;
-  border: 1px solid rgba(38, 220, 255, .72);
-  background: rgba(38, 220, 255, .06);
-  box-shadow: 0 0 18px rgba(8, 108, 255, .58);
+  border: 1px solid rgba(38, 220, 255, .84);
+  background: rgba(38, 220, 255, .04);
+  box-shadow:
+    0 0 7px rgba(38, 220, 255, .78),
+    0 0 20px rgba(8, 108, 255, .66),
+    0 0 34px rgba(8, 108, 255, .28),
+    inset 0 0 8px rgba(38, 220, 255, .12);
   opacity: 0;
   transform: scale(.72);
   transition: opacity 160ms ease, transform 160ms ease;
