@@ -4083,11 +4083,29 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     let dictationSession = null;
     let dictationStarting = false;
     let dictationTranscriptionController = null;
+    let dictationPressTimer = 0;
+    let dictationStopAcknowledgedUntil = 0;
     function dictationButton() { return document.querySelector('[data-action="voice"]'); }
+    function pulseDictationControl({ stopping = false } = {}) {
+      const button = dictationButton();
+      if (!button) return;
+      if (stopping) dictationStopAcknowledgedUntil = performance.now() + 200;
+      clearTimeout(dictationPressTimer);
+      button.classList.remove("is-dictation-pressed");
+      void button.offsetWidth;
+      button.classList.add("is-dictation-pressed");
+      dictationPressTimer = setTimeout(() => button.classList.remove("is-dictation-pressed"), 200);
+    }
+    async function awaitDictationStopAcknowledgement() {
+      const remaining = dictationStopAcknowledgedUntil - performance.now();
+      if (remaining > 0) await new Promise((resolve) => setTimeout(resolve, remaining));
+    }
     function setDictationVisualState(state = "idle") {
       const button = dictationButton();
       if (!button) return;
+      const shell = $("#promptInput")?.closest(".composer-shell");
       button.dataset.dictationState = state;
+      if (shell) shell.dataset.dictationState = state;
       button.classList.toggle("is-dictating", state === "recording");
       button.disabled = state === "transcribing";
       button.setAttribute("aria-pressed", String(state === "recording"));
@@ -4111,7 +4129,9 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       const response = await fetch(`${API_BASE_URL}/api/voice/transcribe`, { method: "POST", headers, body: form, cache: "no-store", signal });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.detail || `Dictation returned ${response.status}`);
-      const text = String(payload.text || "").trim();
+      return String(payload.text || "").trim();
+    }
+    function insertDictationText(text) {
       if (!text) return;
       const input = $("#promptInput");
       if (!input) return;
@@ -4165,7 +4185,14 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           dictationTranscriptionController = controller;
           setDictationVisualState("transcribing");
           try {
-            await uploadDictation(new Blob(session.chunks, { type: recorder.mimeType || mimeType || "audio/webm" }), controller.signal);
+            const text = await uploadDictation(new Blob(session.chunks, { type: recorder.mimeType || mimeType || "audio/webm" }), controller.signal);
+            await awaitDictationStopAcknowledgement();
+            if (controller.signal.aborted) {
+              const aborted = new Error("Dictation cancelled");
+              aborted.name = "AbortError";
+              throw aborted;
+            }
+            insertDictationText(text);
             resolveDone(true);
           } catch (error) {
             if (error?.name !== "AbortError") {
@@ -4730,6 +4757,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           event.preventDefault();
           chooseChatAttachment(action);
         } else if (action === "voice") {
+          pulseDictationControl({ stopping: dictationButton()?.dataset.dictationState === "recording" });
           void window.PulsDictation?.toggle?.();
         } else {
           toast(t("toast.demo"));

@@ -2341,17 +2341,23 @@ body.assistant-mode .assistant-right {
   font-size: 21px;
 }
 
-.voice-btn-mic { display: inline; }
-.voice-btn-stop,
-.puls-dictation-audiogram { display: none; }
-
-.voice-btn[data-dictation-state="recording"],
-.voice-btn[data-dictation-state="transcribing"] {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
+.voice-btn {
+  position: relative;
+  color: #f7fbff;
 }
+
+.voice-btn-mic {
+  display: block;
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.55;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.voice-btn-stop { display: none; }
 
 .voice-btn[data-dictation-state="recording"] .voice-btn-mic,
 .voice-btn[data-dictation-state="transcribing"] .voice-btn-mic { display: none; }
@@ -2359,52 +2365,122 @@ body.assistant-mode .assistant-right {
 .voice-btn[data-dictation-state="recording"] .voice-btn-stop,
 .voice-btn[data-dictation-state="transcribing"] .voice-btn-stop {
   display: block;
-  width: 8px;
-  height: 8px;
-  flex: 0 0 8px;
+  width: 9px;
+  height: 9px;
   border-radius: 1px;
-  background: currentColor;
+  background: #f7fbff;
 }
 
-.puls-dictation-audiogram {
-  width: 18px;
-  height: 14px;
+.voice-btn.is-dictation-pressed::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  pointer-events: none;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(67, 191, 255, .78), 0 0 15px rgba(8, 125, 255, .55);
+  animation: puls-dictation-press .2s ease-out both;
+}
+
+.puls-dictation-waveform {
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  left: 52px;
+  right: 96px;
+  display: flex;
+  width: min(56%, 360px);
+  height: 22px;
+  margin-inline: auto;
   align-items: center;
   justify-content: space-between;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-50%);
+  transition: opacity .16s ease, visibility 0s linear .16s;
 }
 
-.voice-btn[data-dictation-state="recording"] .puls-dictation-audiogram,
-.voice-btn[data-dictation-state="transcribing"] .puls-dictation-audiogram { display: inline-flex; }
-
-.puls-dictation-audiogram i {
-  width: 2px;
-  height: 5px;
-  border-radius: 999px;
-  background: currentColor;
-  opacity: .55;
+.composer-shell.is-expanded .puls-dictation-waveform {
+  top: calc((100% - 48px) / 2);
 }
 
-.voice-btn[data-dictation-state="recording"] { color: #43bfff; }
-.voice-btn[data-dictation-state="recording"] .puls-dictation-audiogram i {
-  animation: puls-voice-header-listening 1.05s ease-in-out infinite;
-}
-
-.voice-btn[data-dictation-state="transcribing"] {
-  color: #ff9a32;
-  cursor: wait;
+.composer-shell[data-dictation-state="recording"] .puls-dictation-waveform,
+.composer-shell[data-dictation-state="transcribing"] .puls-dictation-waveform {
   opacity: 1;
-}
-.voice-btn[data-dictation-state="transcribing"] .puls-dictation-audiogram i {
-  animation: puls-voice-header-thinking 1.2s ease-in-out infinite;
+  visibility: visible;
+  transition-delay: 0s;
 }
 
-.puls-dictation-audiogram i:nth-child(2) { animation-delay: -.18s !important; }
-.puls-dictation-audiogram i:nth-child(3) { animation-delay: -.36s !important; }
-.puls-dictation-audiogram i:nth-child(4) { animation-delay: -.54s !important; }
-.puls-dictation-audiogram i:nth-child(5) { animation-delay: -.72s !important; }
+.composer-shell[data-dictation-state="recording"] textarea,
+.composer-shell[data-dictation-state="transcribing"] textarea {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.composer-shell textarea { transition: opacity .16s ease; }
+
+.puls-dictation-waveform i {
+  width: 1px;
+  height: 8px;
+  flex: 0 0 1px;
+  border-radius: 999px;
+  background: #f7fbff;
+  opacity: .72;
+  transform-origin: center;
+  animation: puls-dictation-wave 1.45s ease-in-out infinite;
+}
+
+.puls-dictation-waveform i:nth-child(4n + 1) { animation-delay: -.18s; }
+.puls-dictation-waveform i:nth-child(4n + 2) { animation-delay: -.54s; }
+.puls-dictation-waveform i:nth-child(4n + 3) { animation-delay: -.9s; }
+.puls-dictation-waveform i:nth-child(4n) { animation-delay: -1.2s; }
+
+.composer-shell[data-dictation-state="transcribing"] .puls-dictation-waveform i {
+  animation-name: puls-dictation-processing;
+  animation-duration: 1.8s;
+}
+
+@keyframes puls-dictation-press {
+  0% { opacity: 0; transform: scale(.82); }
+  35% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.12); }
+}
+
+@keyframes puls-dictation-wave {
+  0%,100% { transform: scaleY(.42); opacity: .48; }
+  50% { transform: scaleY(1.4); opacity: .96; }
+}
+
+@keyframes puls-dictation-processing {
+  0%,100% { transform: scaleY(.5); opacity: .44; }
+  50% { transform: scaleY(1.05); opacity: .84; }
+}
+
+@media (max-width: 480px) {
+  .puls-dictation-waveform {
+    left: 52px;
+    right: 96px;
+    width: auto;
+    margin: 0;
+    transform-origin: right center;
+  }
+
+  .composer-shell[data-dictation-state="recording"] .puls-dictation-waveform,
+  .composer-shell[data-dictation-state="transcribing"] .puls-dictation-waveform {
+    animation: puls-dictation-reveal-mobile .22s ease-out both;
+  }
+}
+
+@keyframes puls-dictation-reveal-mobile {
+  from { clip-path: inset(0 0 0 100%); opacity: 0; }
+  to { clip-path: inset(0); opacity: 1; }
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .puls-dictation-audiogram i { animation: none !important; height: 6px; }
+  .voice-btn.is-dictation-pressed::after,
+  .puls-dictation-waveform,
+  .puls-dictation-waveform i { animation: none !important; }
+  .puls-dictation-waveform i { height: 6px; opacity: .72; }
 }
 
 .send {
@@ -4224,6 +4300,7 @@ body.assistant-mode .composer {
 
 .composer-shell,
 body.assistant-mode .composer-shell {
+  position: relative;
   width: 100%;
   min-height: 48px;
   display: flex;
