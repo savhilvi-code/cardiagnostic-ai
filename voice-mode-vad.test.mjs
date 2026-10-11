@@ -72,10 +72,20 @@ const styleSource=readFileSync(new URL("./assets/css/style.css",import.meta.url)
 const greetingManifest=JSON.parse(readFileSync(new URL("./assets/audio/voice-greetings/manifest.v1.json",import.meta.url),"utf8"));
 assert.match(voiceSource,/pulsVoiceStatus/);
 assert.doesNotMatch(appSource,/showGreeting\s*\(/,"the fixed greeting must not enter the main message workspace");
-assert.equal(greetingManifest.available,false,"paid greeting generation remains an explicit one-time action");
+assert.equal(greetingManifest.available,true,"the two prerecorded greeting assets are active");
+assert.equal(greetingManifest.voice,"marin");
 assert.equal(greetingManifest.greetings.ru.text,window.PulsVoiceGreeting.text("ru"));
 assert.equal(greetingManifest.greetings.en.text,window.PulsVoiceGreeting.text("en"));
 assert.match(voiceSource,/greetingManifestUrl='assets\/audio\/voice-greetings\/manifest\.v1\.json'/);
+assert.doesNotMatch(voiceSource,/showVoiceStatus\(startupGreeting/,"startup greeting must be audio-only");
+assert.doesNotMatch(voiceSource,/\/api\/voice\/greeting/,"startup playback must not make repeated TTS requests");
+for(const language of ["ru","en"]){
+  const file=greetingManifest.greetings[language].file;
+  const audio=new Uint8Array(readFileSync(new URL(`./assets/audio/voice-greetings/${file}`,import.meta.url)));
+  assert.ok(audio.length>10000,`${language} greeting MP3 must be populated`);
+  assert.equal(audio[0],0xff);
+  assert.equal(audio[1]&0xe0,0xe0,`${language} greeting must begin with an MPEG audio frame`);
+}
 assert.match(voiceSource,/workspaceVisible&&pendingTextExit/);
 assert.match(voiceSource,/!workspaceVisible&&pendingVoiceStart/);
 assert.match(voiceSource,/transitionProgress=1;transitionTarget=0/);

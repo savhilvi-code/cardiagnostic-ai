@@ -1437,35 +1437,18 @@
   async function playStartupGreeting(epoch){
     if(startupGreetingPlayed)return;
     startupGreetingPlayed=true;
-    const bridge=window.PulsVoiceBridge;
     const language=voiceLanguage().startsWith('ru')?'ru':'en';
-    showVoiceStatus(startupGreeting(language),'greeting',{persistent:true});
     try{
-      if(!bridge)throw new Error('VOICE_BRIDGE_UNAVAILABLE');
       const cachedSource=await cachedGreetingSource(language);
       if(cachedSource){
         if(epoch===voiceSessionEpoch&&active&&voiceSessionActive){
           await playAudioSource(cachedSource,epoch,{revoke:true});
         }else URL.revokeObjectURL(cachedSource);
-        return;
-      }
-      const turn=await bridge.prepareTurn();
-      const form=new FormData();
-      form.append('language',language);
-      const response=await fetch(`${turn.apiBaseUrl}/api/voice/greeting`,{
-        method:'POST',headers:turn.headers,body:form,cache:'no-store'
-      });
-      const payload=await response.json().catch(()=>({}));
-      if(!response.ok)throw new Error(payload.detail||`Voice greeting returned ${response.status}`);
-      if(epoch===voiceSessionEpoch&&active&&voiceSessionActive&&payload.audio){
-        await playVoiceResponse(payload.audio,epoch);
-      }
+      }else console.warn('PULS voice pipeline failure',{stage:'greeting_cache_missing'});
     }catch(error){
-      // Greeting is an enhancement: microphone listening must remain available
-      // even when TTS generation or browser playback is unavailable.
+      // Cached greeting playback is an enhancement: listening must remain
+      // available when the static asset or browser playback is unavailable.
       console.warn('PULS voice pipeline failure',{stage:'greeting',name:String(error?.name||'Error')});
-    }finally{
-      if(epoch===voiceSessionEpoch)clearVoiceStatus();
     }
   }
 

@@ -1,17 +1,17 @@
 {
   "schema_version": 1,
   "asset_version": "v1",
-  "available": false,
+  "available": true,
   "tts_model": "gpt-4o-mini-tts",
-  "voice": null,
+  "voice": "marin",
   "greetings": {
     "ru": {
       "text": "Привет! Пульс на связи. Как твои дела?",
-      "file": null
+      "file": "puls-greeting-ru-marin-v1.mp3"
     },
     "en": {
       "text": "Hi! PULS here. How are you doing?",
-      "file": null
+      "file": "puls-greeting-en-marin-v1.mp3"
     }
   }
 }
