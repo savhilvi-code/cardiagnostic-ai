@@ -2575,7 +2575,7 @@ body.assistant-mode .composer .send:disabled {
 
 .composer-menu {
   position: absolute;
-  left: 0;
+  left: var(--composer-menu-left-offset, -7px);
   bottom: calc(100% + 14px);
   width: 220px;
   display: grid;
@@ -4341,6 +4341,7 @@ button.chat-attachment-file-icon.is-openable {
 /* ===== PULS ChatGPT-style expanding composer ===== */
 .composer,
 body.assistant-mode .composer {
+  --composer-menu-left-offset: -7px;
   padding: 7px !important;
   overflow: visible !important;
   border-radius: 22px !important;
@@ -5194,6 +5195,7 @@ body *::-webkit-scrollbar {
   }
 
   body.assistant-mode .composer {
+    --composer-menu-left-offset: -3px;
     left: 8px !important;
     right: 8px !important;
     padding: 4px 3px !important;
