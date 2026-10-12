@@ -345,16 +345,16 @@ body.voice-workspace-mode #app .main-panel {
   pointer-events: none;
   background: rgba(0, 0, 0, .94);
   -webkit-mask:
-    radial-gradient(circle 33px at 51px 50%, #000 96%, transparent 100%),
-    radial-gradient(circle 44px at 50% 50%, #000 96%, transparent 100%),
-    radial-gradient(circle 33px at calc(100% - 51px) 50%, #000 96%, transparent 100%),
-    radial-gradient(ellipse 48% 25px at 50% 50%, #000 96%, transparent 100%);
+    radial-gradient(circle 33px at 51px 50%, #000 78%, rgba(0, 0, 0, .82) 87%, transparent 100%),
+    radial-gradient(circle 44px at 50% 50%, #000 78%, rgba(0, 0, 0, .82) 87%, transparent 100%),
+    radial-gradient(circle 33px at calc(100% - 51px) 50%, #000 78%, rgba(0, 0, 0, .82) 87%, transparent 100%),
+    radial-gradient(ellipse calc(50% - 18px) 25px at 50% 50%, #000 78%, rgba(0, 0, 0, .82) 87%, transparent 100%);
   mask:
-    radial-gradient(circle 33px at 51px 50%, #000 96%, transparent 100%),
-    radial-gradient(circle 44px at 50% 50%, #000 96%, transparent 100%),
-    radial-gradient(circle 33px at calc(100% - 51px) 50%, #000 96%, transparent 100%),
-    radial-gradient(ellipse 48% 25px at 50% 50%, #000 96%, transparent 100%);
-  filter: blur(11px);
+    radial-gradient(circle 33px at 51px 50%, #000 78%, rgba(0, 0, 0, .82) 87%, transparent 100%),
+    radial-gradient(circle 44px at 50% 50%, #000 78%, rgba(0, 0, 0, .82) 87%, transparent 100%),
+    radial-gradient(circle 33px at calc(100% - 51px) 50%, #000 78%, rgba(0, 0, 0, .82) 87%, transparent 100%),
+    radial-gradient(ellipse calc(50% - 18px) 25px at 50% 50%, #000 78%, rgba(0, 0, 0, .82) 87%, transparent 100%);
+  filter: blur(14px) drop-shadow(0 0 12px rgba(20, 145, 255, .34));
 }
 
 .puls-voice-mode.is-workspace-visible .puls-voice-controls.is-visible {
