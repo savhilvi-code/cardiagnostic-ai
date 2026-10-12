@@ -2578,6 +2578,9 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       if (document.body.classList.contains("assistant-mode") && document.body.classList.contains("chat-active")) {
         return $("#messages") || window;
       }
+      if (document.body.classList.contains("page-mode")) {
+        return $(".content > .main-panel") || window;
+      }
       return window;
     }
 
@@ -2601,7 +2604,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       }
 
       if (Math.abs(delta) < 1) return;
-      const chatScroll = target !== window;
+      const chatScroll = target === $("#messages");
       const nextDirection = (chatScroll ? delta < 0 : delta > 0) ? 1 : -1;
       if (nextDirection !== headerScrollDirection) {
         headerScrollDirection = nextDirection;

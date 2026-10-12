@@ -3177,21 +3177,23 @@ body.assistant-mode #assistant .chat-grid {
 
 /* ===== Final page-mode and assistant-mode overrides ===== */
 body.page-mode {
-  overflow-y: auto !important;
+  overflow-y: hidden !important;
   overflow-x: hidden !important;
 }
 
 body.page-mode .app {
-  height: auto !important;
-  min-height: 100vh;
-  overflow: visible !important;
+  height: 100dvh !important;
+  min-height: 0;
+  overflow: hidden !important;
   padding-bottom: 0 !important;
 }
 
 body.page-mode .workspace {
+  flex: 1 1 auto;
   height: auto !important;
-  overflow: visible !important;
-  align-items: flex-start;
+  min-height: 0;
+  overflow: hidden !important;
+  align-items: stretch;
 }
 
 body.page-mode .side {
@@ -3201,11 +3203,22 @@ body.page-mode .side {
   max-height: calc(100vh - 24px) !important;
 }
 
-body.page-mode .content,
-body.page-mode .content > .main-panel,
+body.page-mode .content {
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+body.page-mode .content > .main-panel {
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
 body.page-mode .view.active {
   height: auto !important;
-  min-height: 0 !important;
+  min-height: 100% !important;
   overflow: visible !important;
 }
 
