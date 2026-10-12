@@ -2412,7 +2412,10 @@ body.assistant-mode .assistant-right {
 body.assistant-mode .composer:has(.composer-shell[data-dictation-state="recording"]) {
   box-shadow:
     0 -12px 40px rgba(0, 0, 0, .38),
-    inset 0 0 46px rgba(8, 125, 255, .38);
+    0 0 0 1px rgba(13, 151, 255, .92),
+    0 0 12px rgba(8, 125, 255, .48),
+    0 0 26px rgba(8, 125, 255, .24),
+    inset 0 0 20px rgba(8, 125, 255, .22);
 }
 
 .puls-dictation-transcribing {
