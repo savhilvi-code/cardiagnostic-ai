@@ -2517,6 +2517,7 @@ body.assistant-mode .composer:has(.composer-shell[data-dictation-state="recordin
   border-radius: 10px !important;
   color: #fff !important;
   margin-right: 2px;
+  transform: none !important;
 }
 
 .send[data-composer-action="voice"] .send-default-icon { display: none; }

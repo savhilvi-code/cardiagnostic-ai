@@ -101,8 +101,8 @@ body:not([data-auth-state="authenticated"]) .puls-voice-header-label {
 
 .puls-text-header-icon {
   order: 2;
-  width: 23px;
-  height: 19px;
+  width: 25px;
+  height: 21px;
   color: var(--puls-mode-inactive);
   transition: color .28s ease, filter .28s ease;
 }
@@ -155,7 +155,7 @@ body:not([data-auth-state="authenticated"]) .puls-voice-header-label {
 
   .puls-header-mode-label { width: 68px; }
   .puls-voice-header-audiogram { width: 20px; height: 14px; gap: 2.45px; }
-  .puls-text-header-icon { width: 20px; height: 17px; }
+  .puls-text-header-icon { width: 22px; height: 19px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -340,6 +340,7 @@ body.voice-workspace-mode #app .main-panel {
 }
 
 .puls-voice-mode.is-workspace-visible .puls-voice-control {
+  background: rgba(0, 3, 10, .86);
   box-shadow:
     0 0 14px 9px rgba(0, 0, 0, .64),
     0 0 30px 16px rgba(0, 0, 0, .32);
