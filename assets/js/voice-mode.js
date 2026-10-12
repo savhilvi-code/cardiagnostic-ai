@@ -1377,6 +1377,10 @@
         if(workspaceVisible){
           root.classList.add('is-workspace-visible');
           document.body.classList.add('voice-workspace-visible');
+          workspace.style.removeProperty('opacity');
+          workspace.style.removeProperty('clip-path');
+          workspace.style.removeProperty('-webkit-clip-path');
+          workspace.style.removeProperty('transform');
           workspace.inert=false;
         } else {
           root.classList.remove('is-workspace-visible');
