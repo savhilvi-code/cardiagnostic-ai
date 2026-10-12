@@ -285,8 +285,8 @@ body:not([data-auth-state="authenticated"]) .puls-voice-header-label {
 }
 
 .puls-voice-attachment-dot {
-  width: 5px;
-  height: 5px;
+  width: 2.5px;
+  height: 2.5px;
   border-radius: 50%;
   background: #dcefff;
   box-shadow: 0 0 5px #50cfff, 0 0 12px #2677ff, 0 0 22px rgba(38, 119, 255, .65);
