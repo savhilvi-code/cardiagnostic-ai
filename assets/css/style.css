@@ -2498,6 +2498,7 @@ body.assistant-mode .composer:has(.composer-shell[data-dictation-state="recordin
   background: linear-gradient(180deg, #087dff, #064bc2) !important;
   border-color: var(--blue) !important;
   font-size: 22px !important;
+  transition: none;
 }
 
 .send-voice-icon {
