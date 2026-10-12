@@ -208,6 +208,7 @@ body:not([data-auth-state="authenticated"]) .puls-voice-header-label {
   pointer-events: none;
   transform: translateX(-50%);
   transition: opacity 220ms ease;
+  isolation: isolate;
 }
 
 .puls-voice-controls.is-visible {
@@ -334,7 +335,26 @@ body.voice-workspace-mode #app .main-panel {
 
 .puls-voice-mode.is-workspace-visible .puls-voice-controls {
   pointer-events: none;
-  background: radial-gradient(ellipse at center, rgba(0, 0, 0, .76) 0%, rgba(0, 0, 0, .58) 42%, rgba(0, 0, 0, .3) 68%, transparent 100%);
+}
+
+.puls-voice-mode.is-workspace-visible .puls-voice-controls::before {
+  position: absolute;
+  z-index: -1;
+  inset: -28px;
+  content: "";
+  pointer-events: none;
+  background: rgba(0, 0, 0, .94);
+  -webkit-mask:
+    radial-gradient(circle 33px at 51px 50%, #000 96%, transparent 100%),
+    radial-gradient(circle 44px at 50% 50%, #000 96%, transparent 100%),
+    radial-gradient(circle 33px at calc(100% - 51px) 50%, #000 96%, transparent 100%),
+    radial-gradient(ellipse 48% 25px at 50% 50%, #000 96%, transparent 100%);
+  mask:
+    radial-gradient(circle 33px at 51px 50%, #000 96%, transparent 100%),
+    radial-gradient(circle 44px at 50% 50%, #000 96%, transparent 100%),
+    radial-gradient(circle 33px at calc(100% - 51px) 50%, #000 96%, transparent 100%),
+    radial-gradient(ellipse 48% 25px at 50% 50%, #000 96%, transparent 100%);
+  filter: blur(11px);
 }
 
 .puls-voice-mode.is-workspace-visible .puls-voice-controls.is-visible {
@@ -343,9 +363,6 @@ body.voice-workspace-mode #app .main-panel {
 
 .puls-voice-mode.is-workspace-visible .puls-voice-control {
   background: rgba(0, 3, 10, .86);
-  box-shadow:
-    0 0 14px 9px rgba(0, 0, 0, .64),
-    0 0 30px 16px rgba(0, 0, 0, .32);
 }
 
 @media (max-width: 480px) {
