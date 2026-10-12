@@ -265,11 +265,14 @@ body:not([data-auth-state="authenticated"]) .puls-voice-header-label {
   opacity: var(--voice-attachment-label);
 }
 
-.puls-voice-attachment-item.is-selected > button {
+.puls-voice-attachment-item.is-selected > button,
+.puls-voice-attachment-item > button:not(:disabled):hover,
+.puls-voice-attachment-item > button:not(:disabled):focus-visible,
+.puls-voice-attachment-item > button:not(:disabled):active {
   color: #fff;
-  border-color: var(--blue);
-  background: linear-gradient(90deg, #0766f2, #07386f);
-  box-shadow: inset 0 0 0 1px var(--blue), 0 0 22px rgba(8, 125, 255, .22);
+  border-color: #26dcff;
+  background: rgba(2, 10, 18, .94);
+  box-shadow: inset 0 0 0 1px #26dcff, 0 0 10px rgba(38, 220, 255, .24);
 }
 
 .puls-voice-attachment-dot,
@@ -430,9 +433,9 @@ body.voice-workspace-mode #app .main-panel {
   content: "";
   pointer-events: none;
   background:
-    radial-gradient(circle 44px at 71px 50%, rgba(0, 0, 0, .96) 0 28%, rgba(0, 0, 0, .78) 46%, rgba(24, 35, 46, .24) 72%, transparent 100%),
-    radial-gradient(circle 132px at 50% 50%, rgba(0, 0, 0, .97) 0 18%, rgba(0, 0, 0, .78) 42%, rgba(24, 35, 46, .22) 70%, transparent 100%),
-    radial-gradient(circle 44px at calc(100% - 71px) 50%, rgba(0, 0, 0, .96) 0 28%, rgba(0, 0, 0, .78) 46%, rgba(24, 35, 46, .24) 72%, transparent 100%);
+    radial-gradient(circle 53px at 71px 50%, rgba(0, 0, 0, .96) 0 28%, rgba(0, 0, 0, .72) 50%, rgba(0, 0, 0, .26) 74%, transparent 100%),
+    radial-gradient(circle 132px at 50% 50%, rgba(0, 0, 0, .97) 0 18%, rgba(0, 0, 0, .76) 44%, rgba(0, 0, 0, .24) 72%, transparent 100%),
+    radial-gradient(circle 53px at calc(100% - 71px) 50%, rgba(0, 0, 0, .96) 0 28%, rgba(0, 0, 0, .72) 50%, rgba(0, 0, 0, .26) 74%, transparent 100%);
 }
 
 .puls-voice-mode.is-workspace-visible .puls-voice-controls.is-visible {
