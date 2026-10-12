@@ -61,7 +61,6 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     const i18n = {
       en: {
         "brand.subtitle": "Your AI assistant for car diagnostics",
-        "system.ready": "PULS works for you 24/7",
         "system.freeQuota": "PULS: {remaining} of {limit} requests",
         "system.premium": "PULS Premium: no limit",
         "system.authCta": "Sign in / Register",
@@ -370,7 +369,6 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       },
       ru: {
         "brand.subtitle": "Ваш AI-помощник для диагностики автомобиля",
-        "system.ready": "PULS работает для вас 24/7",
         "system.freeQuota": "PULS: {remaining} из {limit} запросов",
         "system.premium": "PULS Premium: без лимита",
         "system.authCta": "Войти / Зарегистрироваться",
@@ -725,19 +723,18 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       if (!pill) return;
       const signedIn = isSignedIn();
       if (!signedIn) closeRequestLimitModal();
-      let label = t("system.authCta");
+      let label = signedIn ? "" : t("system.authCta");
 
       if (signedIn) {
         if (currentQuota?.unlimited) {
           label = t("system.premium");
         } else if (currentQuota) {
           label = t("system.freeQuota", { remaining: currentQuota.remaining, limit: currentQuota.limit });
-        } else {
-          label = t("system.ready");
         }
       }
 
       document.body.dataset.authState = signedIn ? "authenticated" : "guest";
+      pill.hidden = Boolean(signedIn && !currentQuota);
       const hasCompactQuota = Boolean(signedIn && currentQuota && !currentQuota.unlimited);
       const fullLabel = document.createElement("span");
       fullLabel.className = "system-pill-full";

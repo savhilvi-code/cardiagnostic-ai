@@ -4805,6 +4805,10 @@ body.puls-header-hidden .topbar {
   display: none;
 }
 
+.system-pill[hidden] {
+  display: none !important;
+}
+
 .brand-nav-label {
   display: inline-flex;
   align-items: center;
