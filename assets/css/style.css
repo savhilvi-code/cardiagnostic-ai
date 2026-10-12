@@ -2329,8 +2329,7 @@ body.assistant-mode .assistant-right {
   transition: transform .18s, border-color .18s, background .18s, box-shadow .18s;
 }
 
-.composer-icon-btn:hover,
-.send:hover {
+.composer-icon-btn:hover {
   transform: translateY(-1px);
   border-color: var(--blue);
   background: #0a2035;

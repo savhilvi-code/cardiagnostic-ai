@@ -32,7 +32,7 @@
   font-weight: 400;
   line-height: 1;
   white-space: nowrap;
-  pointer-events: auto;
+  pointer-events: none;
   transform: translate(-50%, -50%);
   align-items: center;
   gap: 7px;
@@ -89,7 +89,7 @@ body:not([data-auth-state="authenticated"]) .puls-voice-header-label {
   background: transparent;
   font: inherit;
   line-height: 1;
-  cursor: pointer;
+  cursor: default;
 }
 
 .puls-header-mode-label {
@@ -103,6 +103,7 @@ body:not([data-auth-state="authenticated"]) .puls-voice-header-label {
   order: 2;
   width: 25px;
   height: 21px;
+  margin-left: -4px;
   color: var(--puls-mode-inactive);
   transition: color .28s ease, filter .28s ease;
 }
@@ -271,6 +272,9 @@ body:not([data-auth-state="authenticated"]) .puls-voice-header-label {
 }
 
 .puls-voice-toggle {
+  --puls-control-backdrop:
+    0 0 42px 46px rgba(0, 0, 0, .54),
+    0 0 78px 68px rgba(0, 0, 0, .24);
   width: 64px;
   height: 64px;
 }
@@ -341,9 +345,9 @@ body.voice-workspace-mode #app .main-panel {
 
 .puls-voice-mode.is-workspace-visible .puls-voice-control {
   background: rgba(0, 3, 10, .86);
-  box-shadow:
+  box-shadow: var(--puls-control-backdrop,
     0 0 14px 9px rgba(0, 0, 0, .64),
-    0 0 30px 16px rgba(0, 0, 0, .32);
+    0 0 30px 16px rgba(0, 0, 0, .32));
 }
 
 @media (max-width: 480px) {

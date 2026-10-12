@@ -4921,17 +4921,6 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         }
       });
 
-      document.querySelector(".puls-voice-header-label")?.addEventListener("click", async (event) => {
-        const explicit = event.target.closest("[data-puls-header-mode]")?.dataset.pulsHeaderMode;
-        const target = explicit || (window.PulsModeHeader?.mode === "voice" ? "text" : "voice");
-        if (target === window.PulsModeHeader?.mode) return;
-        if (target === "voice") {
-          await window.PulsDictation?.cancel?.();
-          window.PulsVoiceMode?.open?.({ source: "header" });
-        } else {
-          window.PulsVoiceMode?.closeToText?.();
-        }
-      });
       window.addEventListener("puls-voice-mode-change", (event) => {
         window.PulsModeHeader?.setMode(event.detail?.active ? "voice" : "text");
       });
