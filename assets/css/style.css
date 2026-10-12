@@ -2501,6 +2501,24 @@ body.assistant-mode .composer:has(.composer-shell[data-dictation-state="recordin
   font-size: 22px !important;
 }
 
+.send-voice-icon {
+  display: none;
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.send[data-composer-action="voice"] {
+  border-radius: 10px !important;
+  color: #fff !important;
+}
+
+.send[data-composer-action="voice"] .send-default-icon { display: none; }
+.send[data-composer-action="voice"] .send-voice-icon { display: block; }
+
 .composer .send:disabled,
 body.assistant-mode .composer .send:disabled {
   opacity: .38;
@@ -5268,28 +5286,28 @@ body.assistant-mode .composer-shell {
 
 /* Composer controls keep their full hit areas but show only their icons at rest. */
 .composer .composer-icon-btn,
-.composer .send,
+.composer .send:not([data-composer-action="voice"]),
 body.assistant-mode .composer .composer-icon-btn,
-body.assistant-mode .composer .send {
+body.assistant-mode .composer .send:not([data-composer-action="voice"]) {
   border-color: transparent !important;
   background: transparent !important;
   box-shadow: none !important;
   transform: none;
 }
 
-.composer .send:not(:disabled),
-body.assistant-mode .composer .send:not(:disabled) {
+.composer .send:not(:disabled):not([data-composer-action="voice"]),
+body.assistant-mode .composer .send:not(:disabled):not([data-composer-action="voice"]) {
   color: var(--blue);
 }
 
 .composer .composer-icon-btn:not(:disabled):active,
 .composer .composer-icon-btn:not(:disabled):focus-visible,
-.composer .send:not(:disabled):active,
-.composer .send:not(:disabled):focus-visible,
+.composer .send:not(:disabled):not([data-composer-action="voice"]):active,
+.composer .send:not(:disabled):not([data-composer-action="voice"]):focus-visible,
 body.assistant-mode .composer .composer-icon-btn:not(:disabled):active,
 body.assistant-mode .composer .composer-icon-btn:not(:disabled):focus-visible,
-body.assistant-mode .composer .send:not(:disabled):active,
-body.assistant-mode .composer .send:not(:disabled):focus-visible {
+body.assistant-mode .composer .send:not(:disabled):not([data-composer-action="voice"]):active,
+body.assistant-mode .composer .send:not(:disabled):not([data-composer-action="voice"]):focus-visible {
   border-color: transparent !important;
   background: transparent !important;
   box-shadow: none !important;

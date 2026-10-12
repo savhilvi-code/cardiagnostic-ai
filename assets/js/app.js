@@ -2778,7 +2778,16 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         remove.disabled = pending.state === "removing" || Boolean(window.PulsChat?.sending);
       }
       const send = $("#sendBtn");
-      if (send) send.disabled = !chatComposerCanSend();
+      if (send) {
+        const voiceAction = !$("#promptInput")?.value.trim()
+          && !pending
+          && activeChatAttachmentUploads === 0
+          && !window.PulsChat?.sending
+          && !window.PulsDictation?.isActive?.();
+        send.dataset.composerAction = voiceAction ? "voice" : "send";
+        send.setAttribute("aria-label", voiceAction ? "Voice Mode" : "Отправить");
+        send.disabled = voiceAction ? false : !chatComposerCanSend();
+      }
       resizePromptInput();
     }
 
@@ -4679,7 +4688,13 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         finishPulsViewLoading(initialLoadingOperation);
       }
 
-      $("#sendBtn").addEventListener("click", sendPrompt);
+      $("#sendBtn").addEventListener("click", (event) => {
+        if (event.currentTarget.dataset.composerAction === "voice") {
+          window.PulsVoiceMode?.open?.({ source: "composer" });
+          return;
+        }
+        void sendPrompt();
+      });
       $("#guestDevelopmentNoticeAccept")?.addEventListener("click", acknowledgeDevelopmentNotice);
       $("#chatAttachmentInput")?.addEventListener("change", (event) => {
         const files = Array.from(event.target.files || []);
