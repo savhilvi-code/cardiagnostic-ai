@@ -4084,23 +4084,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     let dictationTranscriptionController = null;
     let dictationTranscriptionOwnerId = "";
     let dictationSequence = 0;
-    let dictationPressTimer = 0;
-    let dictationStopAcknowledgedUntil = 0;
     function dictationButton() { return document.querySelector('[data-action="voice"]'); }
-    function pulseDictationControl({ stopping = false } = {}) {
-      const button = dictationButton();
-      if (!button) return;
-      if (stopping) dictationStopAcknowledgedUntil = performance.now() + 200;
-      clearTimeout(dictationPressTimer);
-      button.classList.remove("is-dictation-pressed");
-      void button.offsetWidth;
-      button.classList.add("is-dictation-pressed");
-      dictationPressTimer = setTimeout(() => button.classList.remove("is-dictation-pressed"), 200);
-    }
-    async function awaitDictationStopAcknowledgement() {
-      const remaining = dictationStopAcknowledgedUntil - performance.now();
-      if (remaining > 0) await new Promise((resolve) => setTimeout(resolve, remaining));
-    }
     function setDictationVisualState(state = "idle") {
       const button = dictationButton();
       if (!button) return;
@@ -4123,13 +4107,28 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           : (getLanguage() === "ru" ? "Голосовой ввод" : "Voice dictation"));
       syncPendingAttachmentComposer();
     }
-    function renderDictationWaveform(waveform, history) {
+    function renderDictationWaveform(waveform, history, nextAmplitude = null) {
       if (!waveform) return;
-      const bars = waveform.querySelectorAll(".puls-dictation-bars i");
+      const track = waveform.querySelector(".puls-dictation-bars");
+      const bars = Array.from(track?.querySelectorAll("i") || []);
+      if (!track || bars.length < 2) return;
+      const visibleCount = bars.length - 1;
+      const values = history.slice(-visibleCount);
+      const setAmplitude = (bar, value) => {
+        const amplitude = Math.max(0, Math.min(1, value || 0));
+        bar.style.setProperty("--dictation-scale", (0.188 + amplitude * 0.812).toFixed(3));
+      };
+      track.style.transition = "none";
+      track.style.transform = "translateX(0)";
       bars.forEach((bar, index) => {
-        const amplitude = Math.max(0, Math.min(1, history[index] || 0));
-        bar.style.setProperty("--dictation-scale", (0.055 + amplitude * 0.945).toFixed(3));
+        setAmplitude(bar, index < visibleCount ? values[index] : nextAmplitude);
       });
+      const shift = (waveform.clientWidth - 2) / Math.max(1, visibleCount - 1);
+      track.style.setProperty("--dictation-shift", `${shift.toFixed(3)}px`);
+      if (nextAmplitude === null) return;
+      void track.offsetWidth;
+      track.style.transition = "transform 104ms linear";
+      track.style.transform = "translateX(calc(-1 * var(--dictation-shift)))";
     }
     function stopDictationAnalysis(session) {
       const analysis = session?.analysis;
@@ -4152,7 +4151,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         analyser.smoothingTimeConstant = .82;
         source.connect(analyser);
         const samples = new Uint8Array(analyser.fftSize);
-        const barCount = waveform.querySelectorAll(".puls-dictation-bars i").length;
+        const barCount = Math.max(1, waveform.querySelectorAll(".puls-dictation-bars i").length - 1);
         const analysis = {
           context, source, analyser, samples, waveform, frame: 0,
           level: 0, peak: .12, lastSampleAt: 0,
@@ -4176,9 +4175,10 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           const smoothing = normalized > analysis.level ? .28 : .12;
           analysis.level += (normalized - analysis.level) * smoothing;
           if (!analysis.lastSampleAt || now - analysis.lastSampleAt >= 104) {
+            const amplitude = analysis.level < .025 ? 0 : analysis.level;
+            renderDictationWaveform(waveform, analysis.history, amplitude);
             analysis.history.shift();
-            analysis.history.push(analysis.level < .025 ? 0 : analysis.level);
-            renderDictationWaveform(waveform, analysis.history);
+            analysis.history.push(amplitude);
             analysis.lastSampleAt = now;
           }
           analysis.frame = requestAnimationFrame(update);
@@ -4228,6 +4228,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       if (session.completion) return session.done;
       session.completion = completion;
       if (completion === "cancel") dictationSequence += 1;
+      setDictationVisualState(completion === "cancel" ? "idle" : "transcribing");
       if (session.recorder.state !== "inactive") session.recorder.stop();
       return session.done;
     }
@@ -4276,7 +4277,6 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           setDictationVisualState("transcribing");
           try {
             const text = await uploadDictation(new Blob(session.chunks, { type: recorder.mimeType || mimeType || "audio/webm" }), controller.signal);
-            await awaitDictationStopAcknowledgement();
             const isCurrent = session.id === dictationSequence
               && session.ownerId === (window.pulsCurrentUser?.id || "");
             if (controller.signal.aborted || !isCurrent) {
@@ -4381,7 +4381,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
       const shell = input.closest(".composer-shell");
       const maxTextHeight = 126;
-      const compactHeight = 48;
+      const compactHeight = 44;
 
       // Measure the textarea in the CURRENT compact width first.
       // This makes the composer expand exactly when the first visual line
@@ -4885,7 +4885,6 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           event.preventDefault();
           chooseChatAttachment(action);
         } else if (action === "voice") {
-          pulseDictationControl({ stopping: dictationButton()?.dataset.dictationState === "recording" });
           void window.PulsDictation?.toggle?.();
         } else {
           toast(t("toast.demo"));

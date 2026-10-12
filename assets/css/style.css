@@ -2359,26 +2359,14 @@ body.assistant-mode .assistant-right {
 
 .voice-btn-stop { display: none; }
 
-.voice-btn[data-dictation-state="recording"] .voice-btn-mic,
-.voice-btn[data-dictation-state="transcribing"] .voice-btn-mic { display: none; }
+.voice-btn[data-dictation-state="recording"] .voice-btn-mic { display: none; }
 
-.voice-btn[data-dictation-state="recording"] .voice-btn-stop,
-.voice-btn[data-dictation-state="transcribing"] .voice-btn-stop {
+.voice-btn[data-dictation-state="recording"] .voice-btn-stop {
   display: block;
   width: 9px;
   height: 9px;
-  border-radius: 1px;
+  border-radius: 0;
   background: #f7fbff;
-}
-
-.voice-btn.is-dictation-pressed::after {
-  content: "";
-  position: absolute;
-  inset: 4px;
-  pointer-events: none;
-  border-radius: 50%;
-  box-shadow: 0 0 0 1px rgba(67, 191, 255, .78), 0 0 15px rgba(8, 125, 255, .55);
-  animation: puls-dictation-press .2s ease-out both;
 }
 
 .puls-dictation-waveform {
@@ -2393,6 +2381,7 @@ body.assistant-mode .assistant-right {
   pointer-events: none;
   opacity: 0;
   visibility: hidden;
+  overflow: hidden;
   transform: translateY(-50%);
   transition: opacity .16s ease, visibility 0s linear .16s;
 }
@@ -2404,18 +2393,8 @@ body.assistant-mode .assistant-right {
   display: flex;
   align-items: center;
   justify-content: space-between;
-}
-
-.puls-dictation-waveform::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  background-image: radial-gradient(circle at center, rgba(247, 251, 255, .86) 0 1.7px, transparent 2px);
-  background-position: 0 center;
-  background-size: 12px 100%;
-  animation: puls-dictation-dots 2.7s linear infinite;
-  opacity: .76;
+  width: calc(100% + var(--dictation-shift, 8px));
+  transform: translateX(0);
 }
 
 .composer-shell.is-expanded .puls-dictation-waveform,
@@ -2433,7 +2412,7 @@ body.assistant-mode .assistant-right {
 body.assistant-mode .composer:has(.composer-shell[data-dictation-state="recording"]) {
   box-shadow:
     0 -12px 40px rgba(0, 0, 0, .38),
-    inset 0 0 24px rgba(8, 125, 255, .3);
+    inset 0 0 38px rgba(8, 125, 255, .48);
 }
 
 .puls-dictation-transcribing {
@@ -2472,29 +2451,17 @@ body.assistant-mode .composer:has(.composer-shell[data-dictation-state="recordin
 .composer-shell textarea { transition: opacity .16s ease; }
 
 .puls-dictation-bars i {
-  --dictation-scale: .055;
+  --dictation-scale: .188;
   position: relative;
   z-index: 1;
-  width: 1px;
+  width: 2px;
   height: 16px;
-  flex: 0 0 1px;
-  border-radius: 999px;
+  flex: 0 0 2px;
+  border-radius: 0;
   background: #f7fbff;
-  opacity: .82;
+  opacity: .92;
   transform-origin: center;
   transform: scaleY(var(--dictation-scale));
-  transition: transform 80ms linear, opacity 120ms ease;
-}
-
-@keyframes puls-dictation-press {
-  0% { opacity: 0; transform: scale(.82); }
-  35% { opacity: 1; }
-  100% { opacity: 0; transform: scale(1.12); }
-}
-
-@keyframes puls-dictation-dots {
-  from { background-position: 0 center; }
-  to { background-position: -12px center; }
 }
 
 @media (max-width: 480px) {
@@ -2519,9 +2486,7 @@ body.assistant-mode .composer:has(.composer-shell[data-dictation-state="recordin
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .voice-btn.is-dictation-pressed::after,
   .puls-dictation-waveform,
-  .puls-dictation-waveform::before,
   .puls-dictation-bars,
   .puls-dictation-bars i { animation: none !important; }
   .puls-dictation-bars i { height: 6px; opacity: .72; }
@@ -4457,7 +4422,8 @@ body.assistant-mode .composer .send {
 body.assistant-mode .composer-shell:not(.is-expanded) {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: 48px;
+  grid-template-rows: 44px;
+  min-height: 44px;
   position: relative;
 }
 
@@ -4465,10 +4431,10 @@ body.assistant-mode .composer-shell:not(.is-expanded) {
 body.assistant-mode .composer-shell:not(.is-expanded) textarea {
   grid-column: 1;
   grid-row: 1;
-  height: 48px !important;
-  min-height: 48px !important;
-  max-height: 48px !important;
-  padding: 13px 94px 10px 52px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+  padding: 11px 94px 8px 52px !important;
   line-height: 21px;
 }
 
@@ -4478,7 +4444,7 @@ body.assistant-mode .composer-shell:not(.is-expanded) .composer-actions {
   grid-row: 1;
   z-index: 2;
   pointer-events: none;
-  padding: 2px 3px;
+  padding: 0 3px;
 }
 
 .composer-shell:not(.is-expanded) .composer-actions button,
@@ -5300,18 +5266,21 @@ body.assistant-mode .composer .send:not(:disabled) {
 
 .composer .composer-icon-btn:not(:disabled):active,
 .composer .composer-icon-btn:not(:disabled):focus-visible,
-.composer .composer-menu-trigger[aria-expanded="true"],
 .composer .send:not(:disabled):active,
 .composer .send:not(:disabled):focus-visible,
 body.assistant-mode .composer .composer-icon-btn:not(:disabled):active,
 body.assistant-mode .composer .composer-icon-btn:not(:disabled):focus-visible,
-body.assistant-mode .composer .composer-menu-trigger[aria-expanded="true"],
 body.assistant-mode .composer .send:not(:disabled):active,
 body.assistant-mode .composer .send:not(:disabled):focus-visible {
-  border-color: var(--cyan) !important;
+  border-color: transparent !important;
   background: transparent !important;
   box-shadow: none !important;
   outline: none;
+}
+
+.composer .composer-menu-trigger[aria-expanded="true"],
+body.assistant-mode .composer .composer-menu-trigger[aria-expanded="true"] {
+  color: var(--blue);
 }
 
 .composer .send:disabled,
