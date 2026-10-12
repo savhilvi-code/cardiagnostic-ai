@@ -209,7 +209,8 @@ assert.match(voiceStyleSource,/data-mode="text"\]\[data-text-state="typing"\][\s
 assert.match(voiceStyleSource,/data-mode="text"\]\[data-text-state="thinking"\][\s\S]*?var\(--puls-mode-processing\)/,"text processing reuses the active orange state");
 assert.match(voiceStyleSource,/data-voice-state="listening"\][\s\S]*?var\(--puls-mode-input\)/,"voice input state is blue");
 assert.match(voiceStyleSource,/data-voice-state="speaking"\][\s\S]*?var\(--puls-mode-input\)/,"voice response playback state is blue");
-assert.doesNotMatch(voiceStyleSource,/puls-voice-header-idle|puls-text-dot-idle|--puls-mode-idle/,"white animated idle indicator states are removed");
+assert.match(voiceStyleSource,/animation:\s*puls-voice-header-idle 1\.8s ease-in-out infinite[\s\S]*?@keyframes puls-voice-header-idle \{ 0%,100% \{ height: 4px; opacity: \.35; \} 50% \{ height: 7px; opacity: \.65; \} \}/,"voice idle animation restores the proven timing and amplitude");
+assert.doesNotMatch(voiceStyleSource,/puls-text-dot-idle|--puls-mode-idle/,"white idle indicator state remains removed");
 assert.match(voiceStyleSource,/body:not\(\[data-auth-state="authenticated"\]\) \.puls-voice-header-label\s*\{[^}]*display:\s*none/s,"mode controls are hidden for logged-out sessions");
 assert.match(appSource,/textBusy \? "thinking" : this\.textInputActive \? "typing" : "idle"/,"text state priority is processing, input, idle");
 assert.match(appSource,/setTextInput\(Boolean\(\$\("#promptInput"\)\?\.value\.trim\(\)\)\)/,"text input state follows composer content rather than focus");
