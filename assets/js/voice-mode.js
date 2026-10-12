@@ -201,6 +201,8 @@
   const workspace = document.getElementById('app');
   const controls = document.getElementById('pulsVoiceControls');
   const attachButton = document.getElementById('pulsVoiceAttach');
+  const attachmentMenu = document.getElementById('pulsVoiceAttachmentMenu');
+  const attachmentItems = Array.from(attachmentMenu?.querySelectorAll('[data-voice-attachment-item]') || []);
   const toggleButton = document.getElementById('pulsVoiceToggle');
   const keyboardButton = document.getElementById('pulsVoiceKeyboard');
   const statusText = document.getElementById('pulsVoiceStatus');
@@ -217,6 +219,9 @@
   let running = false;
   let animationFrame = 0;
   let controlsTimer = 0;
+  let attachmentMenuTimer = 0;
+  let attachmentMenuToken = 0;
+  let attachmentMenuState = 'closed';
   let workspaceTimer = 0;
   let voiceSessionActive = false;
   let workspaceVisible = false;
@@ -1832,6 +1837,94 @@
     controlsTimer=setTimeout(()=>controls.classList.remove('is-visible'),5000);
   }
 
+  const attachmentEase=value=>value*value*(3-2*value);
+
+  function setAttachmentProgress(item,value){
+    const progress=Math.max(0,Math.min(1,value));
+    const dot=progress<.19?Math.sin(progress/.19*Math.PI)*1.3:0;
+    const ray=progress<.12?0:progress<.5?attachmentEase((progress-.12)/.38):1;
+    const full=progress<.5?0:attachmentEase((progress-.5)/.5);
+    const label=Math.max(0,(progress-.78)/.22);
+    item._pulsAttachmentProgress=progress;
+    item.style.setProperty('--voice-attachment-dot',dot.toFixed(3));
+    item.style.setProperty('--voice-attachment-ray',ray.toFixed(3));
+    item.style.setProperty('--voice-attachment-full',full.toFixed(3));
+    item.style.setProperty('--voice-attachment-label',label.toFixed(3));
+    item.classList.toggle('is-ready',progress>=.999);
+  }
+
+  function clearAttachmentMenuTimer(){
+    clearTimeout(attachmentMenuTimer);
+    attachmentMenuTimer=0;
+  }
+
+  function animateAttachmentItem(item,to,duration,token){
+    const from=Number(item._pulsAttachmentProgress)||0;
+    const adjustedDuration=Math.max(1,duration*Math.abs(to-from));
+    const started=performance.now();
+    return new Promise(resolve=>{
+      const frame=now=>{
+        if(token!==attachmentMenuToken){resolve(false);return;}
+        const progress=Math.min(1,(now-started)/adjustedDuration);
+        setAttachmentProgress(item,from+(to-from)*attachmentEase(progress));
+        if(progress<1)requestAnimationFrame(frame);
+        else resolve(true);
+      };
+      requestAnimationFrame(frame);
+    });
+  }
+
+  function waitForAttachmentStep(duration,token){
+    return new Promise(resolve=>setTimeout(()=>resolve(token===attachmentMenuToken),duration));
+  }
+
+  function resetAttachmentMenu(){
+    clearAttachmentMenuTimer();
+    attachmentMenuToken+=1;
+    attachmentMenuState='closed';
+    attachmentMenu?.classList.remove('is-visible');
+    attachmentMenu?.setAttribute('aria-hidden','true');
+    attachButton.classList.remove('is-active');
+    attachButton.setAttribute('aria-expanded','false');
+    attachmentItems.forEach(item=>{
+      item.classList.remove('is-ready','is-selected');
+      setAttachmentProgress(item,0);
+    });
+  }
+
+  async function openAttachmentMenu(){
+    if(!attachmentMenu||attachmentMenuState!=='closed')return;
+    clearAttachmentMenuTimer();
+    const token=++attachmentMenuToken;
+    attachmentMenuState='opening';
+    attachmentMenu.classList.add('is-visible');
+    attachmentMenu.setAttribute('aria-hidden','false');
+    attachButton.classList.add('is-active');
+    attachButton.setAttribute('aria-expanded','true');
+    for(const item of attachmentItems){
+      if(!await animateAttachmentItem(item,1,480,token))return;
+      if(!await waitForAttachmentStep(85,token))return;
+    }
+    attachmentMenuState='open';
+    revealControls();
+    attachmentMenuTimer=setTimeout(()=>{void closeAttachmentMenu();},5000);
+  }
+
+  async function closeAttachmentMenu(){
+    if(!attachmentMenu||attachmentMenuState==='closed'||attachmentMenuState==='closing')return;
+    clearAttachmentMenuTimer();
+    const token=++attachmentMenuToken;
+    attachmentMenuState='closing';
+    attachmentItems.forEach(item=>item.classList.remove('is-ready','is-selected'));
+    for(const item of [...attachmentItems].reverse()){
+      if((Number(item._pulsAttachmentProgress)||0)<=0)continue;
+      if(!await animateAttachmentItem(item,0,420,token))return;
+      if(!await waitForAttachmentStep(75,token))return;
+    }
+    if(token!==attachmentMenuToken)return;
+    resetAttachmentMenu();
+  }
+
   function resetWorkspaceSurface(){
     clearTimeout(workspaceTimer);
     transitionProgress=0;transitionTarget=0;transitionLast=0;transitionActive=false;
@@ -1856,6 +1949,7 @@
     resetWorkspaceSurface();
     document.body.classList.remove('voice-mode-active');
     controls.classList.remove('is-visible');
+    resetAttachmentMenu();
     setControlPending(keyboardButton,false);
     root.hidden=true;
     root.setAttribute('aria-hidden','true');
@@ -1871,6 +1965,7 @@
       return;
     }
     active=true;
+    resetAttachmentMenu();
     voiceWorkspaceTarget='conversation';
     voiceWorkspaceHistory=[];
     resetVoiceScrollContext();
@@ -2105,21 +2200,23 @@
   document.addEventListener('pointerdown',()=>{if(active&&workspaceVisible)revealControls();},{passive:true});
   controls.addEventListener('pointerdown',event=>event.stopPropagation());
   attachButton.addEventListener('click',()=>{
-    if(attachButton.classList.contains('is-pending'))return;
-    revealControls();setControlPending(attachButton,true);
-    const input=document.getElementById('chatAttachmentInput');
-    let settled=false;
-    const settleOnFocus=()=>requestAnimationFrame(settle);
-    const settle=()=>{
-      if(settled)return;
-      settled=true;setControlPending(attachButton,false);
-      input?.removeEventListener('change',settle);
-      window.removeEventListener('focus',settleOnFocus);
-    };
-    input?.addEventListener('change',settle,{once:true});
-    window.addEventListener('focus',settleOnFocus,{once:true});
-    try{window.PulsAttachments?.choose?.();}catch{settle();}
+    revealControls();
+    if(attachmentMenuState==='closed')void openAttachmentMenu();
+    else if(attachmentMenuState!=='closing')void closeAttachmentMenu();
   });
+  attachmentMenu?.addEventListener('click',event=>{
+    const button=event.target.closest('[data-voice-attachment]');
+    if(!button||attachmentMenuState!=='open')return;
+    button.closest('[data-voice-attachment-item]')?.classList.add('is-selected');
+    clearAttachmentMenuTimer();
+    try{window.PulsAttachments?.choose?.(button.dataset.voiceAttachment);}finally{
+      attachmentMenuTimer=setTimeout(()=>{void closeAttachmentMenu();},160);
+    }
+  });
+  document.addEventListener('pointerdown',event=>{
+    if(attachmentMenuState==='closed'||event.target.closest('#pulsVoiceAttachmentMenu, #pulsVoiceAttach'))return;
+    void closeAttachmentMenu();
+  },{passive:true});
   toggleButton.addEventListener('click',async()=>{
     if(toggleButton.classList.contains('is-pending'))return;
     revealControls();setControlPending(toggleButton,true);

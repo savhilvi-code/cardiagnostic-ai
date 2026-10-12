@@ -216,6 +216,91 @@ body:not([data-auth-state="authenticated"]) .puls-voice-header-label {
   pointer-events: auto;
 }
 
+.puls-voice-attachment-menu {
+  position: fixed;
+  z-index: 4;
+  left: 50%;
+  bottom: calc(max(28px, env(safe-area-inset-bottom)) + 106px);
+  width: 220px;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateX(-50%);
+  transition: none;
+}
+
+.puls-voice-attachment-menu.is-visible {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.puls-voice-attachment-menu::before {
+  display: none;
+}
+
+.puls-voice-attachment-item {
+  --voice-attachment-dot: 0;
+  --voice-attachment-ray: 0;
+  --voice-attachment-full: 0;
+  --voice-attachment-label: 0;
+  position: relative;
+  width: 100%;
+  height: 42px;
+}
+
+.puls-voice-attachment-item > button {
+  position: absolute;
+  inset: 0;
+  opacity: var(--voice-attachment-full);
+  pointer-events: none;
+  transform: scaleY(calc(.045 + .955 * var(--voice-attachment-full)));
+  transform-origin: center;
+  transition: background .18s, border-color .18s, box-shadow .18s, color .18s;
+}
+
+.puls-voice-attachment-item.is-ready > button {
+  pointer-events: auto;
+}
+
+.puls-voice-attachment-item > button > span {
+  opacity: var(--voice-attachment-label);
+}
+
+.puls-voice-attachment-item.is-selected > button {
+  color: #fff;
+  border-color: var(--blue);
+  background: linear-gradient(90deg, #0766f2, #07386f);
+  box-shadow: inset 0 0 0 1px var(--blue), 0 0 22px rgba(8, 125, 255, .22);
+}
+
+.puls-voice-attachment-dot,
+.puls-voice-attachment-ray {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: 50%;
+  pointer-events: none;
+}
+
+.puls-voice-attachment-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #dcefff;
+  box-shadow: 0 0 5px #50cfff, 0 0 12px #2677ff, 0 0 22px rgba(38, 119, 255, .65);
+  opacity: var(--voice-attachment-dot);
+  transform: translate(-50%, -50%) scale(var(--voice-attachment-dot));
+}
+
+.puls-voice-attachment-ray {
+  width: calc(100% * var(--voice-attachment-ray));
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, #2677ff 8%, #50cfff 45%, #dcefff 50%, #50cfff 55%, #2677ff 92%, transparent);
+  box-shadow: 0 0 8px rgba(80, 207, 255, .95), 0 0 18px rgba(38, 119, 255, .7);
+  opacity: calc(1 - var(--voice-attachment-full));
+  transform: translate(-50%, -50%);
+}
+
 .puls-voice-control {
   position: relative;
   z-index: 1;
@@ -338,18 +423,26 @@ body.voice-workspace-mode #app .main-panel {
   pointer-events: none;
 }
 
-.puls-voice-mode.is-workspace-visible .puls-voice-controls::before {
+.puls-voice-controls::before {
   position: absolute;
   z-index: 0;
-  inset: -20px;
+  inset: -22px;
   content: "";
   pointer-events: none;
-  background:
-    radial-gradient(circle 38px at 43px 50%, rgba(0, 0, 0, .96) 0 70%, rgba(0, 0, 0, .66) 82%, transparent 100%),
-    radial-gradient(circle 45px at 50% 50%, rgba(0, 0, 0, .98) 0 70%, rgba(0, 0, 0, .7) 83%, transparent 100%),
-    radial-gradient(circle 38px at calc(100% - 43px) 50%, rgba(0, 0, 0, .96) 0 70%, rgba(0, 0, 0, .66) 82%, transparent 100%),
-    radial-gradient(ellipse calc(50% - 18px) 30px at 50% 50%, rgba(0, 0, 0, .96) 0 64%, rgba(0, 0, 0, .62) 82%, transparent 100%);
-  filter: drop-shadow(0 0 11px rgba(20, 145, 255, .36));
+  background: rgba(0, 0, 0, .97);
+  -webkit-mask:
+    radial-gradient(circle 37px at 45px 50%, #000 0 73%, rgba(0, 0, 0, .72) 84%, transparent 100%),
+    radial-gradient(circle 47px at 50% 50%, #000 0 74%, rgba(0, 0, 0, .74) 86%, transparent 100%),
+    radial-gradient(circle 37px at calc(100% - 45px) 50%, #000 0 73%, rgba(0, 0, 0, .72) 84%, transparent 100%),
+    radial-gradient(ellipse calc(50% - 25px) 28px at 50% 50%, #000 0 76%, rgba(0, 0, 0, .7) 88%, transparent 100%);
+  mask:
+    radial-gradient(circle 37px at 45px 50%, #000 0 73%, rgba(0, 0, 0, .72) 84%, transparent 100%),
+    radial-gradient(circle 47px at 50% 50%, #000 0 74%, rgba(0, 0, 0, .74) 86%, transparent 100%),
+    radial-gradient(circle 37px at calc(100% - 45px) 50%, #000 0 73%, rgba(0, 0, 0, .72) 84%, transparent 100%),
+    radial-gradient(ellipse calc(50% - 25px) 28px at 50% 50%, #000 0 76%, rgba(0, 0, 0, .7) 88%, transparent 100%);
+  -webkit-mask-composite: source-over;
+  mask-composite: add;
+  filter: drop-shadow(0 0 12px rgba(20, 145, 255, .42));
 }
 
 .puls-voice-mode.is-workspace-visible .puls-voice-controls.is-visible {
@@ -370,11 +463,16 @@ body.voice-workspace-mode #app .main-panel {
     bottom: max(20px, env(safe-area-inset-bottom));
     gap: 32px;
   }
+
+  .puls-voice-attachment-menu {
+    bottom: calc(max(20px, env(safe-area-inset-bottom)) + 106px);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .puls-voice-controls,
-  .puls-voice-control::before {
+  .puls-voice-control::before,
+  .puls-voice-attachment-item > button {
     transition-duration: 1ms;
   }
 }
