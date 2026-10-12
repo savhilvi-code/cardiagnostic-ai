@@ -4721,7 +4721,8 @@ body.puls-header-hidden .topbar {
   transform: translateY(calc(-100% - max(var(--puls-fixed-edge), env(safe-area-inset-top))));
 }
 
-.topbar-inner {
+.topbar-inner,
+body.voice-workspace-visible .topbar-inner {
   width: 100%;
   min-height: 48px;
   min-width: 0;

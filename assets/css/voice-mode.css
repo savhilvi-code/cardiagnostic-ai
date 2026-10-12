@@ -434,7 +434,7 @@ body.voice-workspace-mode #app .main-panel {
   pointer-events: none;
   background:
     radial-gradient(circle 53px at 71px 50%, rgba(0, 0, 0, .96) 0 28%, rgba(0, 0, 0, .72) 50%, rgba(0, 0, 0, .26) 74%, transparent 100%),
-    radial-gradient(circle 118px at 50% 50%, rgba(0, 0, 0, .97) 0 16%, rgba(0, 0, 0, .78) 38%, rgba(0, 0, 0, .42) 60%, rgba(0, 0, 0, .14) 82%, transparent 100%),
+    radial-gradient(circle 82px at 50% 50%, rgba(0, 0, 0, .98) 0 36%, rgba(0, 0, 0, .82) 52%, rgba(0, 0, 0, .32) 72%, rgba(0, 0, 0, .08) 88%, transparent 100%),
     radial-gradient(circle 53px at calc(100% - 71px) 50%, rgba(0, 0, 0, .96) 0 28%, rgba(0, 0, 0, .72) 50%, rgba(0, 0, 0, .26) 74%, transparent 100%);
 }
 
