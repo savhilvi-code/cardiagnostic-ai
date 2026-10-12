@@ -426,16 +426,13 @@ body.voice-workspace-mode #app .main-panel {
 .puls-voice-controls::before {
   position: absolute;
   z-index: 0;
-  inset: -34px -46px;
+  inset: -136px -48px;
   content: "";
   pointer-events: none;
-  background: radial-gradient(ellipse at center,
-    rgba(0, 0, 0, .98) 0%,
-    rgba(0, 0, 0, .94) 32%,
-    rgba(0, 0, 0, .76) 52%,
-    rgba(45, 51, 59, .3) 72%,
-    rgba(45, 51, 59, .12) 84%,
-    transparent 100%);
+  background:
+    radial-gradient(circle 44px at 71px 50%, rgba(0, 0, 0, .96) 0 28%, rgba(0, 0, 0, .78) 46%, rgba(24, 35, 46, .24) 72%, transparent 100%),
+    radial-gradient(circle 132px at 50% 50%, rgba(0, 0, 0, .97) 0 18%, rgba(0, 0, 0, .78) 42%, rgba(24, 35, 46, .22) 70%, transparent 100%),
+    radial-gradient(circle 44px at calc(100% - 71px) 50%, rgba(0, 0, 0, .96) 0 28%, rgba(0, 0, 0, .78) 46%, rgba(24, 35, 46, .24) 72%, transparent 100%);
 }
 
 .puls-voice-mode.is-workspace-visible .puls-voice-controls.is-visible {
