@@ -4127,7 +4127,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       track.style.setProperty("--dictation-shift", `${shift.toFixed(3)}px`);
       if (nextAmplitude === null) return;
       void track.offsetWidth;
-      track.style.transition = "transform 104ms linear";
+      track.style.transition = "transform 208ms linear";
       track.style.transform = "translateX(calc(-1 * var(--dictation-shift)))";
     }
     function stopDictationAnalysis(session) {
@@ -4174,7 +4174,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           const normalized = input < .018 ? 0 : Math.min(1, input / analysis.peak);
           const smoothing = normalized > analysis.level ? .28 : .12;
           analysis.level += (normalized - analysis.level) * smoothing;
-          if (!analysis.lastSampleAt || now - analysis.lastSampleAt >= 104) {
+          if (!analysis.lastSampleAt || now - analysis.lastSampleAt >= 208) {
             const amplitude = analysis.level < .025 ? 0 : analysis.level;
             renderDictationWaveform(waveform, analysis.history, amplitude);
             analysis.history.shift();
@@ -4381,7 +4381,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
       const shell = input.closest(".composer-shell");
       const maxTextHeight = 126;
-      const compactHeight = 44;
+      const compactHeight = 40;
 
       // Measure the textarea in the CURRENT compact width first.
       // This makes the composer expand exactly when the first visual line

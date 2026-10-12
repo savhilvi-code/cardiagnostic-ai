@@ -277,13 +277,13 @@ assert.match(appSource,/setDictationVisualState\("transcribing"\)/,"dictation ex
 assert.match(appSource,/createMediaStreamSource\(session\.stream\)/,"dictation analysis reuses the existing recording stream");
 assert.match(appSource,/analysis\.peak = Math\.max\(\.12, input, analysis\.peak \* \.992\)/,"microphone amplitude uses smooth peak normalization and decay");
 assert.match(appSource,/renderDictationWaveform\(waveform, analysis\.history, amplitude\)[\s\S]*?analysis\.history\.shift\(\)[\s\S]*?analysis\.history\.push\(amplitude\)/,"each new microphone sample enters on the right while prior samples retain their captured heights and shift left");
-assert.match(appSource,/now - analysis\.lastSampleAt >= 104/,"captured waveform history scrolls exactly twice as slowly");
+assert.match(appSource,/now - analysis\.lastSampleAt >= 208/,"captured waveform history scrolls exactly twice as slowly again");
 assert.match(appSource,/renderDictationWaveform\(waveform, analysis\.history\)/,"one authoritative renderer draws the captured amplitude history");
-assert.match(styleSource,/\.composer-shell:not\(\.is-expanded\)[\s\S]*?grid-template-rows:\s*44px[\s\S]*?min-height:\s*44px/,"only the compact composer row is reduced");
-assert.match(appSource,/const compactHeight = 44/,"textarea expansion threshold follows the compact height");
+assert.match(styleSource,/\.composer-shell:not\(\.is-expanded\)[\s\S]*?grid-template-rows:\s*40px[\s\S]*?min-height:\s*40px/,"only the compact composer row is reduced");
+assert.match(appSource,/const compactHeight = 40/,"textarea expansion threshold follows the compact height");
 assert.match(styleSource,/\.composer textarea,[\s\S]*?max-height:\s*126px !important/,"expanded text retains its existing maximum height and scrolling contract");
-assert.match(appSource,/track\.style\.transition = "transform 104ms linear"[\s\S]*?translateX\(calc\(-1 \* var\(--dictation-shift\)\)\)/,"the authoritative renderer moves fixed-height samples smoothly from right to left");
-assert.match(styleSource,/\.composer:has\(\.composer-shell\[data-dictation-state="recording"\]\)[\s\S]*?inset 0 0 38px rgba\(8, 125, 255, \.48\)/,"recording adds a visible blue glow inward from the composer perimeter");
+assert.match(appSource,/track\.style\.transition = "transform 208ms linear"[\s\S]*?translateX\(calc\(-1 \* var\(--dictation-shift\)\)\)/,"the authoritative renderer moves fixed-height samples smoothly from right to left");
+assert.match(styleSource,/\.composer:has\(\.composer-shell\[data-dictation-state="recording"\]\)[\s\S]*?inset 0 0 52px rgba\(8, 125, 255, \.62\)/,"recording adds a clearly visible blue glow inward from the full composer perimeter");
 const recordingGlowBlock=styleSource.match(/\.composer:has\(\.composer-shell\[data-dictation-state="recording"\]\),[\s\S]*?\{([^}]]*)\}/)?.[1]||"";
 assert.doesNotMatch(recordingGlowBlock,/inset 0 0 0 1px/,"recording glow must not imitate a replacement border");
 assert.doesNotMatch(styleSource,/dictation-reveal|puls-dictation-fallback/,"obsolete reveal masks and synchronized fallback waves are removed");
