@@ -422,6 +422,10 @@ body.voice-workspace-mode #app .main-panel {
   pointer-events: none;
 }
 
+.puls-voice-mode.is-workspace-visible .puls-voice-canvas {
+  visibility: hidden;
+}
+
 .puls-voice-mode.is-workspace-visible .puls-voice-controls {
   pointer-events: none;
 }
