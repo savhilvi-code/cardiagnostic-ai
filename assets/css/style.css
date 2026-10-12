@@ -2505,6 +2505,7 @@ body.assistant-mode .composer:has(.composer-shell[data-dictation-state="recordin
   display: none;
   width: 20px;
   height: 20px;
+  overflow: visible;
   fill: none;
   stroke: currentColor;
   stroke-width: 2;
@@ -2512,8 +2513,10 @@ body.assistant-mode .composer:has(.composer-shell[data-dictation-state="recordin
 }
 
 .send[data-composer-action="voice"] {
+  --composer-control-size: 36px;
   border-radius: 10px !important;
   color: #fff !important;
+  margin-right: 2px;
 }
 
 .send[data-composer-action="voice"] .send-default-icon { display: none; }
@@ -3291,9 +3294,9 @@ body.assistant-mode .composer input {
 
 body.assistant-mode .composer-icon-btn,
 body.assistant-mode .send {
-  width: 40px !important;
-  height: 40px !important;
-  min-width: 40px !important;
+  width: var(--composer-control-size, 40px) !important;
+  height: var(--composer-control-size, 40px) !important;
+  min-width: var(--composer-control-size, 40px) !important;
 }
 
 @media (max-width: 1050px) {

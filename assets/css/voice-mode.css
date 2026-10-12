@@ -339,6 +339,12 @@ body.voice-workspace-mode #app .main-panel {
   pointer-events: auto;
 }
 
+.puls-voice-mode.is-workspace-visible .puls-voice-control {
+  box-shadow:
+    0 0 14px 9px rgba(0, 0, 0, .64),
+    0 0 30px 16px rgba(0, 0, 0, .32);
+}
+
 @media (max-width: 480px) {
   .puls-voice-canvas {
     transform: scale(1.05);
