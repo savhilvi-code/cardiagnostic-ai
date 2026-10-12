@@ -2562,6 +2562,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     let headerScrollPosition = 0;
     let headerScrollDirection = 0;
     let headerScrollDistance = 0;
+    let headerViewportHeight = Math.max(window.innerHeight, window.visualViewport?.height || 0);
 
     function setSharedHeaderVisible(visible = true) {
       document.body.classList.toggle("puls-header-hidden", !visible);
@@ -2580,13 +2581,19 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       return window;
     }
 
+    function sharedHeaderKeyboardOpen() {
+      if (window.innerWidth > 760 || document.activeElement !== $("#promptInput")) return false;
+      const viewportHeight = window.visualViewport?.height || window.innerHeight;
+      return headerViewportHeight - viewportHeight > 120;
+    }
+
     function handleSharedHeaderScroll() {
       const target = headerScrollTarget || sharedHeaderScrollTarget();
       const position = readHeaderScrollPosition(target);
       const delta = position - headerScrollPosition;
       headerScrollPosition = position;
 
-      if (document.body.classList.contains("navigation-open") || position <= 4) {
+      if (sharedHeaderKeyboardOpen() || document.body.classList.contains("navigation-open") || position <= 4) {
         headerScrollDirection = 0;
         headerScrollDistance = 0;
         setSharedHeaderVisible(true);
@@ -4754,6 +4761,11 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       });
       applyAuthLockedState();
       window.addEventListener("resize", () => {
+        const viewportHeight = window.visualViewport?.height || window.innerHeight;
+        if (document.activeElement !== promptInput || viewportHeight > headerViewportHeight) {
+          headerViewportHeight = viewportHeight;
+        }
+        if (sharedHeaderKeyboardOpen()) setSharedHeaderVisible(true);
         syncAssistantMessageHeight();
         syncSplashLayout();
       });

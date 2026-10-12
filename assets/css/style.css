@@ -3849,6 +3849,7 @@ body.assistant-mode .puls-message-avatar {
 
 body.assistant-mode .puls-message-body {
   min-width: 0;
+  transform: translateY(4px);
 }
 
 body.assistant-mode .puls-message-body > strong:first-child,
