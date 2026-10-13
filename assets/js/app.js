@@ -4386,7 +4386,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       async completeTurn(response, owner) {
         if (!response || owner !== window.pulsCurrentUser?.id) return;
         updateQuota(response.quota);
-        await window.PulsChat.afterSend(response, owner);
+        await window.PulsChat.afterSend(response, owner, { deferActivityRefresh: true });
         await preserveMessagesScroll(() => window.PulsChat.refresh());
       },
       notify(message) {

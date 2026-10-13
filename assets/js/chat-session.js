@@ -77,11 +77,12 @@ window.PulsChat = (() => {
       :{};
     return {...(marker?.conversationId?{conversation_id:marker.conversationId}:{}),...vehicleContext,...(marker?.problemId?{problem_id:marker.problemId}:{})};
   }
-  async function afterSend(response,user){
+  async function afterSend(response,user,{deferActivityRefresh=false}={}){
     if(user!==window.pulsCurrentUser?.id||owner!==user)return;
     if(!response.conversation_id)return;
     pendingProblemSelection=false;
-    marker={conversationId:response.conversation_id,vehicleId:response.vehicle_id||null,problemId:response.problem_id||null,lastActivity:0};
+    marker={conversationId:response.conversation_id,vehicleId:response.vehicle_id||null,problemId:response.problem_id||null,lastActivity:deferActivityRefresh?Date.now():0};
+    if(deferActivityRefresh){lastActivity=marker.lastActivity;store();return;}
     try{
       const rows=await messages(`/api/conversations/${encodeURIComponent(marker.conversationId)}/messages`);
       if(user!==window.pulsCurrentUser?.id||owner!==user)return;

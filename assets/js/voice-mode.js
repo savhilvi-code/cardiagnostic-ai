@@ -2,12 +2,14 @@
   function createVadGate({
     startThreshold=.026,
     endThreshold=.014,
+    startHoldMs=0,
     silenceMs=950,
     minSpeechMs=260,
     maxSpeechMs=30000
   }={}){
     let active=false;
     let noiseFloor=.008;
+    let candidateAt=0;
     let startedAt=0;
     let lastVoiceAt=0;
     return {
@@ -16,9 +18,14 @@
         if(!active){
           noiseFloor=noiseFloor*.96+Math.min(value,.04)*.04;
           if(value>Math.max(startThreshold,noiseFloor*2.7)){
-            active=true;startedAt=now;lastVoiceAt=now;return 'start';
+            if(!candidateAt)candidateAt=now;
+            if(now-candidateAt>=startHoldMs){
+              active=true;startedAt=candidateAt;lastVoiceAt=now;candidateAt=0;return 'start';
+            }
+            return 'candidate';
           }
-          return null;
+          const canceled=Boolean(candidateAt);candidateAt=0;
+          return canceled?'cancel':null;
         }
         if(value>Math.max(endThreshold,noiseFloor*1.65))lastVoiceAt=now;
         if((now-startedAt)>=maxSpeechMs||((now-startedAt)>=minSpeechMs&&(now-lastVoiceAt)>=silenceMs)){
@@ -26,8 +33,9 @@
         }
         return null;
       },
-      reset(){active=false;startedAt=0;lastVoiceAt=0;noiseFloor=.008;},
-      get active(){return active;}
+      reset(){active=false;candidateAt=0;startedAt=0;lastVoiceAt=0;noiseFloor=.008;},
+      get active(){return active;},
+      get candidate(){return Boolean(candidateAt);}
     };
   }
   function createRecorderLifecycle({createRecorder,onBlob,onError}){
@@ -151,6 +159,7 @@
       begin(){const turn={sessionId,id:++nextTurn};latestTurn=turn.id;return turn;},
       isCurrent(turn){return Boolean(sessionId&&turn?.sessionId===sessionId&&turn?.id===latestTurn);},
       complete(turn){if(!this.isCurrent(turn))return false;lastCompletedTurn=turn.id;return true;},
+      interrupt(){if(!sessionId)return false;latestTurn=++nextTurn;return true;},
       invalidate(){sessionId='';latestTurn=++nextTurn;},
       snapshot(){return {sessionId,latestTurn,lastCompletedTurn};}
     };
@@ -240,6 +249,10 @@
   let vadFrame = 0;
   let processingUtterance = false;
   let currentPlayback = null;
+  let activeTurnController = null;
+  let bargeInUtterance = false;
+  let utteranceStartedAt = 0;
+  let utteranceEndedAt = 0;
   let voiceSessionEpoch = 0;
   const voiceTurnOrder=createVoiceTurnOrder();
   let pendingVoiceAction='';
@@ -247,6 +260,10 @@
   let startupGreetingPlayed = false;
   let lastGenuineActivityAt=0;
   const vadGate=createVadGate();
+  const bargeInVadGate=createVadGate({
+    startThreshold:.038,endThreshold:.018,startHoldMs:120,
+    silenceMs:950,minSpeechMs:260,maxSpeechMs:30000
+  });
   let statusTimer=0;
   let greetingManifestPromise=null;
   const greetingManifestUrl='assets/audio/voice-greetings/manifest.v1.json';
@@ -260,11 +277,14 @@
     createRecorder(stream,mimeType){return new MediaRecorder(stream,mimeType?{mimeType}:undefined);},
     onBlob(blob,{epoch}){
       if(epoch!==voiceSessionEpoch||!voiceSessionActive)return;
+      if(utteranceEndedAt)logVoiceTiming('recording_finalized',utteranceEndedAt,{audioBytes:blob.size});
+      utteranceStartedAt=0;utteranceEndedAt=0;
+      bargeInUtterance=false;bargeInVadGate.reset();
       void submitUtterance(blob,epoch,{finalized:true});
     },
     onError(event,{epoch}){
       if(epoch!==voiceSessionEpoch||!voiceSessionActive)return;
-      processingUtterance=false;vadGate.reset();
+      processingUtterance=false;bargeInUtterance=false;utteranceStartedAt=0;utteranceEndedAt=0;vadGate.reset();bargeInVadGate.reset();
       console.warn('PULS voice pipeline failure',{stage:'recording',name:String(event?.error?.name||'MediaRecorderError')});
       notifyVoice(voiceMessage('recording'));
       setState('listening');
@@ -1492,8 +1512,31 @@
   function stopPlayback(){
     if(!currentPlayback)return;
     const element=currentPlayback;
+    element._pulsInterrupted=true;
     element.pause();
     element.dispatchEvent(new Event('ended'));
+  }
+
+  function cancelActiveTurnRequest(){
+    const controller=activeTurnController;
+    activeTurnController=null;
+    if(controller&&!controller.signal.aborted)controller.abort();
+  }
+
+  function interruptForBargeIn(epoch){
+    if(epoch!==voiceSessionEpoch||!voiceSessionActive||!currentPlayback)return false;
+    voiceTurnOrder.interrupt();
+    cancelActiveTurnRequest();
+    pendingVoiceAction='';
+    processingUtterance=false;
+    bargeInUtterance=true;
+    vadGate.reset();
+    stopPlayback();
+    lastGenuineActivityAt=performance.now();
+    utteranceStartedAt=lastGenuineActivityAt;
+    setState('listening');
+    console.info('PULS voice pipeline',{stage:'barge_in',sessionActive:true});
+    return true;
   }
 
   function releaseMicrophone(){
@@ -1504,7 +1547,7 @@
     microphoneSamples=null;
     if(microphoneContext){void microphoneContext.close().catch(()=>{});microphoneContext=null;}
     microphoneStream?.getTracks().forEach(track=>track.stop());microphoneStream=null;
-    vadGate.reset();
+    bargeInUtterance=false;utteranceStartedAt=0;utteranceEndedAt=0;vadGate.reset();bargeInVadGate.reset();
     window.PULSVoiceVisual.setAudioLevel('listening',0);
   }
 
@@ -1515,6 +1558,7 @@
     voiceVehicleId='';
     voiceSessionActive=false;
     processingUtterance=false;
+    cancelActiveTurnRequest();
     releaseMicrophone();
     stopPlayback();
     clearVoiceStatus();
@@ -1552,7 +1596,7 @@
         element.addEventListener('ended',resolve,{once:true});
         element.addEventListener('error',()=>reject(new Error('PLAYBACK_FAILED')),{once:true});
       });
-      return true;
+      return element._pulsInterrupted!==true;
     }finally{
       if(visualConnected)window.PULSVoiceVisual.disconnectAudioElement?.(element);
       if(currentPlayback===element)currentPlayback=null;
@@ -1566,12 +1610,12 @@
     return playAudioSource(base64AudioUrl(audio),epoch);
   }
 
-  async function requestNavigationAcknowledgement(navigation,turn){
+  async function requestNavigationAcknowledgement(navigation,turn,signal){
     const form=new FormData();
     form.append('action',String(navigation?.action||''));
     form.append('language',turn.language||voiceLanguage());
     const response=await fetch(`${turn.apiBaseUrl}/api/voice/navigation-ack`,{
-      method:'POST',headers:turn.headers,body:form,cache:'no-store'
+      method:'POST',headers:turn.headers,body:form,cache:'no-store',signal
     });
     if(!response.ok)throw new Error(`Navigation acknowledgement returned ${response.status}`);
     return (await response.json()).audio||null;
@@ -1581,7 +1625,7 @@
     return action==='vehicle'?'my_vehicle':action;
   }
 
-  async function cachedNavigationAcknowledgementSource(navigation,language){
+  async function cachedNavigationAcknowledgementSource(navigation,language,signal){
     try{
       navigationAcknowledgementManifestPromise??=fetch(navigationAcknowledgementManifestUrl,{cache:'no-cache'})
         .then(response=>response.ok?response.json():null)
@@ -1591,19 +1635,22 @@
       const action=navigationAssetAction(validatedVoiceNavigationAction(navigation?.action));
       const entry=action?manifest?.acknowledgements?.[locale]?.[action]:null;
       if(manifest?.voice!=='marin'||entry?.available!==true||!entry?.file)return null;
-      const response=await fetch(`assets/audio/voice-acknowledgements/${encodeURIComponent(entry.file)}`,{cache:'force-cache'});
+      const response=await fetch(`assets/audio/voice-acknowledgements/${encodeURIComponent(entry.file)}`,{cache:'force-cache',signal});
       if(!response.ok)return null;
       const blob=await response.blob();
       if(!blob.size)return null;
       return URL.createObjectURL(blob);
-    }catch{return null;}
+    }catch(error){
+      if(error?.name==='AbortError')throw error;
+      return null;
+    }
   }
 
-  async function prepareNavigationAcknowledgement(navigation,turn,payloadAudio){
+  async function prepareNavigationAcknowledgement(navigation,turn,payloadAudio,signal){
     if(silentNavigationActions.has(String(navigation?.action||'')))return null;
-    const source=await cachedNavigationAcknowledgementSource(navigation,turn.language||voiceLanguage());
+    const source=await cachedNavigationAcknowledgementSource(navigation,turn.language||voiceLanguage(),signal);
     if(source)return {source,revoke:true};
-    const audio=payloadAudio||await requestNavigationAcknowledgement(navigation,turn);
+    const audio=payloadAudio||await requestNavigationAcknowledgement(navigation,turn,signal);
     return audio?{audio}:null;
   }
 
@@ -1644,6 +1691,12 @@
     }
   }
 
+  function logVoiceTiming(stage,startedAt,details={}){
+    console.info('PULS voice timing',{
+      stage,elapsedMs:Math.max(0,Math.round(performance.now()-startedAt)),...details
+    });
+  }
+
   async function submitUtterance(blob,epoch,{finalized=false}={}){
     if(!voiceSessionActive||epoch!==voiceSessionEpoch||(processingUtterance&&!finalized))return;
     if(blob.size<512){
@@ -1653,6 +1706,9 @@
     }
     processingUtterance=true;
     const voiceTurn=voiceTurnOrder.begin();
+    const turnStartedAt=performance.now();
+    const controller=new AbortController();
+    activeTurnController=controller;
     setState('thinking');
     const diagnostics={stage:'submit',mimeType:blob.type||'audio/webm',audioBytes:blob.size};
     console.info('PULS voice pipeline',diagnostics);
@@ -1660,6 +1716,7 @@
       const bridge=window.PulsVoiceBridge;
       if(!bridge)throw new Error('VOICE_BRIDGE_UNAVAILABLE');
       const turn=await bridge.prepareTurn();
+      logVoiceTiming('turn_prepared',turnStartedAt);
       if(!voiceTurnOrder.isCurrent(voiceTurn)||epoch!==voiceSessionEpoch)return;
       const nextVehicleId=String(turn.context?.vehicle_id||'');
       if(voiceVehicleId&&nextVehicleId!==voiceVehicleId)resetVoiceScrollContext();
@@ -1686,11 +1743,12 @@
         ...Object.keys(window.PulsWorkspace?.destinations||{})
       ].filter((value,index,items)=>items.indexOf(value)===index).join(','));
       const response=await fetch(`${turn.apiBaseUrl}/api/voice/turn`,{
-        method:'POST',headers:turn.headers,body:form,cache:'no-store'
+        method:'POST',headers:turn.headers,body:form,cache:'no-store',signal:controller.signal
       });
       const payload=await response.json().catch(()=>({}));
       const providerRequestId=payload?.transcription?.request_id||null;
       console.info('PULS voice pipeline',{stage:'response',mimeType:diagnostics.mimeType,audioBytes:diagnostics.audioBytes,httpStatus:response.status,providerRequestId});
+      logVoiceTiming('turn_response',turnStartedAt,{httpStatus:response.status,providerRequestId});
       if(!response.ok){
         const error=new Error(payload.detail||`Voice API returned ${response.status}`);
         error.status=response.status;throw error;
@@ -1701,8 +1759,9 @@
         await coordinateVoiceNavigation(payload.navigation,{
           dispatch:navigation=>dispatchVoiceNavigation(navigation,voiceTurn),
           prepareAudio:async()=>{
-            try{return await prepareNavigationAcknowledgement(payload.navigation,turn,payload.audio);}
-            catch{
+            try{return await prepareNavigationAcknowledgement(payload.navigation,turn,payload.audio,controller.signal);}
+            catch(error){
+              if(error?.name==='AbortError')return null;
               console.warn('PULS voice pipeline failure',{stage:'navigation_acknowledgement'});
               notifyVoice(voiceMessage('playback'));
               return null;
@@ -1724,22 +1783,31 @@
       }
       resetVoiceScrollContext();
       if(!voiceTurnOrder.isCurrent(voiceTurn))return;
-      await bridge.completeTurn(payload,turn.owner);
+      const syncTask=bridge.completeTurn(payload,turn.owner);
+      const playbackTask=payload.audio
+        ?playVoiceResponse(payload.audio,epoch).catch(error=>{
+          if(error?.name!=='AbortError'){
+            console.warn('PULS voice pipeline failure',{stage:'playback'});
+            notifyVoice(voiceMessage('playback'));
+          }
+          return false;
+        })
+        :Promise.resolve(false);
+      if(payload.tts_error)notifyVoice(payload.tts_error);
+      const [syncResult]=await Promise.allSettled([syncTask,playbackTask]);
+      if(syncResult.status==='rejected')throw syncResult.reason;
+      logVoiceTiming('turn_presented',turnStartedAt,{played:Boolean(payload.audio)});
       if(epoch!==voiceSessionEpoch||!active||!voiceSessionActive||!voiceTurnOrder.isCurrent(voiceTurn))return;
-      if(payload.audio){
-        try{await playVoiceResponse(payload.audio,epoch);}
-        catch{console.warn('PULS voice pipeline failure',{stage:'playback'});notifyVoice(voiceMessage('playback'));}
-      }else if(payload.tts_error){
-        notifyVoice(payload.tts_error);
-      }
       voiceTurnOrder.complete(voiceTurn);
     }catch(error){
+      if(error?.name==='AbortError')return;
       console.warn('PULS voice pipeline failure',{stage:'request',mimeType:diagnostics.mimeType,audioBytes:diagnostics.audioBytes,httpStatus:Number(error?.status)||null,providerRequestId:null});
       if(voiceTurnOrder.isCurrent(voiceTurn)){
         if(error?.status===422)console.info('PULS voice pipeline',{stage:'no_speech',httpStatus:422});
         else notifyVoice(voiceMessage('failed'));
       }
     }finally{
+      if(activeTurnController===controller)activeTurnController=null;
       if(epoch===voiceSessionEpoch&&active&&voiceSessionActive&&voiceTurnOrder.isCurrent(voiceTurn)){
         processingUtterance=false;vadGate.reset();settleVoiceListeningState();
       }
@@ -1753,23 +1821,57 @@
     for(const byte of microphoneSamples){const sample=(byte-128)/128;power+=sample*sample;}
     const rms=Math.sqrt(power/microphoneSamples.length);
     window.PULSVoiceVisual.setAudioLevel('listening',Math.max(0,Math.min(1,(rms-.008)*9)));
-    if(!processingUtterance){
-      const now=performance.now();
-      const decision=vadGate.sample(rms,now);
-      const headerState=vadGate.active?'listening':'idle';
-      if(headerIndicator?.dataset.mode==='voice'&&headerIndicator.dataset.voiceState!==headerState)headerIndicator.dataset.voiceState=headerState;
-      if(decision==='start'){
-        // Starting on the first VAD-positive frame preserves a complete WebM
-        // container. It may omit at most the onset before that analyser frame;
-        // slicing an earlier recorder would reintroduce headerless WebM data.
-        if(state==='standby')setState('listening');
-        if(!recorderLifecycle.start(microphoneStream,mimeType,{epoch}))vadGate.reset();
-      }else if(decision==='end'){
+    const now=performance.now();
+    const playbackActive=Boolean(currentPlayback&&!currentPlayback.paused&&!currentPlayback.ended);
+    if(playbackActive||bargeInUtterance){
+      // Echo cancellation is requested on the one existing microphone stream.
+      // The playback envelope raises the barge-in threshold without claiming
+      // perfect speaker/echo separation, which browsers cannot guarantee.
+      const compensatedRms=Math.max(0,rms-Math.min(.024,audioLevels.responding*.024));
+      const decision=bargeInVadGate.sample(compensatedRms,now);
+      if(decision==='candidate'&&!bargeInUtterance&&!recorderLifecycle.active){
+        if(!recorderLifecycle.start(microphoneStream,mimeType,{epoch,bargeIn:true}))bargeInVadGate.reset();
+      }else if(decision==='cancel'&&!bargeInUtterance){
+        recorderLifecycle.cancel();
+      }else if(decision==='start'&&!bargeInUtterance){
+        if(!recorderLifecycle.active&&!recorderLifecycle.start(microphoneStream,mimeType,{epoch,bargeIn:true})){
+          bargeInVadGate.reset();
+        }else if(!interruptForBargeIn(epoch)){
+          recorderLifecycle.cancel();bargeInVadGate.reset();
+        }
+      }else if(decision==='end'&&bargeInUtterance){
+        utteranceEndedAt=now;
+        logVoiceTiming('vad_end',utteranceStartedAt||now,{speechMs:Math.max(0,Math.round(now-(utteranceStartedAt||now))),bargeIn:true});
         processingUtterance=true;
         if(!recorderLifecycle.stop()){
-          processingUtterance=false;vadGate.reset();settleVoiceListeningState(now);
+          processingUtterance=false;bargeInUtterance=false;bargeInVadGate.reset();settleVoiceListeningState(now);
         }
-      }else if(shouldEnterVoiceIdle({now,lastActivity:lastGenuineActivityAt,timeout:voiceInactivityMs,utteranceActive:vadGate.active,processing:false})&&state!=='standby')setState('standby');
+      }
+    }else{
+      if(bargeInVadGate.candidate){recorderLifecycle.cancel();bargeInVadGate.reset();}
+      if(!processingUtterance){
+        const decision=vadGate.sample(rms,now);
+        const headerState=vadGate.active?'listening':'idle';
+        if(headerIndicator?.dataset.mode==='voice'&&headerIndicator.dataset.voiceState!==headerState)headerIndicator.dataset.voiceState=headerState;
+        if(decision==='start'){
+          // Starting on the first VAD-positive frame preserves a complete WebM
+          // container. It may omit at most the onset before that analyser frame;
+          // slicing an earlier recorder would reintroduce headerless WebM data.
+          if(state==='standby')setState('listening');
+          utteranceStartedAt=now;
+          console.info('PULS voice timing',{stage:'vad_start',bargeIn:false});
+          if(!recorderLifecycle.start(microphoneStream,mimeType,{epoch})){
+            utteranceStartedAt=0;vadGate.reset();
+          }
+        }else if(decision==='end'){
+          utteranceEndedAt=now;
+          logVoiceTiming('vad_end',utteranceStartedAt||now,{speechMs:Math.max(0,Math.round(now-(utteranceStartedAt||now))),bargeIn:false});
+          processingUtterance=true;
+          if(!recorderLifecycle.stop()){
+            processingUtterance=false;vadGate.reset();settleVoiceListeningState(now);
+          }
+        }else if(shouldEnterVoiceIdle({now,lastActivity:lastGenuineActivityAt,timeout:voiceInactivityMs,utteranceActive:vadGate.active,processing:false})&&state!=='standby')setState('standby');
+      }
     }
     vadFrame=requestAnimationFrame(()=>monitorVoiceActivity(epoch,mimeType));
   }
