@@ -59,9 +59,10 @@ function openAuthLanguagePicker() {
     options: window.PulsI18n.registry.languages.map(({ code, name }) => ({ value: code, label: name })),
     onConfirm(language) {
       authLanguageExplicitlySelected = true;
-      window.PulsI18n.setLanguage(language);
+      window.PulsI18n.setLanguage(language, { announce: false });
       window.applyPulsLanguage?.();
       translateAuthModal();
+      window.dispatchEvent(new CustomEvent("puls-language-change", { detail: { language } }));
     }
   });
 }

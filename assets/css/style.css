@@ -1119,7 +1119,12 @@ html { scroll-behavior: smooth; }
       letter-spacing: .08em;
     }
 
-    .settings-picker-flag { font-size: 19px; }
+    .settings-picker-code {
+      color: #75bfff;
+      font-size: 12px;
+      font-weight: 750;
+      letter-spacing: .08em;
+    }
 
     .auth-language-chevron,
     .settings-picker-chevron {
@@ -1331,6 +1336,9 @@ html { scroll-behavior: smooth; }
     .wheel-picker-stage {
       position: relative;
       height: 250px;
+      perspective: 520px;
+      perspective-origin: 50% 50%;
+      transform-style: preserve-3d;
     }
 
     .wheel-picker-viewport {
@@ -1338,6 +1346,7 @@ html { scroll-behavior: smooth; }
       z-index: 1;
       height: 100%;
       overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
       scroll-snap-type: y mandatory;
       scroll-padding-block: 100px;
@@ -1345,8 +1354,7 @@ html { scroll-behavior: smooth; }
       cursor: grab;
       outline: none;
       touch-action: pan-y;
-      perspective: 520px;
-      perspective-origin: 50% 50%;
+      transform-style: preserve-3d;
       -webkit-mask-image: linear-gradient(transparent 0, #000 26%, #000 74%, transparent 100%);
       mask-image: linear-gradient(transparent 0, #000 26%, #000 74%, transparent 100%);
     }
@@ -1357,6 +1365,7 @@ html { scroll-behavior: smooth; }
     .wheel-picker-list {
       display: grid;
       padding: 100px 0;
+      transform-style: preserve-3d;
     }
 
     .wheel-picker-option {
@@ -1375,7 +1384,7 @@ html { scroll-behavior: smooth; }
       font: inherit;
       font-size: 20px;
       opacity: var(--wheel-opacity, .62);
-      transform: translateY(var(--wheel-y, 0px)) translateZ(var(--wheel-depth, 0px)) rotateX(var(--wheel-angle, 0deg)) scale(var(--wheel-scale, .94));
+      transform: perspective(520px) translateY(var(--wheel-y, 0px)) translateZ(var(--wheel-depth, 0px)) rotateX(var(--wheel-angle, 0deg)) scale(var(--wheel-scale, .94));
       transform-origin: center;
       transition: color .16s, font-weight .16s;
     }

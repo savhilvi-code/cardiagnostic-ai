@@ -1081,11 +1081,11 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     function syncPreferencePickerValues() {
       const language = window.PulsI18n.registry.get(getLanguage());
       const languageValue = $("#languagePickerValue");
-      const languageFlag = $("#languagePickerFlag");
+      const languageCode = $("#languagePickerCode");
       const unitsValue = $("#unitsPickerValue");
       const timezoneValue = $("#timezonePickerValue");
       if (languageValue) languageValue.textContent = language.name;
-      if (languageFlag) languageFlag.textContent = language.flag;
+      if (languageCode) languageCode.textContent = language.country;
       if (unitsValue) unitsValue.textContent = storedPreference(UNITS_STORAGE_KEY, "metric") === "imperial" ? "mi, °F" : "km, °C";
       if (timezoneValue) timezoneValue.textContent = storedPreference(TIMEZONE_STORAGE_KEY, "UTC+3");
     }
@@ -1111,7 +1111,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           confirmLabel: t("picker.apply"),
           trigger,
           value: getLanguage(),
-          options: window.PulsI18n.registry.languages.map(({ code, name, flag }) => ({ value: code, label: name, suffix: flag })),
+          options: window.PulsI18n.registry.languages.map(({ code, name, country }) => ({ value: code, label: name, suffix: country })),
           onConfirm: confirmSettingsLanguage
         });
         return;
