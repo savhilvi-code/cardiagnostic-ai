@@ -53,643 +53,13 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
     const $ = (selector) => document.querySelector(selector);
     const $$ = (selector) => Array.from(document.querySelectorAll(selector));
-    const LANGUAGE_STORAGE_KEY = "puls_language_v1";
     const DEVELOPMENT_NOTICE_STORAGE_KEY = "puls_development_notice_acknowledged";
     const VEHICLE_STORAGE_KEY = "puls_vehicle_profile_v1";
+    const UNITS_STORAGE_KEY = "puls_units_v1";
+    const TIMEZONE_STORAGE_KEY = "puls_timezone_v1";
     let currentQuota = null;
 
-    const i18n = {
-      en: {
-        "brand.subtitle": "Your AI assistant for car diagnostics",
-        "system.freeQuota": "PULS: {remaining} of {limit} requests",
-        "system.premium": "PULS Premium: no limit",
-        "system.authCta": "Sign in / Register",
-        "hero.car": "Select car",
-        "hero.year": "Year",
-        "hero.yearValue": "Select year",
-        "hero.engine": "Engine",
-        "hero.engineValue": "Select engine",
-        "hero.drive": "Drive",
-        "hero.driveValue": "Select drive",
-        "hero.fuel": "Fuel type",
-        "hero.fuelValue": "Select fuel",
-        "nav.car": "My car",
-        "nav.journal": "Confirmed cases",
-        "nav.history": "Request history",
-        "nav.dtc": "Errors (DTC)",
-        "nav.manuals": "Manuals",
-        "nav.video": "Video",
-        "nav.settings": "Settings",
-        "sound.title": "Noise diagnostics",
-        "sound.subtitle": "Like Shazam,<br>but for your car",
-        "sound.listening": "Listening...",
-        "sound.link": "Record problem sound",
-        "sound.text": "Speak or play the noise and I will help identify it",
-        "assistant.subtitle": "Ask any question about your car",
-        "assistant.demoQuestion": "I hear a humming noise under the hood during acceleration, especially around 2000-3000 rpm.",
-        "assistant.demoAnswer": "This looks like a problem with auxiliary engine components. Possible causes: alternator bearing wear, belt tensioner pulley, water pump, or drive belt.",
-        "assistant.demoActions": "What you can do:",
-        "assistant.demoChecks": "• Check the belt and pulleys<br>• Listen with a stethoscope or long screwdriver<br>• Check pulley and bearing play",
-        "assistant.loading": "PULS is analyzing your request...",
-        "assistant.authRequired": "Please sign in or register to ask PULS questions.",
-        "assistant.emptyAuthenticated": "No messages yet. Ask PULS a question and your chat will start here.",
-        "assistant.error": "Service is temporarily unavailable. Please try again in a few seconds.",
-        "car.title": "My car",
-        "car.subtitle": "Information about your car and available materials",
-        "car.infoTitle": "Car information",
-        "car.model": "Model:",
-        "car.year": "Year:",
-        "car.engine": "Engine:",
-        "car.drive": "Drive:",
-        "car.fuel": "Fuel:",
-        "car.transmission": "Transmission:",
-        "car.transmissionValue": "Select transmission",
-        "car.vinValue": "Enter VIN",
-        "car.quickTitle": "Quick access",
-        "car.quickService": "Maintenance schedule",
-        "car.quickSchemes": "Component diagrams",
-        "car.quickTorque": "Torque specs",
-        "car.quickElectrical": "Wiring diagrams",
-        "car.quickFuses": "Fuses",
-        "car.specTitle": "Technical specifications",
-        "car.serviceTitle": "Service history",
-        "car.serviceSubtitle": "Service notes for the selected car card",
-        "car.serviceAdd": "Add record",
-        "car.serviceHelp": "All maintenance records stay inside the selected car so the assistant always knows what has already been done.",
-        "car.photoUpload": "Attach car photo",
-        "car.photoMenu": "Photo actions",
-        "car.photoReplace": "Replace photo",
-        "car.photoDelete": "Delete photo",
-        "car.photoSaved": "Car photo saved.",
-        "car.photoRemoved": "Car photo removed.",
-        "car.photoConfigMissing": "Supabase photo storage is not configured.",
-        "car.photoStorageMissing": "Create the public Supabase bucket \"vehicle-photos\" and allow uploads for signed-in users.",
-        "car.photoUploadError": "Could not upload the car photo. Please try again.",
-        "car.photoTooLarge": "The photo is too large. Maximum size is 10 MB.",
-        "car.vehicleTitle": "My cars",
-        "car.vehicleSubtitle": "Save several vehicles and switch between them without losing context.",
-        "car.addVehicle": "Add vehicle",
-        "car.deleteVehicle": "Delete vehicle",
-        "car.formTitle": "Car profile editor",
-        "car.formSubtitle": "Fill in the car once so PULS always knows which vehicle to use.",
-        "car.formBrand": "Brand",
-        "car.formBrandPlaceholder": "Toyota",
-        "car.formModel": "Model",
-        "car.formModelPlaceholder": "Land Cruiser",
-        "car.formYear": "Year",
-        "car.formYearPlaceholder": "2003",
-        "car.formEngine": "Engine",
-        "car.formEnginePlaceholder": "SR20VET",
-        "car.formFuel": "Fuel",
-        "car.formFuelPlaceholder": "Petrol",
-        "car.formDrive": "Drive",
-        "car.formDrivePlaceholder": "4WD",
-        "car.formTransmission": "Transmission",
-        "car.formTransmissionPlaceholder": "AT",
-        "car.formMileage": "Mileage",
-        "car.formMileagePlaceholder": "185000 km",
-        "car.formVin": "VIN / chassis",
-        "car.formVinPlaceholder": "JT..., JZX100-1234567",
-        "car.formHint": "You can edit the data anytime. Later we can connect VIN or catalog auto-fill here.",
-        "car.formSave": "Save car",
-        "car.formSaved": "Car profile saved.",
-        "car.formDemo": "Fill demo data",
-        "car.formLookup": "Decode VIN / chassis",
-        "car.formLookupHint": "Enter a full VIN or a Japanese chassis/frame number and PULS will pull the available vehicle data automatically.",
-        "car.lookupReady": "Ready to decode VIN or chassis.",
-        "car.lookupSearching": "Decoding VIN / chassis...",
-        "car.lookupNeedVin": "Enter a full 17-character VIN or a Japanese chassis number like JZX100-1234567.",
-        "car.lookupInvalid": "This VIN or chassis number could not be decoded. Please check the number and try again.",
-        "car.lookupNotFound": "No matching vehicle data was found for this VIN or chassis number.",
-        "car.lookupError": "Vehicle lookup failed. Please try again in a few seconds.",
-        "spec.displacement": "Engine displacement:",
-        "spec.note": "These fields are filled automatically from vehicle data and can be edited manually.",
-        "spec.loadInternet": "Load from internet",
-        "spec.loadInternetHint": "Best results come from a full VIN. Loaded values can still be edited manually.",
-        "spec.loadNeedVin": "Enter a full VIN to load technical specs from the internet.",
-        "spec.loadStarted": "Loading technical specs from the internet...",
-        "spec.loadDone": "Technical specs loaded from the internet.",
-        "spec.unavailable": "No data",
-        "spec.displacementValue": "Auto-filled after car selection",
-        "spec.power": "Power:",
-        "spec.powerValue": "Auto-filled after car selection",
-        "spec.torque": "Torque:",
-        "spec.torqueValue": "Auto-filled after car selection",
-        "spec.engineType": "Engine type:",
-        "spec.engineTypeValue": "Auto-filled after car selection",
-        "spec.cylinders": "Cylinders:",
-        "spec.cylindersValue": "Auto-filled after car selection",
-        "spec.emissions": "Emissions class:",
-        "spec.emissionsValue": "Auto-filled after car selection",
-        "spec.tank": "Fuel tank:",
-        "spec.tankValue": "Auto-filled after car selection",
-        "service.title": "Record title",
-        "service.addTitle": "Add maintenance / repair",
-        "service.editTitle": "Edit maintenance / repair",
-        "service.editMaintenanceTitle": "Edit maintenance",
-        "service.editRepairTitle": "Edit repair",
-        "service.modalHelp": "Enter the date, mileage and a short description of the work.",
-        "service.type": "Record type",
-        "service.typeService": "Maintenance",
-        "service.typeRepair": "Repair",
-        "service.titlePlaceholder": "Oil change",
-        "service.descriptionPlaceholder": "Changed the oil and filter",
-        "service.mileagePlaceholder": "98,500 km",
-        "service.attachments": "Photo, video or document",
-        "service.chooseFiles": "Choose files",
-        "service.noFileSelected": "No file selected",
-        "service.description": "Description",
-        "service.partsConsumables": "Parts / Consumables",
-        "service.partsPlaceholder": "Oil filter · Mobil 1 5W-30",
-        "service.date": "Date",
-        "service.mileage": "Mileage",
-        "service.photo": "Photo / sticker",
-        "service.previewTitle": "Record sticker preview",
-        "service.previewHint": "You can add a photo, or we will show a colored sticker if no photo is attached.",
-        "service.save": "Save record",
-        "service.saved": "Service record saved.",
-        "journal.title": "Confirmed cases",
-        "journal.subtitle": "Confirmed solutions and saved outcomes",
-        "journal.help": "Only confirmed cases are stored here: PULS helped identify the problem, the user confirmed it was solved, and the final solution was saved.",
-        "journal.empty": "No completed cases yet. A case appears here after the user confirms the issue was solved.",
-        "journal.sampleQuestion": "Humming under the hood at 2000-3000 rpm",
-        "journal.sampleSolution": "Solved: the alternator belt tensioner pulley was worn. The user replaced the pulley and belt, then confirmed the noise disappeared.",
-        "history.title": "Request history",
-        "history.subtitle": "Your recent PULS requests",
-        "history.help": "This section contains the history of your PULS requests and responses.",
-        "history.empty": "No request history yet. New PULS questions will appear here after the user signs in and sends them.",
-        "history.answerPreviewEmpty": "Open the request to view the answer.",
-        "dtc.title": "Errors (DTC)",
-        "dtc.subtitle": "Diagnostic trouble codes and reference examples",
-        "dtc.clear": "Clear all",
-        "dtc.found": "3 errors found.",
-        "dtc.warning": "It is recommended to check and fix errors for correct vehicle operation.",
-        "dtc.systemLabel": "System:",
-        "dtc.engineFuelSystem": "Engine / fuel system",
-        "manuals.title": "Manuals and guides",
-        "manuals.subtitle": "Reference manuals and maintenance guides",
-        "manuals.help": "This section contains manuals, guides, and technical materials related to your vehicles and requests.",
-        "video.title": "Video",
-        "video.subtitle": "Video picks and materials related to requests",
-        "video.help": "Videos and materials that appeared in PULS responses are saved here so you can return to them later.",
-        "requestDetails.title": "Request details",
-        "requestDetails.meta": "PULS response history",
-        "requestDetails.question": "Question",
-        "requestDetails.answer": "PULS answer",
-        "requestDetails.links": "Links",
-        "requestDetails.noLinks": "No links found.",
-        "request.relatedLink": "Related link",
-        "request.relatedVideo": "Related video",
-        "request.material": "Material",
-        "request.type.text": "Text request",
-        "request.type.voice": "Voice request",
-        "request.type.parser": "Parser",
-        "request.type.deepSearch": "Deep Search",
-        "status.new": "New",
-        "status.completed": "Completed",
-        "status.solved": "Solved",
-        "status.resolved": "Resolved",
-        "status.closed": "Closed",
-        "status.done": "Done",
-        "settings.title": "Settings",
-        "settings.subtitle": "Manage your account, subscription, and app",
-        "settings.profile": "Profile",
-        "settings.subscription": "Subscription",
-        "settings.notifications": "Notifications",
-        "settings.languageRegion": "Language and region",
-        "settings.appLanguage": "App language",
-        "settings.units": "Units",
-        "settings.unitsValue": "km, °C",
-        "settings.metric": "km, °C",
-        "settings.imperial": "mi, °F",
-        "settings.timezone": "Time zone",
-        "support.open": "Contact Support",
-        "support.title": "Contact Support",
-        "support.subtitle": "Send a message to the PULS support team.",
-        "support.subject": "Subject",
-        "support.message": "Message",
-        "support.email": "Email address",
-        "support.attach": "Attach images",
-        "support.attachHint": "Up to 3 images, JPG/JPEG/PNG/WEBP, max 5 MB each.",
-        "support.send": "Send",
-        "support.subjectPlaceholder": "Briefly describe the issue",
-        "support.messagePlaceholder": "Tell us what happened and what you need help with.",
-        "support.success": "Your support request has been sent successfully.\n\nWe will reply to you by email as soon as possible.",
-        "support.filesSelected": "{count} image(s) selected.",
-        "support.noFiles": "No images attached yet.",
-        "support.limitExceeded": "You can attach up to 3 images.",
-        "support.fileTooLarge": "Each image must be 5 MB or smaller.",
-        "support.invalidType": "Only JPG, JPEG, PNG, and WEBP images are allowed.",
-        "support.error": "Could not send the support request. Please try again.",
-        "support.subjectRequired": "Enter a subject.",
-        "support.messageRequired": "Enter a message.",
-        "support.emailRequired": "Enter your email address.",
-        "support.sending": "Sending...",
-        "subscription.status": "Status: {plan} — {remaining} of {limit} requests remaining",
-        "subscription.loading": "Loading subscription...",
-        "subscription.signIn": "Sign in to view your subscription",
-        "subscription.plan": "PULS Pro subscription: 100 requests for $15.",
-        "subscription.pay": "Pay $15",
-        "notifications.service": "Service reminders",
-        "notifications.diagnostics": "Diagnostics and errors",
-        "notifications.content": "New videos and manuals",
-        "notifications.updates": "Promotions and updates",
-        "common.on": "On",
-        "common.off": "Off",
-        "common.filter": "Filter",
-        "common.noMatches": "Nothing found for this search.",
-        "common.close": "Close",
-        "common.statusLabel": "Status:",
-        "search.requests": "Search requests",
-        "search.manuals": "Search manuals",
-        "search.video": "Search videos",
-        "composer.placeholder": "Describe the problem.",
-        "composer.attachPhoto": "Attach photo",
-        "composer.sendVideo": "Attach video",
-        "composer.attachDocument": "Attach document",
-        "composer.attachmentStartChat": "Send a message first to start the vehicle conversation.",
-        "composer.attachmentUploading": "Uploading attachment…",
-        "composer.attachmentSaved": "Attachment saved.",
-        "composer.attachmentError": "Could not upload the attachment.",
-        "composer.attachmentPickerError": "Could not open the file picker. Please try again.",
-        "composer.attachmentUploaded": "Uploaded",
-        "composer.attachmentFailed": "Upload failed",
-        "composer.attachmentPreviewError": "Could not load the image preview.",
-        "composer.attachmentPreviewClose": "Close attachment preview",
-        "composer.attachmentViewerError": "Could not load the attachment preview.",
-        "composer.attachmentVideoUnsupported": "This video format or codec is not supported by your browser.",
-        "composer.attachmentVideoReady": "Ready",
-        "composer.attachmentOpenPdf": "Open PDF",
-        "composer.attachmentSelect": "Select attachment",
-        "composer.attachmentSelected": "{count} selected",
-        "composer.attachmentDelete": "Delete",
-        "composer.attachmentDeleting": "Deleting…",
-        "composer.attachmentDeleteConfirm": "Delete the selected attachments from this chat?",
-        "composer.attachmentDeleteError": "Could not delete the selected attachments.",
-        "composer.attachmentDeleted": "Selected attachments deleted.",
-        "composer.attachmentDeletedTitle": "File deleted",
-        "composer.attachmentDeletedByUser": "Deleted by user",
-        "composer.attachmentPending": "Ready to send",
-        "composer.attachmentUploadWait": "Wait for the attachment upload to finish.",
-        "composer.pdfTooLarge": "PDF files must not exceed 10 MB.",
-        "composer.attachmentRemoving": "Removing…",
-        "composer.dtc": "Code diagnostics",
-        "profile.guest": "Guest",
-        "profile.signIn": "Sign in to your account",
-        "profile.supabaseMissing": "Supabase is not configured",
-        "profile.user": "PULS user",
-        "profile.emailMissing": "Email is missing",
-        "auth.open": "Sign in / Register",
-        "auth.logout": "Log out",
-        "quota.title": "Remaining requests",
-        "quota.description": "You can send {remaining} more requests in this period.",
-        "quota.unlimited": "You have unlimited requests in this period.",
-        "auth.deleteProfile": "Delete profile",
-        "auth.title": "PULS account",
-        "auth.description": "Sign in or register by email to connect your history, subscription, and devices.",
-        "auth.newUserHint": "New user? Enter your email and create a new password for the PULS assistant, then click Register.",
-        "auth.password": "Password",
-        "auth.passwordPlaceholder": "Minimum 6 characters",
-        "auth.login": "Sign in",
-        "auth.register": "Register",
-        "auth.statusReady": "Enter email and password.",
-        "auth.statusConfig": "Add Supabase URL and anon key in assets/js/supabaseClient.js.",
-        "auth.enterEmail": "Enter email.",
-        "auth.enterPassword": "Enter password.",
-        "auth.shortPassword": "Password must be at least 6 characters.",
-        "auth.registerSuccess": "Registration successful. Check your email to confirm.",
-        "auth.signInToDelete": "Sign in before deleting profile.",
-        "auth.deleteConfirmPrompt": "Type your email to confirm profile deletion.",
-        "auth.deleteCancelled": "Profile deletion cancelled.",
-        "auth.deleteRequested": "Profile deletion request saved. Check your email if confirmation is required.",
-        "auth.lockedAction": "Sign in or register to use this setting.",
-        "toast.dtc": "Code diagnostics section opened.",
-        "toast.demo": "This is a demo button. It can be connected to n8n, uploads, or a materials database.",
-        "toast.pay": "Payment will be connected to your checkout provider."
-      },
-      ru: {
-        "brand.subtitle": "Ваш AI-помощник для диагностики автомобиля",
-        "system.freeQuota": "PULS: {remaining} из {limit} запросов",
-        "system.premium": "PULS Premium: без лимита",
-        "system.authCta": "Войти / Зарегистрироваться",
-        "hero.car": "Укажите машину",
-        "hero.year": "Год выпуска",
-        "hero.yearValue": "Укажите год",
-        "hero.engine": "Двигатель",
-        "hero.engineValue": "Укажите мотор",
-        "hero.drive": "Привод",
-        "hero.driveValue": "Укажите привод",
-        "hero.fuel": "Тип топлива",
-        "hero.fuelValue": "Укажите топливо",
-        "nav.car": "Мой автомобиль",
-        "nav.journal": "Подтверждённые кейсы",
-        "nav.history": "История запросов",
-        "nav.dtc": "Ошибки (DTC)",
-        "nav.manuals": "Мануалы",
-        "nav.video": "Видео",
-        "nav.settings": "Настройки",
-        "sound.title": "Диагностика по шуму",
-        "sound.subtitle": "Как Shazam, только<br>для вашего авто",
-        "sound.listening": "Слушаю...",
-        "sound.link": "Запись звука неполадки",
-        "sound.text": "Говорите или воспроизведите шум — я распознаю и помогу",
-        "assistant.subtitle": "Задайте любой вопрос о вашем автомобиле",
-        "assistant.demoQuestion": "У меня при разгоне появляется гул под капотом, особенно на 2000–3000 оборотах.",
-        "assistant.demoAnswer": "Похоже на проблему со вспомогательными узлами двигателя. Вероятные причины: износ подшипника генератора, ролик натяжителя ремня, помпа или приводной ремень.",
-        "assistant.demoActions": "Что можно сделать:",
-        "assistant.demoChecks": "• Проверьте состояние ремня и роликов<br>• Послушайте шум стетоскопом или длинной отверткой<br>• Проверьте люфт роликов и подшипников",
-        "assistant.loading": "PULS анализирует запрос...",
-        "assistant.authRequired": "Войдите или зарегистрируйтесь, чтобы задавать вопросы PULS.",
-        "assistant.emptyAuthenticated": "Пока нет сообщений. Задайте вопрос PULS, и диалог начнется здесь.",
-        "assistant.error": "Сервис временно недоступен. Попробуйте ещё раз через несколько секунд.",
-        "car.title": "Мой автомобиль",
-        "car.subtitle": "Информация о вашем автомобиле и доступные материалы",
-        "car.infoTitle": "Информация об автомобиле",
-        "car.model": "Модель:",
-        "car.year": "Год выпуска:",
-        "car.engine": "Двигатель:",
-        "car.drive": "Привод:",
-        "car.fuel": "Топливо:",
-        "car.transmission": "КПП:",
-        "car.transmissionValue": "Укажите КПП",
-        "car.vinValue": "Укажите VIN",
-        "car.quickTitle": "Быстрый доступ",
-        "car.quickService": "Регламент ТО",
-        "car.quickSchemes": "Схемы узлов",
-        "car.quickTorque": "Моменты затяжки",
-        "car.quickElectrical": "Электросхемы",
-        "car.quickFuses": "Предохранители",
-        "car.specTitle": "Технические характеристики",
-        "car.serviceTitle": "Сервис и ТО",
-        "car.serviceSubtitle": "Записи обслуживания внутри карточки выбранной машины",
-        "car.serviceAdd": "Добавить запись",
-        "car.serviceHelp": "Все записи обслуживания и ТО отображаются внутри карточки выбранного автомобиля, чтобы контекст машины не терялся.",
-        "car.photoUpload": "Прикрепить фото авто",
-        "car.photoMenu": "Действия с фото",
-        "car.photoReplace": "Заменить фото",
-        "car.photoDelete": "Удалить фото",
-        "car.photoSaved": "Фото автомобиля сохранено.",
-        "car.photoRemoved": "Фото автомобиля удалено.",
-        "car.photoConfigMissing": "Хранилище фото Supabase не настроено.",
-        "car.photoStorageMissing": "Создайте публичный bucket Supabase \"vehicle-photos\" и разрешите загрузку для авторизованных пользователей.",
-        "car.photoUploadError": "Не удалось загрузить фото автомобиля. Попробуйте ещё раз.",
-        "car.photoTooLarge": "Фотография слишком большая. Максимум 10 МБ.",
-        "car.formTitle": "Редактор автомобиля",
-        "car.formSubtitle": "Заполните данные машины один раз, чтобы PULS всегда понимал, какой автомобиль использовать.",
-        "car.formBrand": "Марка",
-        "car.formBrandPlaceholder": "Toyota",
-        "car.formModel": "Модель",
-        "car.formModelPlaceholder": "Land Cruiser",
-        "car.formYear": "Год",
-        "car.formYearPlaceholder": "2003",
-        "car.formEngine": "Двигатель",
-        "car.formEnginePlaceholder": "SR20VET",
-        "car.formFuel": "Топливо",
-        "car.formFuelPlaceholder": "Бензин",
-        "car.formDrive": "Привод",
-        "car.formDrivePlaceholder": "4WD",
-        "car.formTransmission": "КПП",
-        "car.formTransmissionPlaceholder": "АКПП",
-        "car.formMileage": "Пробег",
-        "car.formMileagePlaceholder": "185000 км",
-        "car.formVin": "VIN / кузов",
-        "car.formVinPlaceholder": "JT..., JZX100-1234567",
-        "car.formHint": "Данные можно редактировать в любой момент. Позже сюда можно подключить авто-подтягивание по VIN или каталогу.",
-        "car.formSave": "Сохранить машину",
-        "car.formSaved": "Профиль машины сохранён.",
-        "car.formDemo": "Заполнить пример",
-        "car.formLookup": "Распознать VIN / кузов",
-        "car.formLookupHint": "Введите полный VIN или японский номер кузова, и PULS сам подтянет доступные данные по машине.",
-        "car.vehicleTitle": "Мои машины",
-        "car.vehicleSubtitle": "Сохраняйте несколько автомобилей и переключайтесь между ними без потери контекста.",
-        "car.addVehicle": "Добавить автомобиль",
-        "car.deleteVehicle": "Удалить автомобиль",
-        "car.lookupReady": "Готов к распознаванию VIN или номера кузова.",
-        "car.lookupSearching": "Распознаю VIN / кузов...",
-        "car.lookupNeedVin": "Введите полный VIN из 17 символов или японский номер кузова, например JZX100-1234567.",
-        "car.lookupInvalid": "Этот VIN или номер кузова не удалось распознать. Проверьте номер и попробуйте снова.",
-        "car.lookupNotFound": "По этому VIN или номеру кузова не найдено подходящих данных по машине.",
-        "car.lookupError": "Не удалось получить данные по VIN или номеру кузова. Попробуйте ещё раз через несколько секунд.",
-        "spec.displacement": "Объем двигателя:",
-        "spec.note": "Эти поля заполняются автоматически по данным автомобиля и могут редактироваться вручную.",
-        "spec.loadInternet": "Загрузить из интернета",
-        "spec.loadInternetHint": "Лучше всего работает с полным VIN. После загрузки значения всё равно можно изменить вручную.",
-        "spec.loadNeedVin": "Введите полный VIN, чтобы загрузить характеристики из интернета.",
-        "spec.loadStarted": "Загружаю технические характеристики из интернета...",
-        "spec.loadDone": "Технические характеристики загружены из интернета.",
-        "spec.unavailable": "Нет данных",
-        "spec.displacementValue": "Заполнится автоматически после выбора авто",
-        "spec.power": "Мощность:",
-        "spec.powerValue": "Заполнится автоматически после выбора авто",
-        "spec.torque": "Крутящий момент:",
-        "spec.torqueValue": "Заполнится автоматически после выбора авто",
-        "spec.engineType": "Тип двигателя:",
-        "spec.engineTypeValue": "Заполнится автоматически после выбора авто",
-        "spec.cylinders": "Количество цилиндров:",
-        "spec.cylindersValue": "Заполнится автоматически после выбора авто",
-        "spec.emissions": "Экологический класс:",
-        "spec.emissionsValue": "Заполнится автоматически после выбора авто",
-        "spec.tank": "Объем бака:",
-        "spec.tankValue": "Заполнится автоматически после выбора авто",
-        "service.title": "Название записи",
-        "service.addTitle": "Добавить обслуживание / ремонт",
-        "service.editTitle": "Изменить обслуживание / ремонт",
-        "service.editMaintenanceTitle": "Изменить обслуживание",
-        "service.editRepairTitle": "Изменить ремонт",
-        "service.modalHelp": "Укажите дату, пробег и короткое описание работ.",
-        "service.type": "Тип записи",
-        "service.typeService": "Обслуживание",
-        "service.typeRepair": "Ремонт",
-        "service.titlePlaceholder": "Замена масла",
-        "service.descriptionPlaceholder": "Поменял масло и фильтр",
-        "service.mileagePlaceholder": "98 500 км",
-        "service.attachments": "Фото, видео или документ",
-        "service.chooseFiles": "Выбрать файлы",
-        "service.noFileSelected": "Файл не выбран",
-        "service.description": "Описание",
-        "service.partsConsumables": "Запчасти / расходники",
-        "service.partsPlaceholder": "Масляный фильтр · Mobil 1 5W-30",
-        "service.date": "Дата",
-        "service.mileage": "Пробег",
-        "service.photo": "Фото / стикер",
-        "service.previewTitle": "Предпросмотр стикера записи",
-        "service.previewHint": "Можно добавить фото, а если фото нет, появится цветной стикер.",
-        "service.save": "Сохранить запись",
-        "service.saved": "Запись ТО сохранена.",
-        "journal.title": "Подтверждённые кейсы",
-        "journal.subtitle": "Подтверждённые решения и сохранённые итоги",
-        "journal.help": "Здесь сохраняются только подтверждённые кейсы: PULS помог определить проблему, пользователь подтвердил, что она решена, и итоговое решение было сохранено.",
-        "journal.empty": "Завершенных кейсов пока нет. Кейс появится здесь после подтверждения решения пользователем.",
-        "journal.sampleQuestion": "Гул под капотом на 2000–3000 оборотах",
-        "journal.sampleSolution": "Решено: износился ролик натяжителя ремня генератора. Пользователь заменил ролик и ремень, затем подтвердил, что гул исчез.",
-        "history.title": "История запросов",
-        "history.subtitle": "Ваши недавние запросы и обращения к PULSу",
-        "history.help": "Здесь хранится история ваших обращений к PULS и полученных ответов.",
-        "history.empty": "Истории запросов пока нет. Новые вопросы появятся здесь после входа и отправки запроса.",
-        "history.answerPreviewEmpty": "Откройте запрос, чтобы посмотреть ответ.",
-        "dtc.title": "Ошибки (DTC)",
-        "dtc.subtitle": "Диагностические коды и справочные примеры расшифровки",
-        "dtc.clear": "Удалить все",
-        "dtc.found": "Найдено 3 ошибки.",
-        "dtc.warning": "Рекомендуется проверить и устранить ошибки для корректной работы автомобиля.",
-        "dtc.systemLabel": "Система:",
-        "dtc.engineFuelSystem": "Двигатель / топливная система",
-        "manuals.title": "Мануалы и руководства",
-        "manuals.subtitle": "Справочные мануалы и руководства по обслуживанию",
-        "manuals.help": "Здесь собраны руководства, инструкции и технические материалы, связанные с вашими автомобилями и запросами.",
-        "video.title": "Видео",
-        "video.subtitle": "Подборка видео и материалов по вашим запросам",
-        "video.help": "Здесь сохраняются видео и материалы, которые появлялись в ответах PULS, чтобы к ним можно было вернуться позже.",
-        "requestDetails.title": "Детали запроса",
-        "requestDetails.meta": "История ответа PULS",
-        "requestDetails.question": "Вопрос",
-        "requestDetails.answer": "Ответ PULS",
-        "requestDetails.links": "Ссылки",
-        "requestDetails.noLinks": "Ссылки не найдены.",
-        "request.relatedLink": "Ссылка по теме",
-        "request.relatedVideo": "Видео по теме",
-        "request.material": "Материал",
-        "request.type.text": "Текстовый запрос",
-        "request.type.voice": "Голосовой запрос",
-        "request.type.parser": "Parser",
-        "request.type.deepSearch": "Deep Search",
-        "status.new": "Новый",
-        "status.completed": "Выполнено",
-        "status.solved": "Решено",
-        "status.resolved": "Решено",
-        "status.closed": "Закрыто",
-        "status.done": "Выполнено",
-        "settings.title": "Настройки",
-        "settings.subtitle": "Управляйте аккаунтом, подпиской и приложением",
-        "settings.profile": "Профиль",
-        "settings.subscription": "Подписка",
-        "settings.notifications": "Уведомления",
-        "settings.languageRegion": "Язык и регион",
-        "settings.appLanguage": "Язык приложения",
-        "settings.units": "Единицы измерения",
-        "settings.unitsValue": "км, °C",
-        "settings.metric": "км, °C",
-        "settings.imperial": "мили, °F",
-        "settings.timezone": "Часовой пояс",
-        "support.open": "Написать в поддержку",
-        "support.title": "Написать в поддержку",
-        "support.subtitle": "Отправьте сообщение в службу поддержки PULS.",
-        "support.subject": "Тема",
-        "support.message": "Сообщение",
-        "support.email": "Email",
-        "support.attach": "Прикрепить изображения",
-        "support.attachHint": "До 3 изображений, JPG/JPEG/PNG/WEBP, максимум 5 МБ каждое.",
-        "support.send": "Отправить",
-        "support.subjectPlaceholder": "Коротко опишите проблему",
-        "support.messagePlaceholder": "Расскажите, что произошло и с чем нужна помощь.",
-        "support.success": "Ваш запрос в поддержку успешно отправлен.\n\nМы ответим вам по email как можно скорее.",
-        "support.filesSelected": "Выбрано изображений: {count}.",
-        "support.noFiles": "Изображения пока не прикреплены.",
-        "support.limitExceeded": "Можно прикрепить не больше 3 изображений.",
-        "support.fileTooLarge": "Каждое изображение должно быть не больше 5 МБ.",
-        "support.invalidType": "Разрешены только JPG, JPEG, PNG и WEBP.",
-        "support.error": "Не удалось отправить запрос в поддержку. Попробуйте ещё раз.",
-        "support.subjectRequired": "Введите тему.",
-        "support.messageRequired": "Введите сообщение.",
-        "support.emailRequired": "Введите email.",
-        "support.sending": "Отправка...",
-        "subscription.status": "Статус: {plan} — осталось {remaining} из {limit} запросов",
-        "subscription.loading": "Загрузка подписки...",
-        "subscription.signIn": "Войдите, чтобы посмотреть подписку",
-        "subscription.plan": "Подписка PULS Pro: 100 запросов за $15.",
-        "subscription.pay": "Оплатить $15",
-        "notifications.service": "Напоминания о ТО",
-        "notifications.diagnostics": "Диагностика и ошибки",
-        "notifications.content": "Новые видео и мануалы",
-        "notifications.updates": "Акции и обновления",
-        "common.on": "Вкл",
-        "common.off": "Выкл",
-        "common.filter": "Фильтр",
-        "common.noMatches": "По этому поиску ничего не найдено.",
-        "common.close": "Закрыть",
-        "common.statusLabel": "Статус:",
-        "search.requests": "Поиск по запросам",
-        "search.manuals": "Поиск по мануалам",
-        "search.video": "Поиск по видео",
-        "composer.placeholder": "Опишите проблему.",
-        "composer.attachPhoto": "Прикрепить фото",
-        "composer.sendVideo": "Прикрепить видео",
-        "composer.attachDocument": "Прикрепить документ",
-        "composer.attachmentStartChat": "Сначала отправьте сообщение, чтобы начать диалог об автомобиле.",
-        "composer.attachmentUploading": "Загрузка вложения…",
-        "composer.attachmentSaved": "Вложение сохранено.",
-        "composer.attachmentError": "Не удалось загрузить вложение.",
-        "composer.attachmentPickerError": "Не удалось открыть выбор файла. Попробуйте ещё раз.",
-        "composer.attachmentUploaded": "Загружено",
-        "composer.attachmentFailed": "Ошибка загрузки",
-        "composer.attachmentPreviewError": "Не удалось загрузить изображение.",
-        "composer.attachmentPreviewClose": "Закрыть просмотр вложения",
-        "composer.attachmentViewerError": "Не удалось загрузить вложение для просмотра.",
-        "composer.attachmentVideoUnsupported": "Этот формат или кодек видео не поддерживается вашим браузером.",
-        "composer.attachmentVideoReady": "Готово",
-        "composer.attachmentOpenPdf": "Открыть PDF",
-        "composer.attachmentSelect": "Выбрать вложение",
-        "composer.attachmentSelected": "Выбрано: {count}",
-        "composer.attachmentDelete": "Удалить",
-        "composer.attachmentDeleting": "Удаление…",
-        "composer.attachmentDeleteConfirm": "Удалить выбранные вложения из этого чата?",
-        "composer.attachmentDeleteError": "Не удалось удалить выбранные вложения.",
-        "composer.attachmentDeleted": "Выбранные вложения удалены.",
-        "composer.attachmentDeletedTitle": "Файл удалён",
-        "composer.attachmentDeletedByUser": "Удалено пользователем",
-        "composer.attachmentPending": "Готово к отправке",
-        "composer.attachmentUploadWait": "Дождитесь завершения загрузки вложения.",
-        "composer.pdfTooLarge": "Размер PDF-файла не должен превышать 10 МБ.",
-        "composer.attachmentRemoving": "Удаление…",
-        "composer.dtc": "Диагностика по коду",
-        "profile.guest": "Гость",
-        "profile.signIn": "Войдите в аккаунт",
-        "profile.supabaseMissing": "Supabase не настроен",
-        "profile.user": "Пользователь PULS",
-        "profile.emailMissing": "Email не указан",
-        "auth.open": "Войти / Регистрация",
-        "auth.logout": "Выйти",
-        "quota.title": "Осталось запросов",
-        "quota.description": "В этом периоде можно отправить ещё {remaining} запросов.",
-        "quota.unlimited": "В этом периоде доступно неограниченное число запросов.",
-        "auth.deleteProfile": "Удалить профиль",
-        "auth.title": "Аккаунт PULS",
-        "auth.description": "Войдите или зарегистрируйтесь по email, чтобы привязать историю, подписку и устройства.",
-        "auth.newUserHint": "Если вы новый пользователь, введите свою почту и придумайте новый пароль для ассистента PULS, затем нажмите «Регистрация».",
-        "auth.password": "Пароль",
-        "auth.passwordPlaceholder": "Минимум 6 символов",
-        "auth.login": "Вход",
-        "auth.register": "Регистрация",
-        "auth.statusReady": "Введите email и пароль.",
-        "auth.statusConfig": "Добавьте Supabase URL и anon key в assets/js/supabaseClient.js.",
-        "auth.enterEmail": "Введите email.",
-        "auth.enterPassword": "Введите пароль.",
-        "auth.shortPassword": "Пароль должен быть минимум 6 символов.",
-        "auth.registerSuccess": "Регистрация успешна. Проверьте почту для подтверждения.",
-        "auth.signInToDelete": "Войдите в аккаунт перед удалением профиля.",
-        "auth.deleteConfirmPrompt": "Введите свою почту, чтобы подтвердить удаление профиля.",
-        "auth.deleteCancelled": "Удаление профиля отменено.",
-        "auth.deleteRequested": "Запрос на удаление профиля сохранен. Проверьте почту, если требуется подтверждение.",
-        "auth.lockedAction": "Войдите или зарегистрируйтесь, чтобы использовать эту настройку.",
-        "toast.dtc": "Открыт раздел диагностики по коду.",
-        "toast.demo": "Это демо-кнопка. Ее можно подключить к n8n, загрузке файлов или базе материалов.",
-        "toast.pay": "Оплату можно подключить к вашему платежному провайдеру."
-      }
-    };
-
-    function getLanguage() {
-      try {
-        return localStorage.getItem(LANGUAGE_STORAGE_KEY) || "en";
-      } catch (error) {
-        return "en";
-      }
-    }
-
-    function t(key, params = {}) {
-      const lang = getLanguage();
-      const template = i18n[lang]?.[key] || i18n.en[key] || key;
-      return Object.entries(params).reduce((text, [name, value]) => text.replaceAll(`{${name}}`, value), template);
-    }
+    const { getLanguage, t, locales: i18n } = window.PulsI18n;
 
     function normalizeStatusLabel(status) {
       const raw = String(status || "").trim();
@@ -810,21 +180,6 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
     }
 
     window.pulsT = t;
-
-    Object.assign(i18n.en, {
-      "spec.loadInternetHint": "Best results come from a full VIN. PULS can verify specs and set a car photo automatically; you can still edit everything manually.",
-      "spec.loadNeedContext": "Enter a full VIN or at least brand and model to load data from the internet.",
-      "spec.loadDraftDone": "Internet data loaded into the draft. Save the car to keep it.",
-      "spec.loadError": "Could not load vehicle data from the internet. Please try again."
-    });
-
-    Object.assign(i18n.ru, {
-      "spec.loadInternetHint": "\u041b\u0443\u0447\u0448\u0435 \u0432\u0441\u0435\u0433\u043e \u0440\u0430\u0431\u043e\u0442\u0430\u0435\u0442 \u0441 \u043f\u043e\u043b\u043d\u044b\u043c VIN. PULS \u043f\u0440\u043e\u0432\u0435\u0440\u0438\u0442 \u0445\u0430\u0440\u0430\u043a\u0442\u0435\u0440\u0438\u0441\u0442\u0438\u043a\u0438 \u0438 \u0430\u0432\u0442\u043e\u043c\u0430\u0442\u0438\u0447\u0435\u0441\u043a\u0438 \u043f\u043e\u0441\u0442\u0430\u0432\u0438\u0442 \u0444\u043e\u0442\u043e \u043c\u0430\u0448\u0438\u043d\u044b; \u043f\u043e\u0442\u043e\u043c \u0432\u0441\u0451 \u0440\u0430\u0432\u043d\u043e \u043c\u043e\u0436\u043d\u043e \u0438\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u0432\u0440\u0443\u0447\u043d\u0443\u044e.",
-      "spec.loadNeedContext": "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u043f\u043e\u043b\u043d\u044b\u0439 VIN \u0438\u043b\u0438 \u0445\u043e\u0442\u044f \u0431\u044b \u043c\u0430\u0440\u043a\u0443 \u0438 \u043c\u043e\u0434\u0435\u043b\u044c, \u0447\u0442\u043e\u0431\u044b \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u0434\u0430\u043d\u043d\u044b\u0435 \u0438\u0437 \u0438\u043d\u0442\u0435\u0440\u043d\u0435\u0442\u0430.",
-      "spec.loadDraftDone": "\u0414\u0430\u043d\u043d\u044b\u0435 \u0438\u0437 \u0438\u043d\u0442\u0435\u0440\u043d\u0435\u0442\u0430 \u043f\u043e\u0434\u0441\u0442\u0430\u0432\u043b\u0435\u043d\u044b \u0432 \u0447\u0435\u0440\u043d\u043e\u0432\u0438\u043a. \u041d\u0430\u0436\u043c\u0438\u0442\u0435 \u00ab\u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c \u043c\u0430\u0448\u0438\u043d\u0443\u00bb, \u0447\u0442\u043e\u0431\u044b \u0441\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c \u0438\u0445.",
-      "spec.loadError": "\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044c \u0434\u0430\u043d\u043d\u044b\u0435 \u043c\u0430\u0448\u0438\u043d\u044b \u0438\u0437 \u0438\u043d\u0442\u0435\u0440\u043d\u0435\u0442\u0430. \u041f\u043e\u043f\u0440\u043e\u0431\u0443\u0439\u0442\u0435 \u0435\u0449\u0451 \u0440\u0430\u0437."
-    });
-
 
     function getDefaultVehicleProfile() {
       return {
@@ -1696,8 +1051,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       $$("[data-i18n-aria-label]").forEach((node) => {
         node.setAttribute("aria-label", t(node.dataset.i18nAriaLabel));
       });
-      const languageSelect = $("#languageSelect");
-      if (languageSelect) languageSelect.value = lang;
+      syncPreferencePickerValues();
       const supportSubjectInput = $("#supportSubjectInput");
       if (supportSubjectInput) supportSubjectInput.setAttribute("placeholder", t("support.subjectPlaceholder"));
       const supportMessageInput = $("#supportMessageInput");
@@ -1709,23 +1063,95 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         openRequestModal(requestModalState.currentItem);
       }
       window.PulsCar?.translate();
+      window.PulsAuth?.translate?.();
       void renderAssistantMessages();
     }
 
-    function setLanguage(lang) {
-      const nextLang = i18n[lang] ? lang : "en";
-      try {
-        localStorage.setItem(LANGUAGE_STORAGE_KEY, nextLang);
-      } catch (error) {
-        console.warn("Could not save language preference:", error);
-      }
+    function applySelectedLanguage(lang) {
+      window.PulsI18n.setLanguage(lang, { announce: false });
       applyLanguage();
       renderLists();
     }
 
-    function handleLanguageSelectChange(event) {
-      setLanguage(event.currentTarget.value);
+    function storedPreference(key, fallback) {
+      try { return localStorage.getItem(key) || fallback; }
+      catch { return fallback; }
     }
+
+    function syncPreferencePickerValues() {
+      const language = window.PulsI18n.registry.get(getLanguage());
+      const languageValue = $("#languagePickerValue");
+      const languageFlag = $("#languagePickerFlag");
+      const unitsValue = $("#unitsPickerValue");
+      const timezoneValue = $("#timezonePickerValue");
+      if (languageValue) languageValue.textContent = language.name;
+      if (languageFlag) languageFlag.textContent = language.flag;
+      if (unitsValue) unitsValue.textContent = storedPreference(UNITS_STORAGE_KEY, "metric") === "imperial" ? "mi, °F" : "km, °C";
+      if (timezoneValue) timezoneValue.textContent = storedPreference(TIMEZONE_STORAGE_KEY, "UTC+3");
+    }
+
+    async function confirmSettingsLanguage(language) {
+      const previousLanguage = getLanguage();
+      try {
+        if (isSignedIn()) await window.PulsI18n.saveProfileLanguage(language);
+        applySelectedLanguage(language);
+        toast(t("language.saved"));
+      } catch (error) {
+        applySelectedLanguage(previousLanguage);
+        toast(t("language.saveError"));
+        throw error;
+      }
+    }
+
+    function openSettingsPicker(type, trigger) {
+      if (!window.PulsWheelPicker) return;
+      if (type === "language") {
+        window.PulsWheelPicker.open({
+          title: t("picker.languageTitle"),
+          confirmLabel: t("picker.apply"),
+          trigger,
+          value: getLanguage(),
+          options: window.PulsI18n.registry.languages.map(({ code, name, flag }) => ({ value: code, label: name, suffix: flag })),
+          onConfirm: confirmSettingsLanguage
+        });
+        return;
+      }
+      if (type === "units") {
+        window.PulsWheelPicker.open({
+          title: t("picker.unitsTitle"),
+          confirmLabel: t("picker.apply"),
+          trigger,
+          value: storedPreference(UNITS_STORAGE_KEY, "metric"),
+          options: [
+            { value: "metric", label: "km, °C" },
+            { value: "imperial", label: "mi, °F" }
+          ],
+          onConfirm(value) {
+            localStorage.setItem(UNITS_STORAGE_KEY, value);
+            syncPreferencePickerValues();
+          }
+        });
+        return;
+      }
+      const timezoneOptions = Array.from({ length: 27 }, (_, index) => {
+        const offset = index - 12;
+        const value = `UTC${offset === 0 ? "" : offset > 0 ? `+${offset}` : offset}`;
+        return { value, label: value };
+      });
+      window.PulsWheelPicker.open({
+        title: t("picker.timezoneTitle"),
+        confirmLabel: t("picker.apply"),
+        trigger,
+        value: storedPreference(TIMEZONE_STORAGE_KEY, "UTC+3"),
+        options: timezoneOptions,
+        onConfirm(value) {
+          localStorage.setItem(TIMEZONE_STORAGE_KEY, value);
+          syncPreferencePickerValues();
+        }
+      });
+    }
+
+    window.applyPulsLanguage = applyLanguage;
 
     function sanitizeVehiclePhotoName(fileName = "") {
       const base = String(fileName || "photo")
@@ -4760,8 +4186,17 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         updateServiceFileSelection(event.target.files);
         renderServiceAttachments(serviceModalFiles, Array.from(event.target.files || []));
       });
-      $("#languageSelect")?.addEventListener("input", handleLanguageSelectChange);
-      $("#languageSelect")?.addEventListener("change", handleLanguageSelectChange);
+      ["language", "units", "timezone"].forEach((type) => {
+        const trigger = $(`#${type}PickerBtn`);
+        trigger?.addEventListener("click", () => {
+          if (trigger.classList.contains("locked")) return;
+          openSettingsPicker(type, trigger);
+        });
+      });
+      window.addEventListener("puls-language-change", () => {
+        applyLanguage();
+        renderLists();
+      });
       $("#supportImagesInput")?.addEventListener("change", (event) => {
         const files = Array.from(event.target.files || []);
         try {

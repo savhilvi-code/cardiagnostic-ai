@@ -1,7 +1,8 @@
-const AUTH_STATUS_READY = "Введите email и пароль.";
 const AUTH_STATUS_CONFIG = "Добавьте Supabase URL и anon key в assets/js/supabaseClient.js.";
 const MODE_SELECTION_COMPLETED_KEY = "puls_mode_selection_completed";
 window.pulsAuthReady = Promise.resolve(null);
+let authMode = "login";
+let authLanguageExplicitlySelected = false;
 
 function authText(key, fallback) {
   return window.pulsT ? window.pulsT(key) : fallback;
@@ -13,12 +14,64 @@ function getAuthElements() {
     status: document.getElementById("authStatus"),
     email: document.getElementById("authEmail"),
     password: document.getElementById("authPassword"),
+    title: document.getElementById("authTitle"),
+    submit: document.getElementById("authSubmitBtn"),
+    forgot: document.getElementById("authForgotBtn"),
+    passwordToggle: document.getElementById("authPasswordToggle"),
+    languageValue: document.getElementById("authLanguageValue"),
+    languageFlag: document.getElementById("authLanguageFlag"),
     name: document.getElementById("profileName"),
     profileEmail: document.getElementById("profileEmail"),
     authBtn: document.getElementById("authBtn"),
     logoutBtn: document.getElementById("logoutBtn"),
     deleteProfileBtn: document.getElementById("deleteProfileBtn")
   };
+}
+
+function translateAuthModal() {
+  const elements = getAuthElements();
+  const isRegister = authMode === "register";
+  const language = window.PulsI18n.registry.get(window.PulsI18n.getLanguage());
+  if (elements.title) elements.title.textContent = authText(isRegister ? "auth.createAccount" : "auth.welcome", isRegister ? "Create your PULS account" : "Welcome to PULS");
+  if (elements.submit) elements.submit.textContent = authText(isRegister ? "auth.primaryRegister" : "auth.primaryLogin", isRegister ? "Create account" : "Sign in");
+  if (elements.forgot) elements.forgot.hidden = isRegister;
+  if (elements.password) elements.password.autocomplete = isRegister ? "new-password" : "current-password";
+  if (elements.languageValue) elements.languageValue.textContent = language.name;
+  if (elements.languageFlag) elements.languageFlag.textContent = language.flag;
+  document.querySelectorAll("[data-auth-mode]").forEach((button) => {
+    button.setAttribute("aria-selected", String(button.dataset.authMode === authMode));
+  });
+}
+
+function setAuthMode(mode) {
+  authMode = mode === "register" ? "register" : "login";
+  setAuthStatus("");
+  translateAuthModal();
+}
+
+function openAuthLanguagePicker() {
+  const trigger = document.getElementById("authLanguageBtn");
+  window.PulsWheelPicker?.open({
+    title: authText("picker.languageTitle", "App language"),
+    confirmLabel: authText("picker.apply", "Apply"),
+    trigger,
+    value: window.PulsI18n.getLanguage(),
+    options: window.PulsI18n.registry.languages.map(({ code, name, flag }) => ({ value: code, label: name, suffix: flag })),
+    onConfirm(language) {
+      authLanguageExplicitlySelected = true;
+      window.PulsI18n.setLanguage(language);
+      window.applyPulsLanguage?.();
+      translateAuthModal();
+    }
+  });
+}
+
+function toggleAuthPassword() {
+  const { password, passwordToggle } = getAuthElements();
+  if (!password || !passwordToggle) return;
+  const reveal = password.type === "password";
+  password.type = reveal ? "text" : "password";
+  passwordToggle.setAttribute("aria-label", authText(reveal ? "auth.hidePassword" : "auth.showPassword", reveal ? "Hide password" : "Show password"));
 }
 
 function publishAuthState(user, appUser = null) {
@@ -42,22 +95,20 @@ function setAuthStatus(message, isError = false) {
 function openAuthModal() {
   const { modal, email } = getAuthElements();
   if (!modal) return;
+  translateAuthModal();
   modal.classList.add("show");
   modal.setAttribute("aria-hidden", "false");
-  setAuthStatus(
-    window.supabaseClient
-      ? authText("auth.statusReady", AUTH_STATUS_READY)
-      : authText("auth.statusConfig", AUTH_STATUS_CONFIG),
-    !window.supabaseClient
-  );
+  setAuthStatus(window.supabaseClient ? "" : authText("auth.statusConfig", AUTH_STATUS_CONFIG), !window.supabaseClient);
   setTimeout(() => email?.focus(), 0);
 }
 
 function closeAuthModal() {
-  const { modal } = getAuthElements();
+  const { modal, password, passwordToggle } = getAuthElements();
   if (!modal) return;
   modal.classList.remove("show");
   modal.setAttribute("aria-hidden", "true");
+  if (password) password.type = "password";
+  passwordToggle?.setAttribute("aria-label", authText("auth.showPassword", "Show password"));
 }
 
 function handleModeSelectionAuthEvent(event, session) {
@@ -150,6 +201,9 @@ async function updateProfileBlock() {
   }
 
   const appUser = await syncAuthUserProfile(user);
+  if (!authLanguageExplicitlySelected) {
+    await restoreAuthenticatedLanguage(appUser?.language);
+  }
   publishAuthState(user, appUser);
   name.textContent = appUser?.name || user.user_metadata?.full_name || authText("profile.user", "Пользователь PULS");
   profileEmail.textContent = user.email || authText("profile.emailMissing", "Email не указан");
@@ -196,6 +250,8 @@ async function syncAuthUserProfile(user) {
     return byAuth;
   }
 
+  payload.language = window.PulsI18n.normalizeLanguage(user.user_metadata?.language || window.PulsI18n.getLanguage());
+
   const { data, error } = await window.supabaseClient
     .from("users")
     .insert(payload)
@@ -206,6 +262,26 @@ async function syncAuthUserProfile(user) {
 
   console.warn("Не удалось создать профиль users:", error.message);
   return null;
+}
+
+async function restoreAuthenticatedLanguage(profileLanguage) {
+  let language = profileLanguage;
+  try {
+    language = await window.PulsI18n.loadProfileLanguage();
+  } catch (error) {
+    console.warn("Could not load profile language:", error.message);
+  }
+  if (!language) return;
+  const normalized = window.PulsI18n.normalizeLanguage(language);
+  if (normalized === window.PulsI18n.getLanguage()) return;
+  window.PulsI18n.setLanguage(normalized);
+  window.applyPulsLanguage?.();
+}
+
+async function persistExplicitAuthLanguage() {
+  if (!authLanguageExplicitlySelected) return;
+  await window.PulsI18n.saveProfileLanguage(window.PulsI18n.getLanguage());
+  authLanguageExplicitlySelected = false;
 }
 
 function readAuthCredentials() {
@@ -246,7 +322,12 @@ async function registerUser(email, password) {
   const { data, error } = await window.supabaseClient.auth.signUp({
     email,
     password,
-    options: { data: { puls_mode_selection_required: true } }
+    options: {
+      data: {
+        puls_mode_selection_required: true,
+        language: window.PulsI18n.getLanguage()
+      }
+    }
   });
 
   if (error) {
@@ -255,6 +336,10 @@ async function registerUser(email, password) {
   }
 
   if (data.user) publishAuthState(data.user, await syncAuthUserProfile(data.user));
+  if (data.session) {
+    try { await persistExplicitAuthLanguage(); }
+    catch (languageError) { console.warn("Could not save registration language:", languageError.message); }
+  }
   setAuthStatus(authText("auth.registerSuccess", "Регистрация успешна. Проверьте почту для подтверждения."));
   await updateProfileBlock();
   if (data.session?.user) showModeSelectionForNewUser(data.session.user);
@@ -279,9 +364,37 @@ async function loginUser(email, password) {
   }
 
   if (data.user) publishAuthState(data.user, await syncAuthUserProfile(data.user));
+  try {
+    if (authLanguageExplicitlySelected) await persistExplicitAuthLanguage();
+    else await restoreAuthenticatedLanguage();
+  } catch (languageError) {
+    authLanguageExplicitlySelected = false;
+    await restoreAuthenticatedLanguage();
+    setAuthStatus(authText("language.saveError", "Could not save the language. The previous language was restored."), true);
+    return;
+  }
   closeAuthModal();
   await updateProfileBlock();
   showModeSelectionForNewUser(data.user);
+}
+
+async function resetAuthPassword() {
+  if (!window.supabaseClient) {
+    setAuthStatus(authText("auth.statusConfig", AUTH_STATUS_CONFIG), true);
+    return;
+  }
+  const { email } = readAuthCredentials();
+  if (!email) {
+    setAuthStatus(authText("auth.enterEmail", "Enter email."), true);
+    return;
+  }
+  const { error } = await window.supabaseClient.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin
+  });
+  setAuthStatus(
+    authText(error ? "auth.resetError" : "auth.resetSent", error ? "Could not send password reset instructions." : "Password reset instructions were sent to your email."),
+    Boolean(error)
+  );
 }
 
 async function logoutUser() {
@@ -333,6 +446,7 @@ window.openAuthModal = openAuthModal;
 window.closeAuthModal = closeAuthModal;
 window.isPulsModeOnboardingComplete = isModeSelectionComplete;
 window.completePulsModeOnboarding = completeModeSelection;
+window.PulsAuth = Object.freeze({ translate: translateAuthModal, setMode: setAuthMode });
 
 document.addEventListener("DOMContentLoaded", () => {
   window.pulsAuthReady = updateProfileBlock().catch((error) => {
@@ -343,6 +457,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("authBtn")?.addEventListener("click", openAuthModal);
   document.getElementById("authCloseBtn")?.addEventListener("click", closeAuthModal);
+  document.getElementById("authLanguageBtn")?.addEventListener("click", openAuthLanguagePicker);
+  document.getElementById("authModeLogin")?.addEventListener("click", () => setAuthMode("login"));
+  document.getElementById("authModeRegister")?.addEventListener("click", () => setAuthMode("register"));
+  document.getElementById("authPasswordToggle")?.addEventListener("click", toggleAuthPassword);
+  document.getElementById("authForgotBtn")?.addEventListener("click", () => void resetAuthPassword());
   document.getElementById("logoutBtn")?.addEventListener("click", logoutUser);
   document.getElementById("deleteProfileBtn")?.addEventListener("click", deleteProfileUser);
 
@@ -353,18 +472,11 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("authForm")?.addEventListener("submit", (event) => {
     event.preventDefault();
     const { email, password } = readAuthCredentials();
-    loginUser(email, password);
+    void (authMode === "register" ? registerUser(email, password) : loginUser(email, password));
   });
 
-  document.getElementById("loginBtn")?.addEventListener("click", () => {
-    const { email, password } = readAuthCredentials();
-    loginUser(email, password);
-  });
-
-  document.getElementById("registerBtn")?.addEventListener("click", () => {
-    const { email, password } = readAuthCredentials();
-    registerUser(email, password);
-  });
+  window.addEventListener("puls-language-change", translateAuthModal);
+  translateAuthModal();
 
   window.supabaseClient?.auth.onAuthStateChange((event, session) => {
     updateProfileBlock()

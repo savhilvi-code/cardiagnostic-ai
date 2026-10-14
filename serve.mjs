@@ -58,6 +58,24 @@ createServer(async (req, res) => {
     return;
   }
 
+  if (url.pathname === "/api/profile/language") {
+    const chunks = [];
+    if (!['GET', 'HEAD'].includes(req.method || 'GET')) {
+      for await (const chunk of req) chunks.push(chunk);
+    }
+    const proxied = await proxyBackend(url.pathname, {
+      method: req.method,
+      headers: {
+        ...(req.headers.authorization ? { Authorization: req.headers.authorization } : {}),
+        ...(!['GET', 'HEAD'].includes(req.method || 'GET') ? { "Content-Type": "application/json" } : {}),
+      },
+      ...(['GET', 'HEAD'].includes(req.method || 'GET') ? {} : { body: Buffer.concat(chunks) }),
+    });
+    res.writeHead(proxied.status, { "content-type": proxied.contentType });
+    res.end(proxied.body);
+    return;
+  }
+
   if (url.pathname.startsWith("/api/vehicle-events")) {
     const chunks = [];
     if (!["GET", "HEAD"].includes(req.method || "GET")) {

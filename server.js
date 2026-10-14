@@ -41,6 +41,18 @@ app.use("/api/vehicles", asyncRoute(async (req, res) => {
   res.status(response.status).type(contentType).send(text);
 }));
 
+app.all("/api/profile/language", asyncRoute(async (req, res) => {
+  const { response, text, contentType } = await proxyBackend(req.originalUrl, {
+    method: req.method,
+    headers: {
+      ...(req.headers.authorization ? { Authorization: req.headers.authorization } : {}),
+      ...(!["GET", "HEAD"].includes(req.method) ? { "Content-Type": "application/json" } : {}),
+    },
+    ...(["GET", "HEAD"].includes(req.method) ? {} : { body: JSON.stringify(req.body || {}) }),
+  });
+  res.status(response.status).type(contentType).send(text);
+}));
+
 app.use("/api/vehicle-events", asyncRoute(async (req, res) => {
   const headers = {
     ...(req.headers.authorization ? { Authorization: req.headers.authorization } : {}),
