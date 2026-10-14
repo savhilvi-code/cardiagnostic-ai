@@ -4,7 +4,12 @@
   let state = null;
   let activeIndex = 0;
   let scrollFrame = 0;
+  let settleTimer = 0;
   let pointer = null;
+
+  const ROW_HEIGHT = 50;
+  const WHEEL_RADIUS = 86;
+  const ROW_ANGLE = Math.PI / 5.6;
 
   const element = (id) => document.getElementById(id);
 
@@ -41,13 +46,18 @@
       const selected = optionIndex === activeIndex;
       const optionCenter = option.offsetTop + option.offsetHeight / 2;
       const viewportCenter = (viewport?.scrollTop || 0) + (viewport?.clientHeight || 250) / 2;
-      const rowOffset = Math.max(-2, Math.min(2, (optionCenter - viewportCenter) / 50));
+      const rowOffset = Math.max(-2.5, Math.min(2.5, (optionCenter - viewportCenter) / ROW_HEIGHT));
       const distance = Math.abs(rowOffset);
+      const radians = rowOffset * ROW_ANGLE;
+      const curvedY = Math.sign(rowOffset) * WHEEL_RADIUS * Math.sin(Math.min(Math.abs(radians), Math.PI / 2));
+      const flatY = rowOffset * ROW_HEIGHT;
       option.classList.toggle("is-selected", selected);
       option.setAttribute("aria-selected", String(selected));
-      option.style.setProperty("--wheel-opacity", String(Math.max(.34, 1 - distance * .28)));
-      option.style.setProperty("--wheel-scale", String(1 - distance * .055));
-      option.style.setProperty("--wheel-angle", `${rowOffset * -12}deg`);
+      option.style.setProperty("--wheel-opacity", String(Math.max(.16, 1 - distance * .34)));
+      option.style.setProperty("--wheel-scale", String(Math.max(.8, 1 - distance * .07)));
+      option.style.setProperty("--wheel-angle", `${rowOffset * -32}deg`);
+      option.style.setProperty("--wheel-y", `${curvedY - flatY}px`);
+      option.style.setProperty("--wheel-depth", `${WHEEL_RADIUS * (Math.cos(Math.min(Math.abs(radians), Math.PI / 2)) - 1)}px`);
     });
     const selected = options[activeIndex];
     if (selected) viewport?.setAttribute("aria-activedescendant", selected.id);
@@ -56,6 +66,12 @@
   function updateFromScroll() {
     cancelAnimationFrame(scrollFrame);
     scrollFrame = requestAnimationFrame(() => renderActive(nearestIndex()));
+    clearTimeout(settleTimer);
+    settleTimer = window.setTimeout(() => {
+      if (pointer) return;
+      renderActive(nearestIndex());
+      scrollToIndex(activeIndex);
+    }, 120);
   }
 
   function close({ restoreFocus = true } = {}) {
@@ -67,6 +83,7 @@
     document.body.classList.remove("wheel-picker-open");
     state = null;
     pointer = null;
+    clearTimeout(settleTimer);
     if (restoreFocus) trigger?.focus?.();
   }
 
@@ -104,6 +121,7 @@
     document.body.classList.add("wheel-picker-open");
     requestAnimationFrame(() => {
       scrollToIndex(selectedIndex, "auto");
+      renderActive(selectedIndex);
       element("wheelPickerViewport")?.focus({ preventScroll: true });
     });
   }

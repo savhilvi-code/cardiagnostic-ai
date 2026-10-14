@@ -2,14 +2,14 @@
   "use strict";
 
   const languages = [
-    { code: "en", name: "English", flag: "🇬🇧" },
-    { code: "ru", name: "Русский", flag: "🇷🇺" },
-    { code: "es", name: "Español", flag: "🇪🇸" },
-    { code: "fr", name: "Français", flag: "🇫🇷" },
-    { code: "de", name: "Deutsch", flag: "🇩🇪" },
-    { code: "pt", name: "Português", flag: "🇵🇹" },
-    { code: "tr", name: "Türkçe", flag: "🇹🇷" },
-    { code: "ka", name: "ქართული", flag: "🇬🇪" }
+    { code: "en", name: "English", flag: "🇬🇧", country: "GB" },
+    { code: "ru", name: "Русский", flag: "🇷🇺", country: "RU" },
+    { code: "es", name: "Español", flag: "🇪🇸", country: "ES" },
+    { code: "fr", name: "Français", flag: "🇫🇷", country: "FR" },
+    { code: "de", name: "Deutsch", flag: "🇩🇪", country: "DE" },
+    { code: "pt", name: "Português", flag: "🇵🇹", country: "PT" },
+    { code: "tr", name: "Türkçe", flag: "🇹🇷", country: "TR" },
+    { code: "ka", name: "ქართული", flag: "🇬🇪", country: "GE" }
   ];
 
   window.PulsLanguageRegistry = Object.freeze({
