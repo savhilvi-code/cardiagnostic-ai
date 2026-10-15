@@ -1070,6 +1070,9 @@ html { scroll-behavior: smooth; }
       font-size: 30px;
       font-weight: 200;
       line-height: 1;
+      display: grid;
+      place-items: center;
+      padding: 0 0 2px;
       transition: border-color .18s ease, box-shadow .18s ease, color .18s ease, filter .12s ease;
     }
 
@@ -1325,7 +1328,7 @@ html { scroll-behavior: smooth; }
       border: 1px solid rgba(28, 139, 218, .7);
       border-radius: 10px;
       background:
-        radial-gradient(circle at 50% 58%, rgba(0, 112, 255, .14), transparent 42%),
+        radial-gradient(ellipse 88% 68% at 50% 48%, rgba(0, 112, 255, .1), rgba(0, 73, 158, .035) 52%, transparent 84%),
         linear-gradient(165deg, rgba(3, 24, 42, .995), rgba(1, 11, 22, .995));
       box-shadow: 0 25px 80px rgba(0, 0, 0, .72), 0 0 28px rgba(0, 133, 255, .12);
       padding: 26px 20px max(22px, env(safe-area-inset-bottom));
@@ -1358,6 +1361,9 @@ html { scroll-behavior: smooth; }
       font-size: 27px;
       font-weight: 200;
       line-height: 1;
+      display: grid;
+      place-items: center;
+      padding: 0 0 2px;
       transition: border-color .18s ease, box-shadow .18s ease, color .18s ease, filter .12s ease;
     }
 
@@ -1417,7 +1423,7 @@ html { scroll-behavior: smooth; }
       scroll-snap-stop: always;
       backface-visibility: hidden;
       font: inherit;
-      font-size: 20px;
+      font-size: 18px;
       opacity: var(--wheel-opacity, .62);
       transform: perspective(520px) translateY(var(--wheel-y, 0px)) translateZ(var(--wheel-depth, 0px)) rotateX(var(--wheel-angle, 0deg)) scale(var(--wheel-scale, .94));
       transform-origin: center;
@@ -1438,6 +1444,7 @@ html { scroll-behavior: smooth; }
       z-index: 2;
       color: #fff;
       font-weight: 750;
+      font-size: 21px;
       opacity: 1;
     }
 
@@ -5415,7 +5422,7 @@ body.assistant-mode.chat-active .messages {
   border: 1px solid rgba(19, 217, 255, .42);
   border-radius: 18px;
   background:
-    radial-gradient(circle at 50% 0, rgba(8, 125, 255, .22), transparent 48%),
+    radial-gradient(ellipse 90% 72% at 50% 34%, rgba(8, 125, 255, .12), rgba(8, 91, 190, .04) 52%, transparent 86%),
     rgba(4, 17, 29, .94);
   box-shadow: 0 24px 70px rgba(0, 0, 0, .56), 0 0 34px rgba(8, 125, 255, .16);
   text-align: center;
@@ -5429,11 +5436,14 @@ body.assistant-mode.chat-active .messages {
   height: 34px;
   padding: 0;
   border: 1px solid rgba(72, 150, 210, .42);
-  border-radius: 10px;
+  border-radius: 50%;
   background: rgba(7, 23, 37, .72);
   color: var(--soft);
   font-size: 23px;
   line-height: 1;
+  display: grid;
+  place-items: center;
+  padding-bottom: 2px;
 }
 
 .request-limit-icon {

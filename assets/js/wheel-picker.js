@@ -3,14 +3,17 @@
 
   let state = null;
   let activeIndex = 0;
-  let activeRenderedIndex = 0;
   let scrollFrame = 0;
   let settleTimer = 0;
+  let wheelTimer = 0;
+  let wheelAccumulator = 0;
+  let wheelDirection = 0;
+  let wheelLocked = false;
   let pointer = null;
 
   const ROW_HEIGHT = 50;
-  const WHEEL_RADIUS = 86;
-  const ROW_ANGLE = Math.PI / 5.6;
+  const WHEEL_RADIUS = 155;
+  const ROW_ANGLE = Math.PI / 10.5;
 
   const element = (id) => document.getElementById(id);
 
@@ -39,24 +42,12 @@
     }, { index: 0, distance: Number.POSITIVE_INFINITY }).index;
   }
 
-  function normalizeRenderedIndex(index) {
-    if (!state) return index;
-    const optionCount = state.options.length;
-    const block = Math.floor(index / optionCount);
-    if (block > 1 && block < state.repeatCount - 2) return index;
-    const normalized = index + (state.middleBlock - block) * optionCount;
-    const viewport = element("wheelPickerViewport");
-    if (viewport) viewport.scrollTop += (normalized - index) * ROW_HEIGHT;
-    return normalized;
-  }
-
-  function renderActive(renderedIndex) {
+  function renderActive(index) {
     const options = items();
     const viewport = element("wheelPickerViewport");
-    activeRenderedIndex = Math.max(0, Math.min(renderedIndex, options.length - 1));
-    activeIndex = Number(options[activeRenderedIndex]?.dataset.optionIndex || 0);
+    activeIndex = Math.max(0, Math.min(index, options.length - 1));
     options.forEach((option, optionIndex) => {
-      const selected = optionIndex === activeRenderedIndex;
+      const selected = optionIndex === activeIndex;
       const optionCenter = 100 + optionIndex * ROW_HEIGHT + ROW_HEIGHT / 2;
       const viewportCenter = (viewport?.scrollTop || 0) + (viewport?.clientHeight || 250) / 2;
       const rowOffset = Math.max(-2.5, Math.min(2.5, (optionCenter - viewportCenter) / ROW_HEIGHT));
@@ -66,13 +57,13 @@
       const flatY = rowOffset * ROW_HEIGHT;
       option.classList.toggle("is-selected", selected);
       option.setAttribute("aria-selected", String(selected));
-      option.style.setProperty("--wheel-opacity", String(Math.max(.16, 1 - distance * .34)));
-      option.style.setProperty("--wheel-scale", String(Math.max(.8, 1 - distance * .07)));
-      option.style.setProperty("--wheel-angle", `${rowOffset * -32}deg`);
+      option.style.setProperty("--wheel-opacity", String(Math.max(.4, 1 - distance * .24)));
+      option.style.setProperty("--wheel-scale", String(Math.max(.9, 1 - distance * .035)));
+      option.style.setProperty("--wheel-angle", `${rowOffset * -18}deg`);
       option.style.setProperty("--wheel-y", `${curvedY - flatY}px`);
       option.style.setProperty("--wheel-depth", `${WHEEL_RADIUS * (Math.cos(Math.min(Math.abs(radians), Math.PI / 2)) - 1)}px`);
     });
-    const selected = options[activeRenderedIndex];
+    const selected = options[activeIndex];
     if (selected) viewport?.setAttribute("aria-activedescendant", selected.id);
   }
 
@@ -82,9 +73,9 @@
     clearTimeout(settleTimer);
     settleTimer = window.setTimeout(() => {
       if (pointer) return;
-      const renderedIndex = normalizeRenderedIndex(nearestIndex());
-      renderActive(renderedIndex);
-      scrollToIndex(renderedIndex);
+      const index = nearestIndex();
+      renderActive(index);
+      scrollToIndex(index);
     }, 120);
   }
 
@@ -98,6 +89,10 @@
     state = null;
     pointer = null;
     clearTimeout(settleTimer);
+    clearTimeout(wheelTimer);
+    wheelAccumulator = 0;
+    wheelDirection = 0;
+    wheelLocked = false;
     if (restoreFocus) trigger?.focus?.();
   }
 
@@ -105,22 +100,15 @@
     const modal = element("wheelPickerModal");
     const list = element("wheelPickerList");
     if (!modal || !list || !Array.isArray(options) || !options.length) return;
-    let repeatCount = Math.max(9, Math.ceil(80 / options.length));
-    if (repeatCount % 2 === 0) repeatCount += 1;
-    const middleBlock = (repeatCount - 1) / 2;
-    state = { title, options, value, trigger: trigger || document.activeElement, onConfirm, repeatCount, middleBlock };
+    state = { title, options, value, trigger: trigger || document.activeElement, onConfirm };
     element("wheelPickerTitle").textContent = title;
     element("wheelPickerConfirm").textContent = confirmLabel || window.PulsI18n.t("picker.apply");
-    const repeatedOptions = Array.from({ length: repeatCount }, (_, block) => (
-      options.map((option, optionIndex) => ({ option, optionIndex, renderedIndex: block * options.length + optionIndex }))
-    )).flat();
-    list.replaceChildren(...repeatedOptions.map(({ option, optionIndex, renderedIndex }) => {
+    list.replaceChildren(...options.map((option, index) => {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "wheel-picker-option";
-      button.id = `wheel-picker-option-${renderedIndex}`;
+      button.id = `wheel-picker-option-${index}`;
       button.dataset.value = option.value;
-      button.dataset.optionIndex = String(optionIndex);
       button.dataset.suffixFirst = String(Boolean(option.suffixFirst));
       button.setAttribute("role", "option");
       button.textContent = option.label;
@@ -131,20 +119,19 @@
         button.append(suffix);
       }
       button.addEventListener("click", () => {
-        renderActive(renderedIndex);
-        scrollToIndex(renderedIndex);
+        renderActive(index);
+        scrollToIndex(index);
       });
       return button;
     }));
     const selectedIndex = Math.max(0, options.findIndex((option) => option.value === value));
-    const selectedRenderedIndex = middleBlock * options.length + selectedIndex;
-    renderActive(selectedRenderedIndex);
+    renderActive(selectedIndex);
     modal.classList.add("show");
     modal.setAttribute("aria-hidden", "false");
     document.body.classList.add("wheel-picker-open");
     requestAnimationFrame(() => {
-      scrollToIndex(selectedRenderedIndex, "auto");
-      renderActive(selectedRenderedIndex);
+      scrollToIndex(selectedIndex, "auto");
+      renderActive(selectedIndex);
       element("wheelPickerViewport")?.focus({ preventScroll: true });
     });
   }
@@ -174,13 +161,12 @@
       if (event.key === "ArrowDown" || event.key === "ArrowUp") {
         event.preventDefault();
         const step = event.key === "ArrowDown" ? 1 : -1;
-        const targetIndex = activeRenderedIndex + step;
+        const targetIndex = Math.max(0, Math.min(activeIndex + step, state.options.length - 1));
         renderActive(targetIndex);
         scrollToIndex(targetIndex);
       } else if (event.key === "Home" || event.key === "End") {
         event.preventDefault();
-        const blockStart = Math.floor(activeRenderedIndex / state.options.length) * state.options.length;
-        const targetIndex = blockStart + (event.key === "Home" ? 0 : state.options.length - 1);
+        const targetIndex = event.key === "Home" ? 0 : state.options.length - 1;
         renderActive(targetIndex);
         scrollToIndex(targetIndex);
       } else if (event.key === "Enter") {
@@ -191,6 +177,32 @@
         close();
       }
     });
+    viewport?.addEventListener("wheel", (event) => {
+      if (!state || event.deltaY === 0) return;
+      event.preventDefault();
+      const unit = event.deltaMode === 1
+        ? 16
+        : event.deltaMode === 2
+          ? viewport.clientHeight
+          : 1;
+      const delta = event.deltaY * unit;
+      const direction = Math.sign(delta);
+      if (direction !== wheelDirection) wheelAccumulator = 0;
+      wheelDirection = direction;
+      wheelAccumulator += delta;
+      clearTimeout(wheelTimer);
+      wheelTimer = window.setTimeout(() => {
+        wheelAccumulator = 0;
+        wheelDirection = 0;
+        wheelLocked = false;
+      }, 90);
+      if (wheelLocked || Math.abs(wheelAccumulator) < 12) return;
+      wheelLocked = true;
+      wheelAccumulator = 0;
+      const targetIndex = Math.max(0, Math.min(activeIndex + direction, state.options.length - 1));
+      renderActive(targetIndex);
+      scrollToIndex(targetIndex);
+    }, { passive: false });
     viewport?.addEventListener("pointerdown", (event) => {
       if (event.pointerType === "touch") return;
       pointer = { id: event.pointerId, y: event.clientY, scrollTop: viewport.scrollTop };
@@ -205,9 +217,9 @@
       if (!pointer || pointer.id !== event.pointerId) return;
       pointer = null;
       viewport.classList.remove("is-dragging");
-      const renderedIndex = normalizeRenderedIndex(nearestIndex());
-      renderActive(renderedIndex);
-      scrollToIndex(renderedIndex);
+      const index = nearestIndex();
+      renderActive(index);
+      scrollToIndex(index);
     };
     viewport?.addEventListener("pointerup", endDrag);
     viewport?.addEventListener("pointercancel", endDrag);
