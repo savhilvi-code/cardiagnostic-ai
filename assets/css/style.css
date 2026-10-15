@@ -1154,19 +1154,27 @@ html { scroll-behavior: smooth; }
 
     .auth-mode-switch button {
       min-height: 48px;
-      border: 0;
+      border: 1px solid rgba(38, 117, 166, .48);
       border-radius: 9px;
-      background: transparent;
+      background: rgba(3, 18, 31, .74);
       color: #bdcae1;
       font: inherit;
-      transition: background .2s ease, color .2s ease, box-shadow .2s ease;
+      transition: background .2s ease, color .2s ease, border-color .2s ease, box-shadow .2s ease;
+    }
+
+    .auth-mode-switch button:hover {
+      border-color: rgba(19, 217, 255, .66);
+      background: rgba(13, 36, 52, .82);
+      color: #dff6ff;
+      box-shadow: 0 0 12px rgba(8, 125, 255, .13);
     }
 
     .auth-mode-switch button[aria-selected="true"] {
-      background: linear-gradient(180deg, #148aff, #075be7);
-      color: #fff;
+      border-color: var(--cyan);
+      background: #0d2434;
+      color: var(--cyan);
       font-weight: 700;
-      box-shadow: 0 0 20px rgba(0, 125, 255, .34), inset 0 0 18px rgba(75, 178, 255, .18);
+      box-shadow: 0 0 13px rgba(8, 125, 255, .18), inset 0 0 12px rgba(19, 217, 255, .07);
     }
 
     .auth-form {
@@ -1255,13 +1263,21 @@ html { scroll-behavior: smooth; }
       transition: border-color .18s ease, box-shadow .18s ease, filter .18s ease;
     }
 
-    .auth-primary { margin-top: 4px; }
+    .auth-primary {
+      margin-top: 4px;
+      background: linear-gradient(90deg, #0766f2, #07386f);
+      box-shadow: inset 0 0 0 1px var(--blue), 0 0 22px rgba(8, 125, 255, .22);
+    }
 
     .auth-language-trigger:hover,
-    .auth-primary:hover,
     .wheel-picker-confirm:hover {
       border-color: #18a6ff;
       box-shadow: 0 0 17px rgba(0, 137, 255, .28), inset 0 0 12px rgba(51, 176, 255, .08);
+    }
+
+    .auth-primary:hover {
+      background: linear-gradient(90deg, #0874ff, #08457f);
+      box-shadow: inset 0 0 0 1px #0c9cff, 0 0 20px rgba(8, 125, 255, .24);
     }
 
     .auth-language-trigger:active,
@@ -1273,6 +1289,12 @@ html { scroll-behavior: smooth; }
     }
 
     .auth-close:hover,
+    .request-limit-close:hover {
+      border-color: #17a6ff;
+      color: #17a6ff;
+      box-shadow: 0 0 13px rgba(0, 151, 255, .28);
+    }
+
     .wheel-picker-close:hover {
       border-color: #17a6ff;
       color: #fff;
@@ -5478,6 +5500,7 @@ body.assistant-mode.chat-active .messages {
   display: grid;
   place-items: center;
   padding-bottom: 2px;
+  transition: border-color .18s ease, box-shadow .18s ease, color .18s ease;
 }
 
 .request-limit-icon {
