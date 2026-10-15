@@ -93,7 +93,7 @@
   }
   function startupGreeting(language='en'){
     return String(language).toLowerCase().startsWith('ru')
-      ? 'Привет! PULS на связи. Как твои дела?'
+      ? 'Привет! Пульс на связи. Как твои дела?'
       : 'Hi! PULS here. How are you doing?';
   }
   const stateSevenWorkspaceCollapseComplete=.66;
