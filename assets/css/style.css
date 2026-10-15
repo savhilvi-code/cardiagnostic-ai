@@ -1043,11 +1043,13 @@ html { scroll-behavior: smooth; }
 
     .auth-dialog h2 {
       max-width: 300px;
-      height: var(--auth-title-reference-height, auto);
+      height: 2.4em;
       margin: 28px auto 24px;
       display: grid;
       place-items: center;
+      overflow: hidden;
       text-align: center;
+      text-wrap: balance;
       color: #fff;
       font-size: clamp(24px, 5vw, 30px);
       font-weight: 300;
