@@ -1026,6 +1026,7 @@ html { scroll-behavior: smooth; }
     .auth-dialog {
       position: relative;
       width: min(400px, 100%);
+      min-height: min(570px, calc(100dvh - max(32px, env(safe-area-inset-top) + env(safe-area-inset-bottom))));
       max-height: calc(100dvh - max(32px, env(safe-area-inset-top) + env(safe-area-inset-bottom)));
       overflow-y: auto;
       scrollbar-width: none;
@@ -1049,6 +1050,10 @@ html { scroll-behavior: smooth; }
       font-weight: 300;
       line-height: 1.2;
       letter-spacing: -.02em;
+    }
+
+    .auth-dialog:has(#authModeLogin[aria-selected="true"]) h2 {
+      margin-bottom: 24px;
     }
 
     .auth-brand {
@@ -2210,6 +2215,7 @@ html { scroll-behavior: smooth; }
       }
       .auth-dialog {
         width: min(390px, 100%);
+        min-height: min(520px, calc(100dvh - max(20px, env(safe-area-inset-top) + env(safe-area-inset-bottom))));
         margin: auto;
         border-radius: 10px;
         padding: 20px 20px 22px;
@@ -2218,6 +2224,7 @@ html { scroll-behavior: smooth; }
         margin: 20px auto 16px;
         font-size: 24px;
       }
+      .auth-dialog:has(#authModeLogin[aria-selected="true"]) h2 { margin-bottom: 20px; }
       .auth-brand { font-size: 20px; }
       .auth-close { top: 16px; right: 16px; }
       .auth-language-trigger,
