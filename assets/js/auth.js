@@ -364,17 +364,18 @@ async function loginUser(email, password) {
     return;
   }
 
-  if (data.user) publishAuthState(data.user, await syncAuthUserProfile(data.user));
+  publishAuthState(data.user);
+  closeAuthModal();
+  Promise.resolve(window.PulsWorkspace?.show?.({ view: "assistant" }))
+    .catch((workspaceError) => console.warn("Could not open the PULS workspace:", workspaceError));
   try {
     if (authLanguageExplicitlySelected) await persistExplicitAuthLanguage();
     else await restoreAuthenticatedLanguage();
   } catch (languageError) {
     authLanguageExplicitlySelected = false;
     await restoreAuthenticatedLanguage();
-    setAuthStatus(authText("language.saveError", "Could not save the language. The previous language was restored."), true);
-    return;
+    console.warn("Could not save the selected interface language:", languageError.message);
   }
-  closeAuthModal();
   await updateProfileBlock();
   showModeSelectionForNewUser(data.user);
 }

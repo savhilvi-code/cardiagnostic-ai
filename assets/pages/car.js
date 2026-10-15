@@ -15,7 +15,7 @@ window.PulsCar = (() => {
     deleteTitle:['Delete vehicle?','Удалить автомобиль?'], deleteHelp:['The vehicle will be moved to Trash. Its technical history and photo will be retained; it can be restored during the recovery period shown in Trash.','Автомобиль будет перемещён в корзину. Техническая история и фото сохранятся. Восстановление доступно в течение срока, указанного в корзине.'], restore:['Restore','Восстановить'], restoreUntil:['Restore until','Восстановить до'], expired:['Recovery period has expired','Срок восстановления истёк'], noTrash:['No deleted vehicles.','Нет удалённых автомобилей.'],
     vinFailed:['Could not automatically identify the vehicle. Please complete the main vehicle information manually.','Не удалось автоматически определить автомобиль. Заполните основные данные вручную.'], signIn:['Sign in to load your vehicles.','Войдите, чтобы загрузить свои автомобили.']
   };
-  const text = key => words[key]?.[getLanguage()==='ru'?1:0] || key;
+  const text = key => window.PulsI18n?.t(`car.page.${key}`) || words[key]?.[getLanguage()==='ru'?1:0] || key;
   const el = id => document.getElementById(id), esc = v => escapeHtml(v ?? '');
   let initialized=false, editing=false, tab='overview', filter='all', version=0, selectedProblem=null, busy=false, authOwner='', navigationCloseTimer=null;
   let state={id:'',owner:'',loading:false,detail:null,problems:[],events:[],errors:{}};
@@ -31,10 +31,10 @@ window.PulsCar = (() => {
     if(Array.isArray(raw.items))return Object.fromEntries(raw.items.filter(row=>row.parameter_key).map(row=>[row.parameter_key,row.actual_value ?? row.recommended_value ?? '']));
     return {...raw,...(raw.specs||{})};
   }
-  const wheelSpecLabels={wheel_rim_size:['Wheel / rim size','Размер диска'],tire_size:['Tire size','Размер шины'],tire_pressure:['Tire pressure','Давление в шинах'],tire_pressure_front:['Front tire pressure','Давление спереди'],tire_pressure_rear:['Rear tire pressure','Давление сзади']};
+  const wheelSpecLabels={wheel_rim_size:'wheelRimSize',tire_size:'tireSize',tire_pressure:'tirePressure',tire_pressure_front:'tirePressureFront',tire_pressure_rear:'tirePressureRear'};
   function specRows(raw={}){return Array.isArray(raw.items)?raw.items:[];}
   function specValueList(rows,field){
-    const values=rows.filter(row=>wheelSpecLabels[row.parameter_key]&&row[field]!=null&&row[field]!=='').map(row=>[wheelSpecLabels[row.parameter_key][getLanguage()==='ru'?1:0],row[field]]);
+    const values=rows.filter(row=>wheelSpecLabels[row.parameter_key]&&row[field]!=null&&row[field]!=='').map(row=>[text(wheelSpecLabels[row.parameter_key]),row[field]]);
     return values.length?`<dl class="vehicle-data-list">${values.map(([k,v])=>`<dt>${esc(k)}</dt><dd>${esc(valueText(v))}</dd>`).join('')}</dl>`:notice('unavailable');
   }
   async function api(path,options={}) {

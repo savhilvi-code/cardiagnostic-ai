@@ -1062,7 +1062,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       if (requestModalState.currentItem && $("#requestModal")?.classList.contains("show")) {
         openRequestModal(requestModalState.currentItem);
       }
-      window.PulsCar?.translate();
+      window.PulsCar?.render();
       window.PulsAuth?.translate?.();
       void renderAssistantMessages();
     }
