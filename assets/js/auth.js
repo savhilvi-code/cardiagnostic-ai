@@ -28,6 +28,17 @@ function getAuthElements() {
   };
 }
 
+function syncAuthReferenceTitleHeight(elements = getAuthElements()) {
+  const dialog = elements.title?.closest(".auth-dialog");
+  if (!dialog || !elements.modal?.classList.contains("show")) return;
+  const currentTitle = elements.title.textContent;
+  dialog.style.removeProperty("--auth-title-reference-height");
+  elements.title.textContent = authText("auth.welcome", "Welcome to PULS");
+  const referenceHeight = Math.ceil(elements.title.getBoundingClientRect().height);
+  elements.title.textContent = currentTitle;
+  if (referenceHeight) dialog.style.setProperty("--auth-title-reference-height", `${referenceHeight}px`);
+}
+
 function translateAuthModal() {
   const elements = getAuthElements();
   const isRegister = authMode === "register";
@@ -41,6 +52,7 @@ function translateAuthModal() {
   document.querySelectorAll("[data-auth-mode]").forEach((button) => {
     button.setAttribute("aria-selected", String(button.dataset.authMode === authMode));
   });
+  syncAuthReferenceTitleHeight(elements);
 }
 
 function setAuthMode(mode) {
@@ -99,6 +111,7 @@ function openAuthModal() {
   translateAuthModal();
   modal.classList.add("show");
   modal.setAttribute("aria-hidden", "false");
+  syncAuthReferenceTitleHeight(getAuthElements());
   setAuthStatus(window.supabaseClient ? "" : authText("auth.statusConfig", AUTH_STATUS_CONFIG), !window.supabaseClient);
   setTimeout(() => email?.focus(), 0);
 }

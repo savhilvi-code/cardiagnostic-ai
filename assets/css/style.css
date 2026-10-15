@@ -1043,17 +1043,16 @@ html { scroll-behavior: smooth; }
 
     .auth-dialog h2 {
       max-width: 300px;
-      margin: 28px auto 20px;
+      height: var(--auth-title-reference-height, auto);
+      margin: 28px auto 24px;
+      display: grid;
+      place-items: center;
       text-align: center;
       color: #fff;
       font-size: clamp(24px, 5vw, 30px);
       font-weight: 300;
       line-height: 1.2;
       letter-spacing: -.02em;
-    }
-
-    .auth-dialog:has(#authModeLogin[aria-selected="true"]) h2 {
-      margin-bottom: 24px;
     }
 
     .auth-brand {
@@ -1149,7 +1148,7 @@ html { scroll-behavior: smooth; }
     .auth-mode-switch {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 5px;
+      gap: 0;
       margin: 15px 0;
       padding: 0;
       border: 0;
@@ -1320,6 +1319,12 @@ html { scroll-behavior: smooth; }
       padding: 2px 8px;
       font: inherit;
       font-size: 13px;
+    }
+
+    .auth-forgot[hidden] {
+      display: block !important;
+      visibility: hidden;
+      pointer-events: none;
     }
 
     .auth-status {
@@ -2221,10 +2226,9 @@ html { scroll-behavior: smooth; }
         padding: 20px 20px 22px;
       }
       .auth-dialog h2 {
-        margin: 20px auto 16px;
+        margin: 20px auto 20px;
         font-size: 24px;
       }
-      .auth-dialog:has(#authModeLogin[aria-selected="true"]) h2 { margin-bottom: 20px; }
       .auth-brand { font-size: 20px; }
       .auth-close { top: 16px; right: 16px; }
       .auth-language-trigger,
