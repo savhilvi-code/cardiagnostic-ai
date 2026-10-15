@@ -111,8 +111,20 @@
       button.dataset.value = option.value;
       button.dataset.suffixFirst = String(Boolean(option.suffixFirst));
       button.setAttribute("role", "option");
-      button.textContent = option.label;
-      if (option.suffix) {
+      if (option.prefixImage) {
+        button.classList.add("has-prefix-image");
+        const image = document.createElement("img");
+        image.className = "wheel-picker-flag";
+        image.src = option.prefixImage;
+        image.alt = "";
+        const label = document.createElement("span");
+        label.className = "wheel-picker-label";
+        label.textContent = option.label;
+        button.append(image, label);
+      } else {
+        button.textContent = option.label;
+      }
+      if (!option.prefixImage && option.suffix) {
         const suffix = document.createElement("span");
         suffix.textContent = option.suffix;
         suffix.setAttribute("aria-hidden", "true");

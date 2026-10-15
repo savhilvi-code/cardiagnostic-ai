@@ -1085,7 +1085,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       const unitsValue = $("#unitsPickerValue");
       const timezoneValue = $("#timezonePickerValue");
       if (languageValue) languageValue.textContent = language.name;
-      if (languageFlag) languageFlag.textContent = language.flag;
+      if (languageFlag) languageFlag.src = language.flag;
       if (unitsValue) unitsValue.textContent = storedPreference(UNITS_STORAGE_KEY, "metric") === "imperial" ? "mi, °F" : "km, °C";
       if (timezoneValue) timezoneValue.textContent = storedPreference(TIMEZONE_STORAGE_KEY, "UTC+3");
     }
@@ -1111,7 +1111,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           confirmLabel: t("picker.apply"),
           trigger,
           value: getLanguage(),
-          options: window.PulsI18n.registry.languages.map(({ code, name, flag }) => ({ value: code, label: name, suffix: flag, suffixFirst: true })),
+          options: window.PulsI18n.registry.languages.map(({ code, name, flag }) => ({ value: code, label: name, prefixImage: flag })),
           onConfirm: confirmSettingsLanguage
         });
         return;

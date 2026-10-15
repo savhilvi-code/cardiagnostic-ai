@@ -37,7 +37,7 @@ function translateAuthModal() {
   if (elements.forgot) elements.forgot.hidden = isRegister;
   if (elements.password) elements.password.autocomplete = isRegister ? "new-password" : "current-password";
   if (elements.languageValue) elements.languageValue.textContent = language.name;
-  if (elements.languageFlag) elements.languageFlag.textContent = language.flag;
+  if (elements.languageFlag) elements.languageFlag.src = language.flag;
   document.querySelectorAll("[data-auth-mode]").forEach((button) => {
     button.setAttribute("aria-selected", String(button.dataset.authMode === authMode));
   });
@@ -56,7 +56,7 @@ function openAuthLanguagePicker() {
     confirmLabel: authText("picker.apply", "Apply"),
     trigger,
     value: window.PulsI18n.getLanguage(),
-    options: window.PulsI18n.registry.languages.map(({ code, name, flag }) => ({ value: code, label: name, suffix: flag, suffixFirst: true })),
+    options: window.PulsI18n.registry.languages.map(({ code, name, flag }) => ({ value: code, label: name, prefixImage: flag })),
     onConfirm(language) {
       authLanguageExplicitlySelected = true;
       window.PulsI18n.setLanguage(language, { announce: false });
