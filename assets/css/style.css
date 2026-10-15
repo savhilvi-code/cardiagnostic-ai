@@ -1144,12 +1144,13 @@ html { scroll-behavior: smooth; }
     .auth-mode-switch {
       display: grid;
       grid-template-columns: 1fr 1fr;
+      gap: 5px;
       margin: 15px 0;
       padding: 0;
-      border: 1px solid rgba(38, 117, 166, .62);
+      border: 0;
       border-radius: 10px;
-      overflow: hidden;
-      background: rgba(0, 8, 17, .66);
+      overflow: visible;
+      background: transparent;
     }
 
     .auth-mode-switch button {
