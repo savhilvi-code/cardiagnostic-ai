@@ -85,3 +85,17 @@ test("profile language synchronization uses the existing backend endpoint", asyn
   assert.match(source, /\/api\/profile\/language/);
   assert.match(source, /Authorization: `Bearer/);
 });
+
+test("Settings uses square notification controls and one categorized support form", async () => {
+  const [html, css, source] = await Promise.all([
+    read("index.html"),
+    read("assets/css/style.css"),
+    read("assets/js/app.js")
+  ]);
+  assert.equal((html.match(/class="toggle-switch/g) || []).length, 6);
+  assert.deepEqual(Array.from(html.matchAll(/data-support-category="([^"]+)"/g), (match) => match[1]), ["question", "bug", "improvement"]);
+  assert.equal((html.match(/id="supportForm"/g) || []).length, 1);
+  assert.match(css, /\.toggle-switch\s*\{[\s\S]*?width:\s*19px;[\s\S]*?height:\s*19px;[\s\S]*?border-radius:\s*4px;/);
+  assert.match(source, /function openSupportModal\(category = "question"\)/);
+  assert.match(source, /fetch\(`\$\{API_BASE_URL\}\/api\/support`/);
+});

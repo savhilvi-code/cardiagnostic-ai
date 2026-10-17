@@ -335,6 +335,9 @@ Object.assign(window.PulsLocales.ru, {
   "picker.timezoneTitle": "Часовой пояс"
 });
 Object.assign(window.PulsLocales.ru, {
+  "support.categoryQuestion":"Написать в поддержку", "support.categoryBug":"Сообщить об ошибке", "support.categoryImprovement":"Предложить улучшение"
+});
+Object.assign(window.PulsLocales.ru, {
   "settings.back":"Назад", "settings.sectionsLabel":"Разделы настроек", "settings.profileSubtitle":"Аккаунт и экспорт данных", "settings.subscriptionSubtitle":"Моя подписка, тарифы и пополнение",
   "settings.languageUnits":"Язык и единицы измерения", "settings.languageUnitsSubtitle":"Язык PULS, метрическая и имперская системы", "settings.voice":"Голосовое управление", "settings.voiceSubtitle":"Громкость и чувствительность",
   "settings.notificationsSubtitle":"Напоминания и события", "settings.about":"О PULS", "settings.aboutSubtitle":"Продукт и его философия", "settings.support":"Поддержка", "settings.supportSubtitle":"Помощь, вопросы и сообщения об ошибках",

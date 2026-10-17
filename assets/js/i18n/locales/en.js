@@ -335,6 +335,9 @@ Object.assign(window.PulsLocales.en, {
   "picker.timezoneTitle": "Time zone"
 });
 Object.assign(window.PulsLocales.en, {
+  "support.categoryQuestion":"Contact support", "support.categoryBug":"Report an error", "support.categoryImprovement":"Suggest an improvement"
+});
+Object.assign(window.PulsLocales.en, {
   "settings.back":"Back", "settings.sectionsLabel":"Settings sections", "settings.profileSubtitle":"Account and data export", "settings.subscriptionSubtitle":"My subscription, plans, and top-ups",
   "settings.languageUnits":"Language and units", "settings.languageUnitsSubtitle":"PULS language, metric and imperial systems", "settings.voice":"Voice control", "settings.voiceSubtitle":"Volume and sensitivity",
   "settings.notificationsSubtitle":"Reminders and events", "settings.about":"About PULS", "settings.aboutSubtitle":"Product and its philosophy", "settings.support":"Support", "settings.supportSubtitle":"Help, questions, and error reports",

@@ -1081,6 +1081,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       if (supportSubjectInput) supportSubjectInput.setAttribute("placeholder", t("support.subjectPlaceholder"));
       const supportMessageInput = $("#supportMessageInput");
       if (supportMessageInput) supportMessageInput.setAttribute("placeholder", t("support.messagePlaceholder"));
+      applySupportCategoryCopy();
       window.updateProfileBlock?.();
       applyAuthLockedState();
       renderSystemPill();
@@ -1514,9 +1515,17 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       currentItem: null
     };
 
+    const supportModalState = { category: "question" };
+    const supportCategoryKeys = Object.freeze({
+      question: "support.categoryQuestion",
+      bug: "support.categoryBug",
+      improvement: "support.categoryImprovement"
+    });
+
     function getSupportModalNodes() {
       return {
         modal: $("#supportModal"),
+        title: $("#supportModalTitle"),
         form: $("#supportForm"),
         subject: $("#supportSubjectInput"),
         message: $("#supportMessageInput"),
@@ -1526,6 +1535,14 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         status: $("#supportFormStatus"),
         send: $("#supportSendBtn")
       };
+    }
+
+    function applySupportCategoryCopy({ prefillSubject = false } = {}) {
+      const nodes = getSupportModalNodes();
+      const key = supportCategoryKeys[supportModalState.category] || supportCategoryKeys.question;
+      const label = t(key);
+      if (nodes.title) nodes.title.textContent = label;
+      if (prefillSubject && nodes.subject) nodes.subject.value = label;
     }
 
     function setSupportStatus(message = "", isError = false) {
@@ -1558,11 +1575,13 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       modal.setAttribute("aria-hidden", "true");
     }
 
-    function openSupportModal() {
+    function openSupportModal(category = "question") {
       const nodes = getSupportModalNodes();
       if (!nodes.modal) return;
+      supportModalState.category = supportCategoryKeys[category] ? category : "question";
       nodes.form?.reset();
       if (nodes.email) nodes.email.value = getSupportEmailValue();
+      applySupportCategoryCopy({ prefillSubject: true });
       renderSupportFiles([]);
       setSupportStatus("");
       nodes.modal.classList.add("show");
@@ -4317,9 +4336,9 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
           return;
         }
 
-        const supportButton = event.target.closest("#supportBtn");
+        const supportButton = event.target.closest("[data-support-category]");
         if (supportButton) {
-          openSupportModal();
+          openSupportModal(supportButton.dataset.supportCategory);
           return;
         }
 

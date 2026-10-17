@@ -1169,11 +1169,24 @@ html { scroll-behavior: smooth; }
     .puls-settings-primary:hover,
     .puls-settings-primary:focus-visible { filter: brightness(1.08); border-color: var(--cyan); box-shadow: 0 0 22px rgba(19, 217, 255, .2); outline: none; }
     .puls-settings-primary:active { filter: brightness(.94); }
+    #settingsMeetPulsBtn { background: linear-gradient(110deg, #125c8b, #2c9ed3); }
     .puls-settings-primary:disabled,
     .puls-settings-secondary:disabled { cursor: not-allowed; opacity: .46; box-shadow: none; }
     .puls-settings-secondary { background: rgba(7, 29, 48, .86); box-shadow: none; }
     .puls-settings-primary-danger { border-color: rgba(255, 76, 76, .68); background: linear-gradient(105deg, #762936, #4b2029); }
     .puls-settings-danger { color: #ff9da5; }
+    .puls-settings-danger:hover,
+    .puls-settings-danger:focus-visible {
+      color: #ffc1c6;
+      border-bottom-color: rgba(255, 76, 76, .72);
+      background: linear-gradient(90deg, rgba(255, 76, 76, .035), rgba(255, 76, 76, .13), rgba(255, 76, 76, .035));
+      box-shadow: inset 0 0 0 1px rgba(255, 76, 76, .34), inset 0 0 24px rgba(255, 76, 76, .07), 0 0 18px rgba(255, 76, 76, .08);
+    }
+    .puls-settings-primary-danger:hover,
+    .puls-settings-primary-danger:focus-visible {
+      border-color: #ff6c77;
+      box-shadow: inset 0 0 14px rgba(255, 118, 128, .08), 0 0 22px rgba(255, 76, 76, .2);
+    }
 
     .puls-settings-notice {
       margin: 14px 0;
@@ -2341,35 +2354,52 @@ html { scroll-behavior: smooth; }
     }
 
     .toggle-switch {
-      width: 58px;
-      height: 32px;
-      border: 1px solid #174466;
-      border-radius: 999px;
-      background: rgba(4, 13, 23, .95);
-      padding: 3px;
+      width: 19px;
+      height: 19px;
+      display: grid;
+      place-items: center;
+      border: 1px solid #2c526c;
+      border-radius: 4px;
+      background: #10293d;
+      padding: 0;
       flex: 0 0 auto;
-      transition: border-color .18s, background .18s, box-shadow .18s;
+      color: transparent;
+      transition: border-color .18s ease, background .18s ease, box-shadow .18s ease;
     }
 
     .toggle-switch span {
       display: block;
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      background: #d7ddeb;
-      transition: transform .18s, background .18s;
+      width: 6px;
+      height: 10px;
+      border: solid currentColor;
+      border-width: 0 2px 2px 0;
+      background: transparent;
+      opacity: 0;
+      transform: translateY(-1px) rotate(45deg) scale(.72);
+      transition: color .18s ease, opacity .18s ease, transform .18s ease;
     }
 
     .toggle-switch.active {
-      border-color: var(--blue);
-      background: linear-gradient(180deg, #087dff, #064bc2);
-      box-shadow: 0 0 18px rgba(8, 125, 255, .3);
+      border-color: #55c3ff;
+      background: #10364d;
+      color: #72ceff;
+      box-shadow: 0 0 14px rgba(8, 125, 255, .28), inset 0 0 8px rgba(19, 217, 255, .08);
     }
 
     .toggle-switch.active span {
-      transform: translateX(26px);
-      background: #fff;
+      opacity: 1;
+      transform: translateY(-1px) rotate(45deg) scale(1);
     }
+
+    .toggle-switch:hover,
+    .toggle-switch:focus-visible {
+      border-color: #55c3ff;
+      box-shadow: 0 0 12px rgba(8, 125, 255, .25);
+      outline: none;
+    }
+
+    .toggle-switch.active:hover,
+    .toggle-switch.active:focus-visible { box-shadow: 0 0 18px rgba(19, 217, 255, .42), inset 0 0 9px rgba(19, 217, 255, .12); }
 
     .composer {
       padding: 14px;
