@@ -18,6 +18,7 @@
       --danger: #ff4c4c;
       --shadow: 0 22px 70px rgba(0, 0, 0, .45);
       --radius: 14px;
+      --puls-surface-inner-glow: radial-gradient(ellipse 88% 68% at 50% 48%, rgba(0, 112, 255, .1), rgba(0, 73, 158, .035) 52%, transparent 84%);
       --puls-fixed-edge: 6px;
       --puls-fixed-gap: 8px;
       --puls-header-menu-top: calc(max(var(--puls-fixed-edge), env(safe-area-inset-top)) + 62px);
@@ -1056,7 +1057,7 @@ html { scroll-behavior: smooth; }
       border: 1px solid rgba(18, 58, 92, .76);
       border-radius: 10px;
       background:
-        radial-gradient(ellipse 90% 54% at 50% 0%, rgba(8, 125, 255, .075), transparent 72%),
+        var(--puls-surface-inner-glow),
         rgba(3, 14, 24, .78);
       overflow: hidden;
     }
@@ -1143,7 +1144,7 @@ html { scroll-behavior: smooth; }
     .puls-settings-prose {
       border: 1px solid rgba(36, 67, 88, .92);
       border-radius: 10px;
-      background: rgba(7, 29, 48, .72);
+      background: var(--puls-surface-inner-glow), rgba(7, 29, 48, .72);
     }
 
     .puls-settings-user-card { display: flex; align-items: center; gap: 14px; padding: 16px; margin: 10px 0 14px; }
@@ -1179,7 +1180,7 @@ html { scroll-behavior: smooth; }
       padding: 13px 14px;
       border: 1px solid rgba(46, 83, 107, .86);
       border-radius: 10px;
-      background: rgba(16, 43, 64, .66);
+      background: var(--puls-surface-inner-glow), rgba(16, 43, 64, .66);
       color: var(--muted);
       font-size: 13px;
       line-height: 1.55;
@@ -1636,7 +1637,7 @@ html { scroll-behavior: smooth; }
       border: 1px solid rgba(28, 139, 218, .7);
       border-radius: 10px;
       background:
-        radial-gradient(ellipse 88% 68% at 50% 48%, rgba(0, 112, 255, .1), rgba(0, 73, 158, .035) 52%, transparent 84%),
+        var(--puls-surface-inner-glow),
         linear-gradient(165deg, rgba(3, 24, 42, .995), rgba(1, 11, 22, .995));
       box-shadow: 0 25px 80px rgba(0, 0, 0, .72), 0 0 28px rgba(0, 133, 255, .12);
       padding: 26px 20px max(22px, env(safe-area-inset-bottom));
