@@ -162,9 +162,21 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
     function renderSettingsSubscription() {
       const status = $("#settingsSubscriptionStatus");
+      const planName = $("#settingsPlanName");
+      const planPrice = $("#settingsPlanPrice");
+      const searchRemaining = $("#settingsSearchRemaining");
+      const searchProgress = $("#settingsSearchProgress");
+      const voiceRemaining = $("#settingsVoiceRemaining");
+      const voiceProgress = $("#settingsVoiceProgress");
       if (!status) return;
       if (!isSignedIn()) {
         status.textContent = t("subscription.signIn");
+        if (planName) planName.textContent = "—";
+        if (planPrice) planPrice.textContent = "—";
+        if (searchRemaining) searchRemaining.textContent = "— / —";
+        if (searchProgress) searchProgress.style.width = "0%";
+        if (voiceRemaining) voiceRemaining.textContent = t("settings.unavailable");
+        if (voiceProgress) voiceProgress.style.width = "0%";
         return;
       }
       if (!currentQuota) {
@@ -172,6 +184,19 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         return;
       }
       const plan = String(currentQuota.plan_type || "free").toLowerCase() === "paid" ? "Paid" : "Free";
+      const remaining = Number(currentQuota.remaining);
+      const limit = Number(currentQuota.limit);
+      const progress = currentQuota.unlimited
+        ? 100
+        : Number.isFinite(remaining) && Number.isFinite(limit) && limit > 0
+          ? Math.max(0, Math.min(100, remaining / limit * 100))
+          : 0;
+      if (planName) planName.textContent = plan;
+      if (planPrice) planPrice.textContent = t("settings.priceUnavailable");
+      if (searchRemaining) searchRemaining.textContent = currentQuota.unlimited ? "∞" : `${currentQuota.remaining} / ${currentQuota.limit}`;
+      if (searchProgress) searchProgress.style.width = `${progress}%`;
+      if (voiceRemaining) voiceRemaining.textContent = t("settings.unavailable");
+      if (voiceProgress) voiceProgress.style.width = "0%";
       status.textContent = t("subscription.status", {
         plan,
         remaining: currentQuota.remaining,
@@ -2062,6 +2087,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       $$(".nav button, .view").forEach((node) => node.classList.remove("active"));
       $(`.nav button[data-view="${viewId}"]`)?.classList.add("active");
       $(`#${viewId}`)?.classList.add("active");
+      if (viewId === "settings") window.PulsSettings?.openHome?.({ focus: false });
 
       const assistantActive = viewId === "assistant";
       document.body.classList.toggle("assistant-mode", assistantActive);
@@ -2142,6 +2168,8 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         box.textContent = "";
       }, 3600);
     }
+
+    window.PulsToast = toast;
 
     function appendMessage(text, isUser, { autoScroll = true, forceScroll = false } = {}) {
       const div = document.createElement("div");
@@ -4186,7 +4214,7 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
         updateServiceFileSelection(event.target.files);
         renderServiceAttachments(serviceModalFiles, Array.from(event.target.files || []));
       });
-      ["language", "units", "timezone"].forEach((type) => {
+      ["language", "units"].forEach((type) => {
         const trigger = $(`#${type}PickerBtn`);
         trigger?.addEventListener("click", () => {
           if (trigger.classList.contains("locked")) return;

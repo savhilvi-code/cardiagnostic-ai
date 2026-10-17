@@ -991,10 +991,281 @@ html { scroll-behavior: smooth; }
       font-size: 12px;
     }
 
-    .settings {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+    .puls-settings-shell {
+      width: min(720px, 100%);
+      min-height: 100%;
+      margin: 0 auto;
+      padding: 8px 8px 40px;
+      color: var(--text);
+    }
+
+    .puls-settings-header {
+      min-height: 68px;
+      display: flex;
+      align-items: flex-start;
       gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .puls-settings-header h1 {
+      margin: 0;
+      font-size: clamp(24px, 4vw, 30px);
+      font-weight: 450;
+      line-height: 1.2;
+    }
+
+    .puls-settings-header p {
+      margin: 7px 0 0;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .puls-settings-back {
+      width: 40px;
+      height: 40px;
+      flex: 0 0 40px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(19, 217, 255, .38);
+      border-radius: 10px;
+      background: rgba(5, 18, 31, .84);
+      color: var(--cyan);
+      transition: border-color .18s ease, background .18s ease, box-shadow .18s ease;
+    }
+
+    .puls-settings-back svg {
+      width: 21px;
+      height: 21px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .puls-settings-back:hover,
+    .puls-settings-back:focus-visible {
+      border-color: var(--cyan);
+      background: rgba(8, 125, 255, .13);
+      box-shadow: 0 0 20px rgba(19, 217, 255, .14);
+      outline: none;
+    }
+
+    .puls-settings-stage {
+      position: relative;
+      border: 1px solid rgba(18, 58, 92, .76);
+      border-radius: 10px;
+      background:
+        radial-gradient(ellipse 90% 54% at 50% 0%, rgba(8, 125, 255, .075), transparent 72%),
+        rgba(3, 14, 24, .78);
+      overflow: hidden;
+    }
+
+    .puls-settings-screen {
+      padding: 8px 22px 24px;
+      animation: pulsSettingsEnter .2s ease both;
+    }
+
+    .puls-settings-screen[hidden] { display: none !important; }
+
+    @keyframes pulsSettingsEnter {
+      from { opacity: 0; transform: translateX(8px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .puls-settings-menu { display: grid; }
+
+    .puls-settings-item {
+      width: 100%;
+      min-height: 66px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      padding: 13px 6px;
+      border: 0;
+      border-bottom: 1px solid rgba(29, 65, 91, .78);
+      border-radius: 0;
+      background: transparent;
+      color: var(--text);
+      text-align: left;
+      text-decoration: none;
+      transition: color .18s ease, background .18s ease, box-shadow .18s ease, border-color .18s ease;
+    }
+
+    .puls-settings-item:last-child { border-bottom-color: transparent; }
+
+    .puls-settings-item:hover,
+    .puls-settings-item:focus-visible {
+      color: #fff;
+      border-bottom-color: rgba(19, 217, 255, .46);
+      background: linear-gradient(90deg, rgba(8, 125, 255, .035), rgba(19, 217, 255, .1), rgba(8, 125, 255, .035));
+      box-shadow: inset 0 0 24px rgba(19, 217, 255, .055), 0 0 18px rgba(8, 125, 255, .055);
+      outline: none;
+    }
+
+    .puls-settings-item:active { background: rgba(8, 125, 255, .14); }
+    .puls-settings-item:disabled { cursor: not-allowed; opacity: .46; }
+    .puls-settings-item:disabled:hover { background: transparent; box-shadow: none; border-bottom-color: rgba(29, 65, 91, .78); }
+
+    .puls-settings-icon,
+    .puls-settings-avatar {
+      width: 30px;
+      height: 30px;
+      flex: 0 0 30px;
+      display: grid;
+      place-items: center;
+      color: var(--cyan);
+    }
+
+    .puls-settings-icon svg,
+    .puls-settings-avatar svg {
+      width: 22px;
+      height: 22px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.7;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .puls-settings-copy { min-width: 0; flex: 1; display: grid; gap: 4px; }
+    .puls-settings-copy strong { font-size: 15px; font-weight: 600; line-height: 1.35; }
+    .puls-settings-copy small,
+    .puls-settings-user-card small,
+    .puls-settings-range small { color: var(--muted); font-size: 12px; line-height: 1.45; }
+    .puls-settings-chevron { color: #7192a7; font-size: 24px; line-height: 1; }
+
+    .puls-settings-user-card,
+    .puls-settings-plan-card,
+    .puls-settings-range,
+    .puls-settings-danger-card,
+    .puls-settings-about,
+    .puls-settings-prose {
+      border: 1px solid rgba(36, 67, 88, .92);
+      border-radius: 10px;
+      background: rgba(7, 29, 48, .72);
+    }
+
+    .puls-settings-user-card { display: flex; align-items: center; gap: 14px; padding: 16px; margin: 10px 0 14px; }
+    .puls-settings-user-card > div { display: grid; gap: 4px; min-width: 0; }
+    .puls-settings-user-card strong { font-size: 17px; overflow-wrap: anywhere; }
+
+    .puls-settings-primary,
+    .puls-settings-secondary {
+      width: 100%;
+      min-height: 48px;
+      margin: 8px 0 14px;
+      padding: 11px 18px;
+      border: 1px solid rgba(19, 217, 255, .58);
+      border-radius: 10px;
+      color: #fff;
+      font-weight: 650;
+      background: linear-gradient(105deg, #0a8cff 0%, #086bea 48%, #064bc2 100%);
+      box-shadow: 0 8px 24px rgba(8, 125, 255, .16);
+      transition: filter .18s ease, border-color .18s ease, box-shadow .18s ease;
+    }
+
+    .puls-settings-primary:hover,
+    .puls-settings-primary:focus-visible { filter: brightness(1.08); border-color: var(--cyan); box-shadow: 0 0 22px rgba(19, 217, 255, .2); outline: none; }
+    .puls-settings-primary:active { filter: brightness(.94); }
+    .puls-settings-primary:disabled,
+    .puls-settings-secondary:disabled { cursor: not-allowed; opacity: .46; box-shadow: none; }
+    .puls-settings-secondary { background: rgba(7, 29, 48, .86); box-shadow: none; }
+    .puls-settings-primary-danger { border-color: rgba(255, 76, 76, .68); background: linear-gradient(105deg, #762936, #4b2029); }
+    .puls-settings-danger { color: #ff9da5; }
+
+    .puls-settings-notice {
+      margin: 14px 0;
+      padding: 13px 14px;
+      border: 1px solid rgba(46, 83, 107, .86);
+      border-radius: 10px;
+      background: rgba(16, 43, 64, .66);
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .puls-settings-danger-card { margin: 10px 0 14px; padding: 20px; text-align: center; border-color: rgba(255, 76, 76, .35); }
+    .puls-settings-danger-card h2 { color: #ff9da5; }
+
+    .puls-settings-plan-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding-top: 8px; }
+    .puls-settings-plan-card { padding: 16px; }
+    .puls-settings-plan-card h2 { margin: 0 0 10px; font-size: 18px; }
+    .puls-settings-plan-card p { color: var(--muted); line-height: 1.5; }
+    .puls-settings-pack-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .puls-settings-pack-grid article { display: grid; gap: 10px; }
+    .puls-settings-plan-heading { display: flex; justify-content: space-between; gap: 12px; color: var(--muted); }
+    .puls-settings-plan-heading strong { color: var(--cyan); }
+    .puls-settings-price { display: block; margin: 12px 0; font-size: 25px; font-weight: 500; }
+    .puls-settings-price small { color: var(--muted); font-size: 12px; }
+    .puls-settings-usage { display: grid; grid-template-columns: 1fr auto; gap: 7px 12px; padding: 11px 0; }
+    .puls-settings-usage strong { color: var(--cyan); }
+    .puls-settings-progress { grid-column: 1 / -1; height: 5px; overflow: hidden; border-radius: 99px; background: #253e50; }
+    .puls-settings-progress i { display: block; width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #087dff, #13d9ff); transition: width .2s ease; }
+
+    .puls-settings-centered { text-align: center; padding-top: 22px; }
+    .puls-settings-centered h2 { margin: 10px 0 6px; font-size: 17px; font-weight: 600; }
+    .puls-settings-centered p { margin: 0 auto 12px; color: var(--muted); font-size: 13px; }
+    .puls-settings-centered h2:not(:first-child) { margin-top: 34px; }
+    .settings-picker-trigger.puls-settings-choice { width: min(320px, 100%); min-height: 58px; margin: 0 auto; justify-content: center; border-radius: 10px; }
+
+    .puls-settings-range { margin: 12px 0; padding: 16px; }
+    .puls-settings-range > div { display: flex; justify-content: space-between; gap: 12px; }
+    .puls-settings-range > div span { color: var(--cyan); }
+    .puls-settings-range input { width: 100%; margin: 16px 0 10px; accent-color: var(--cyan); }
+
+    .puls-settings-toggle-row {
+      min-height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 12px 4px;
+      border-bottom: 1px solid rgba(29, 65, 91, .78);
+    }
+
+    .puls-settings-toggle-row > span { display: grid; gap: 4px; }
+    .puls-settings-toggle-row small { color: var(--muted); line-height: 1.4; }
+    .puls-settings-screen > h2 { margin: 22px 0 6px; color: var(--cyan); font-size: 15px; font-weight: 650; }
+
+    .puls-settings-about { margin: 10px 0 16px; padding: 22px; text-align: center; }
+    .puls-settings-about > strong { display: block; font-size: 38px; font-weight: 250; letter-spacing: 7px; text-shadow: 0 0 24px rgba(19, 217, 255, .32); }
+    .puls-settings-about > small { color: var(--cyan); letter-spacing: .08em; }
+    .puls-settings-about p { color: var(--muted); line-height: 1.65; }
+    .puls-settings-about > span { color: #627f91; font-size: 12px; }
+
+    .puls-settings-prose { margin: 10px 0 16px; padding: 18px; }
+    .puls-settings-prose h2 { margin: 18px 0 6px; color: var(--cyan); font-size: 16px; }
+    .puls-settings-prose h2:first-child { margin-top: 0; }
+    .puls-settings-prose p { margin: 0; color: var(--muted); line-height: 1.7; }
+
+    @media (max-width: 760px) {
+      .puls-settings-shell { padding: 2px 0 30px; }
+      .puls-settings-stage { border-left: 0; border-right: 0; }
+      .puls-settings-screen { padding: 6px 14px 20px; }
+      .puls-settings-item { min-height: 62px; }
+      .puls-settings-plan-grid { grid-template-columns: 1fr; }
+      .puls-settings-pack-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 440px) {
+      .puls-settings-header { min-height: 62px; }
+      .puls-settings-header h1 { font-size: 24px; }
+      .puls-settings-copy strong { font-size: 14px; }
+      .puls-settings-pack-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (hover: none) {
+      .puls-settings-item:hover { background: transparent; box-shadow: none; }
+      .puls-settings-item:active { background: rgba(8, 125, 255, .14); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .puls-settings-screen { animation: none; }
+      .puls-settings-item,
+      .puls-settings-back,
+      .puls-settings-primary,
+      .puls-settings-progress i { transition: none; }
     }
 
     .profile-actions,
@@ -2009,12 +2280,7 @@ html { scroll-behavior: smooth; }
       font-size: 14px;
     }
 
-    .language-setting {
-      align-items: center;
-    }
-
     .settings-picker-trigger {
-      width: min(220px, 58%);
       min-height: 48px;
       flex: 0 0 auto;
     }
@@ -2210,7 +2476,6 @@ html { scroll-behavior: smooth; }
       .row .thumb { width: 100%; height: 150px; }
       .quick-grid,
       .manuals,
-      .settings,
       .cols { grid-template-columns: 1fr; }
       .tools { grid-template-columns: 1fr 1fr; gap: 10px; }
       .bigmic { grid-column: 1 / -1; grid-row: 1; }
@@ -2248,7 +2513,6 @@ html { scroll-behavior: smooth; }
         border-radius: 10px 10px 0 0;
         padding-inline: 20px;
       }
-      .settings-picker-trigger { width: min(220px, 62%); }
     }
 
     @media (max-width: 480px) {

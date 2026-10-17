@@ -380,15 +380,16 @@ async function loginUser(email, password) {
   showModeSelectionForNewUser(data.user);
 }
 
-async function resetAuthPassword() {
+async function resetAuthPassword(explicitEmail = "") {
   if (!window.supabaseClient) {
     setAuthStatus(authText("auth.statusConfig", AUTH_STATUS_CONFIG), true);
-    return;
+    return false;
   }
-  const { email } = readAuthCredentials();
+  const { email: formEmail } = readAuthCredentials();
+  const email = String(explicitEmail || formEmail || "").trim();
   if (!email) {
     setAuthStatus(authText("auth.enterEmail", "Enter email."), true);
-    return;
+    return false;
   }
   const { error } = await window.supabaseClient.auth.resetPasswordForEmail(email, {
     redirectTo: window.location.origin
@@ -397,6 +398,7 @@ async function resetAuthPassword() {
     authText(error ? "auth.resetError" : "auth.resetSent", error ? "Could not send password reset instructions." : "Password reset instructions were sent to your email."),
     Boolean(error)
   );
+  return !error;
 }
 
 async function logoutUser() {
@@ -442,6 +444,7 @@ window.registerUser = registerUser;
 window.loginUser = loginUser;
 window.logoutUser = logoutUser;
 window.deleteProfileUser = deleteProfileUser;
+window.requestPulsPasswordReset = resetAuthPassword;
 window.updateProfileBlock = updateProfileBlock;
 window.syncAuthUserProfile = syncAuthUserProfile;
 window.openAuthModal = openAuthModal;

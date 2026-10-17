@@ -64,13 +64,13 @@ test("language changes rerender dynamic My Car states", async () => {
   assert.match(source, /function applyLanguage\(\)[\s\S]*?window\.PulsCar\?\.render\(\)/);
 });
 
-test("auth and settings use one wheel picker and no native preference selects", async () => {
+test("auth and settings use one wheel picker without a visible region control", async () => {
   const html = await read("index.html");
   assert.equal((html.match(/id="wheelPickerModal"/g) || []).length, 1);
   assert.match(html, /id="authLanguageBtn"/);
   assert.match(html, /id="languagePickerBtn"/);
   assert.match(html, /id="unitsPickerBtn"/);
-  assert.match(html, /id="timezonePickerBtn"/);
+  assert.doesNotMatch(html, /id="timezonePickerBtn"/);
   assert.doesNotMatch(html, /id="languageSelect"/);
   assert.doesNotMatch(html, /id="unitsSelect"/);
   assert.doesNotMatch(html, /id="timezoneSelect"/);
