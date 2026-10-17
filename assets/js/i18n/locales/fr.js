@@ -57,7 +57,7 @@ Object.assign(window.PulsLocales.fr, {
   "composer.attachmentDelete":"Supprimer", "composer.attachmentOpenPdf":"Ouvrir le PDF", "composer.attachmentPreviewClose":"Fermer l’aperçu"
 });
 Object.assign(window.PulsLocales.fr, {
-  "support.categoryQuestion":"Contacter l’assistance", "support.categoryBug":"Signaler une erreur", "support.categoryImprovement":"Proposer une amélioration"
+  "support.categoryQuestion":"Contacter l’assistance", "support.categoryBug":"Signaler une erreur", "support.categoryImprovement":"Proposer une amélioration", "support.chooseFiles":"Choisir des fichiers", "support.noFiles":"Aucune image jointe.", "support.filesSelected":"{count} image(s) sélectionnée(s)."
 });
 Object.assign(window.PulsLocales.fr, {
   "settings.back":"Retour", "settings.sectionsLabel":"Sections des paramètres", "settings.profileSubtitle":"Compte et exportation des données", "settings.subscriptionSubtitle":"Mon abonnement, offres et recharges", "settings.languageUnits":"Langue et unités", "settings.languageUnitsSubtitle":"Langue PULS, systèmes métrique et impérial", "settings.voice":"Commande vocale", "settings.voiceSubtitle":"Volume et sensibilité", "settings.notificationsSubtitle":"Rappels et événements", "settings.about":"À propos de PULS", "settings.aboutSubtitle":"Produit et philosophie", "settings.support":"Assistance", "settings.supportSubtitle":"Aide, questions et signalement d’erreurs", "settings.privacy":"Privacy", "settings.privacySubtitle":"Utilisation des données et informations juridiques",

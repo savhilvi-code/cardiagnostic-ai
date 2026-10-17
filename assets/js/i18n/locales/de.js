@@ -57,7 +57,7 @@ Object.assign(window.PulsLocales.de, {
   "composer.attachmentDelete":"Löschen", "composer.attachmentOpenPdf":"PDF öffnen", "composer.attachmentPreviewClose":"Vorschau schließen"
 });
 Object.assign(window.PulsLocales.de, {
-  "support.categoryQuestion":"Support kontaktieren", "support.categoryBug":"Fehler melden", "support.categoryImprovement":"Verbesserung vorschlagen"
+  "support.categoryQuestion":"Support kontaktieren", "support.categoryBug":"Fehler melden", "support.categoryImprovement":"Verbesserung vorschlagen", "support.chooseFiles":"Dateien auswählen", "support.noFiles":"Noch keine Bilder angehängt.", "support.filesSelected":"{count} Bild(er) ausgewählt."
 });
 Object.assign(window.PulsLocales.de, {
   "settings.back":"Zurück", "settings.sectionsLabel":"Einstellungsbereiche", "settings.profileSubtitle":"Konto und Datenexport", "settings.subscriptionSubtitle":"Mein Abo, Tarife und Aufladungen", "settings.languageUnits":"Sprache und Einheiten", "settings.languageUnitsSubtitle":"PULS-Sprache, metrisches und imperiales System", "settings.voice":"Sprachsteuerung", "settings.voiceSubtitle":"Lautstärke und Empfindlichkeit", "settings.notificationsSubtitle":"Erinnerungen und Ereignisse", "settings.about":"Über PULS", "settings.aboutSubtitle":"Produkt und Philosophie", "settings.support":"Support", "settings.supportSubtitle":"Hilfe, Fragen und Fehlermeldungen", "settings.privacy":"Privacy", "settings.privacySubtitle":"Datennutzung und rechtliche Informationen",

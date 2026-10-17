@@ -4243,7 +4243,9 @@ const SUPPORT_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
       window.addEventListener("puls-language-change", () => {
         applyLanguage();
         renderLists();
+        renderSupportFiles(Array.from($("#supportImagesInput")?.files || []));
       });
+      $("#supportChooseFilesBtn")?.addEventListener("click", () => $("#supportImagesInput")?.click());
       $("#supportImagesInput")?.addEventListener("change", (event) => {
         const files = Array.from(event.target.files || []);
         try {

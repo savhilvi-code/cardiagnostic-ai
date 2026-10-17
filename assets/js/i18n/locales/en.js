@@ -210,6 +210,7 @@ window.PulsLocales.en = {
   "support.message": "Message",
   "support.email": "Email address",
   "support.attach": "Attach images",
+  "support.chooseFiles": "Choose files",
   "support.attachHint": "Up to 3 images, JPG/JPEG/PNG/WEBP, max 5 MB each.",
   "support.send": "Send",
   "support.subjectPlaceholder": "Briefly describe the issue",

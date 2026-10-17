@@ -38,7 +38,7 @@
     "logo": "https://pulscar.co/assets/img/puls-logo.png"
   }
   </script>
-  <link rel="stylesheet" href="assets/css/style.css?v=20261017-settings-ux1">
+  <link rel="stylesheet" href="assets/css/style.css?v=20261017-support-ui1">
   <link rel="stylesheet" href="assets/css/mode-selection.css?v=20261005-mobile-wave-particles1">
   <link rel="stylesheet" href="assets/css/voice-mode.css?v=20261012-workspace-canvas1">
 </head>
@@ -614,16 +614,17 @@
           <span data-i18n="support.email">Email address</span>
           <input id="supportEmailInput" name="email" type="email" autocomplete="email" placeholder="you@example.com" required>
         </label>
-        <label>
+        <div class="support-upload-field">
           <span data-i18n="support.attach">Attach images</span>
-          <input id="supportImagesInput" name="images" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" multiple>
+          <input class="support-file-input" id="supportImagesInput" name="images" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" multiple tabindex="-1">
+          <button class="support-file-trigger" id="supportChooseFilesBtn" type="button" aria-controls="supportImagesInput" data-i18n="support.chooseFiles">Choose files</button>
           <small class="support-upload-hint" data-i18n="support.attachHint">Up to 3 images, JPG/JPEG/PNG/WEBP, max 5 MB each.</small>
-        </label>
+        </div>
         <div class="support-file-list" id="supportFileList"></div>
         <div class="auth-status" id="supportFormStatus" role="status" aria-live="polite"></div>
         <div class="profile-actions">
-          <button class="btn blue" id="supportSendBtn" type="submit" data-i18n="support.send">Send</button>
-          <button class="btn" id="supportCancelBtn" type="button" data-i18n="common.close">Закрыть</button>
+          <button class="auth-primary" id="supportSendBtn" type="submit" data-i18n="support.send">Send</button>
+          <button class="auth-primary" id="supportCancelBtn" type="button" data-i18n="common.close">Закрыть</button>
         </div>
       </form>
     </div>
@@ -645,14 +646,14 @@
   <script src="assets/js/supabaseClient.js?v=20260531-22"></script>
   <script src="assets/js/config.js?v=20260706-01"></script>
   <script src="assets/js/i18n/registry.js?v=20261015-03"></script>
-  <script src="assets/js/i18n/locales/en.js?v=20261017-settings-ux1"></script>
-  <script src="assets/js/i18n/locales/ru.js?v=20261017-settings-ux1"></script>
-  <script src="assets/js/i18n/locales/es.js?v=20261017-settings-ux1"></script>
-  <script src="assets/js/i18n/locales/fr.js?v=20261017-settings-ux1"></script>
-  <script src="assets/js/i18n/locales/de.js?v=20261017-settings-ux1"></script>
-  <script src="assets/js/i18n/locales/pt.js?v=20261017-settings-ux1"></script>
-  <script src="assets/js/i18n/locales/tr.js?v=20261017-settings-ux1"></script>
-  <script src="assets/js/i18n/locales/ka.js?v=20261017-settings-ux1"></script>
+  <script src="assets/js/i18n/locales/en.js?v=20261017-support-ui1"></script>
+  <script src="assets/js/i18n/locales/ru.js?v=20261017-support-ui1"></script>
+  <script src="assets/js/i18n/locales/es.js?v=20261017-support-ui1"></script>
+  <script src="assets/js/i18n/locales/fr.js?v=20261017-support-ui1"></script>
+  <script src="assets/js/i18n/locales/de.js?v=20261017-support-ui1"></script>
+  <script src="assets/js/i18n/locales/pt.js?v=20261017-support-ui1"></script>
+  <script src="assets/js/i18n/locales/tr.js?v=20261017-support-ui1"></script>
+  <script src="assets/js/i18n/locales/ka.js?v=20261017-support-ui1"></script>
   <script src="assets/js/i18n/car-page.js?v=20261015-01"></script>
   <script src="assets/js/i18n/index.js?v=20261015-02"></script>
   <script src="assets/js/wheel-picker.js?v=20261015-06"></script>
@@ -661,7 +662,7 @@
   <script src="assets/pages/car.js?v=20261015-i18n1"></script>
   <script src="assets/pages/settings.js?v=20261017-settings-v3"></script>
   <script src="assets/js/mode-selection.js?v=20261011-unified-mode1"></script>
-  <script src="assets/js/app.js?v=20261017-settings-ux1"></script>
+  <script src="assets/js/app.js?v=20261017-support-ui1"></script>
   <script src="assets/js/voice-mode.js?v=20261015-greeting1"></script>
 </body>
 </html>

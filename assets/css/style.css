@@ -19,6 +19,11 @@
       --shadow: 0 22px 70px rgba(0, 0, 0, .45);
       --radius: 14px;
       --puls-surface-inner-glow: radial-gradient(ellipse 88% 68% at 50% 48%, rgba(0, 112, 255, .1), rgba(0, 73, 158, .035) 52%, transparent 84%);
+      --puls-auth-surface: radial-gradient(ellipse 115% 52% at 50% 0%, rgba(15, 126, 225, .1), rgba(6, 74, 145, .035) 55%, transparent 82%), linear-gradient(155deg, #071a2b 0%, #03111e 46%, #010912 100%);
+      --puls-auth-border: rgba(55, 177, 255, .78);
+      --puls-auth-shadow: 0 24px 72px rgba(0, 0, 0, .72), 0 0 22px rgba(0, 149, 255, .17), inset 0 0 34px rgba(0, 99, 190, .075);
+      --puls-auth-field: linear-gradient(180deg, rgba(2, 17, 30, .94), rgba(1, 11, 21, .94));
+      --puls-auth-field-border: rgba(37, 102, 145, .82);
       --puls-fixed-edge: 6px;
       --puls-fixed-gap: 8px;
       --puls-header-menu-top: calc(max(var(--puls-fixed-edge), env(safe-area-inset-top)) + 62px);
@@ -1169,7 +1174,6 @@ html { scroll-behavior: smooth; }
     .puls-settings-primary:hover,
     .puls-settings-primary:focus-visible { filter: brightness(1.08); border-color: var(--cyan); box-shadow: 0 0 22px rgba(19, 217, 255, .2); outline: none; }
     .puls-settings-primary:active { filter: brightness(.94); }
-    #settingsMeetPulsBtn { background: linear-gradient(110deg, #125c8b, #2c9ed3); }
     .puls-settings-primary:disabled,
     .puls-settings-secondary:disabled { cursor: not-allowed; opacity: .46; box-shadow: none; }
     .puls-settings-secondary { background: rgba(7, 29, 48, .86); box-shadow: none; }
@@ -1315,12 +1319,10 @@ html { scroll-behavior: smooth; }
       max-height: calc(100dvh - max(32px, env(safe-area-inset-top) + env(safe-area-inset-bottom)));
       overflow-y: auto;
       scrollbar-width: none;
-      border: 1px solid rgba(55, 177, 255, .78);
+      border: 1px solid var(--puls-auth-border);
       border-radius: 10px;
-      background:
-        radial-gradient(ellipse 115% 52% at 50% 0%, rgba(15, 126, 225, .1), rgba(6, 74, 145, .035) 55%, transparent 82%),
-        linear-gradient(155deg, #071a2b 0%, #03111e 46%, #010912 100%);
-      box-shadow: 0 24px 72px rgba(0, 0, 0, .72), 0 0 22px rgba(0, 149, 255, .17), inset 0 0 34px rgba(0, 99, 190, .075);
+      background: var(--puls-auth-surface);
+      box-shadow: var(--puls-auth-shadow);
       padding: 25px 28px 27px;
     }
 
@@ -1479,9 +1481,9 @@ html { scroll-behavior: smooth; }
       grid-template-columns: 26px minmax(0, 1fr) auto;
       align-items: center;
       min-height: 54px;
-      border: 1px solid rgba(37, 102, 145, .82);
+      border: 1px solid var(--puls-auth-field-border);
       border-radius: 10px;
-      background: linear-gradient(180deg, rgba(2, 17, 30, .94), rgba(1, 11, 21, .94));
+      background: var(--puls-auth-field);
       padding: 0 14px;
       transition: border-color .18s, box-shadow .18s;
     }
@@ -1979,6 +1981,10 @@ html { scroll-behavior: smooth; }
 
     .support-dialog {
       width: min(720px, 100%);
+      border-color: var(--puls-auth-border);
+      border-radius: 10px;
+      background: var(--puls-auth-surface);
+      box-shadow: var(--puls-auth-shadow);
     }
 
     .support-form {
@@ -1987,38 +1993,90 @@ html { scroll-behavior: smooth; }
       margin-top: 16px;
     }
 
-    .support-form label {
+    .support-form .profile-actions .auth-primary {
+      flex: 1 1 0;
+      padding: 9px 12px;
+    }
+
+    .support-form label,
+    .support-upload-field {
       display: grid;
       gap: 7px;
       color: var(--soft);
       font-weight: 600;
     }
 
-    .support-form label span {
+    .support-form label span,
+    .support-upload-field > span {
       font-size: 13px;
       letter-spacing: .01em;
     }
 
-    .support-form input,
+    .support-form input:not([type="file"]),
     .support-form textarea {
       width: 100%;
       min-height: 46px;
-      border: 1px solid var(--line);
+      border: 1px solid var(--puls-auth-field-border);
       border-radius: 10px;
-      background: #04111d;
+      background: var(--puls-auth-field);
       color: white;
       outline: none;
       padding: 12px 14px;
       resize: vertical;
+      transition: border-color .18s ease, box-shadow .18s ease;
     }
 
-    .support-form input:focus,
-    .support-form textarea:focus {
-      border-color: var(--blue);
+    .support-form input:not([type="file"]):hover,
+    .support-form textarea:hover,
+    .support-file-trigger:hover {
+      border-color: rgba(24, 139, 211, .92);
     }
 
-    .support-form input[type="file"] {
-      padding: 12px;
+    .support-form input:not([type="file"]):focus,
+    .support-form textarea:focus,
+    .support-file-trigger:focus-visible {
+      border-color: #129eff;
+      box-shadow: 0 0 14px rgba(0, 139, 255, .16);
+      outline: none;
+    }
+
+    .support-file-input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    .support-file-trigger {
+      width: 100%;
+      min-height: 46px;
+      border: 1px solid var(--puls-auth-field-border);
+      border-radius: 10px;
+      background: var(--puls-auth-field);
+      color: #fff;
+      padding: 12px 14px;
+      text-align: left;
+      transition: border-color .18s ease, box-shadow .18s ease;
+    }
+
+    .support-dialog > .request-close {
+      border-color: rgba(25, 143, 216, .62);
+      background: rgba(0, 10, 20, .76);
+      transition: border-color .18s ease, box-shadow .18s ease, color .18s ease, filter .12s ease;
+    }
+
+    .support-dialog > .request-close:hover {
+      border-color: #17a6ff;
+      color: #17a6ff;
+      box-shadow: 0 0 13px rgba(0, 151, 255, .28);
+    }
+
+    .support-dialog > .request-close:focus-visible {
+      outline: 2px solid rgba(71, 190, 255, .9);
+      outline-offset: 2px;
     }
 
     .support-upload-hint {
@@ -5330,7 +5388,8 @@ body.assistant-mode .composer-shell.is-expanded .composer-actions {
 }
 
 #mainNavigation .nav button.active,
-#mainNavigation .nav button:hover {
+#mainNavigation .nav button:hover,
+#settingsMeetPulsBtn {
   border-color: var(--blue);
   background: linear-gradient(90deg, #0766f2, #07386f);
   box-shadow: inset 0 0 0 1px var(--blue), 0 0 22px rgba(8, 125, 255, .22);

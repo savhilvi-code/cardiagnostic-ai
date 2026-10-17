@@ -210,6 +210,7 @@ window.PulsLocales.ru = {
   "support.message": "Сообщение",
   "support.email": "Email",
   "support.attach": "Прикрепить изображения",
+  "support.chooseFiles": "Выбрать файлы",
   "support.attachHint": "До 3 изображений, JPG/JPEG/PNG/WEBP, максимум 5 МБ каждое.",
   "support.send": "Отправить",
   "support.subjectPlaceholder": "Коротко опишите проблему",

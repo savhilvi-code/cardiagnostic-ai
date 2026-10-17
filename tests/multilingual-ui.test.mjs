@@ -96,6 +96,23 @@ test("Settings uses square notification controls and one categorized support for
   assert.deepEqual(Array.from(html.matchAll(/data-support-category="([^"]+)"/g), (match) => match[1]), ["question", "bug", "improvement"]);
   assert.equal((html.match(/id="supportForm"/g) || []).length, 1);
   assert.match(css, /\.toggle-switch\s*\{[\s\S]*?width:\s*19px;[\s\S]*?height:\s*19px;[\s\S]*?border-radius:\s*4px;/);
+  assert.match(css, /#mainNavigation \.nav button\.active,[\s\S]*?#settingsMeetPulsBtn\s*\{[\s\S]*?linear-gradient\(90deg, #0766f2, #07386f\)/);
   assert.match(source, /function openSupportModal\(category = "question"\)/);
   assert.match(source, /fetch\(`\$\{API_BASE_URL\}\/api\/support`/);
+});
+
+test("support uses one localized file control in every interface language", async () => {
+  const [{ window }, html, source] = await Promise.all([
+    localizationContext(),
+    read("index.html"),
+    read("assets/js/app.js")
+  ]);
+  assert.equal((html.match(/id="supportImagesInput"/g) || []).length, 1);
+  assert.equal((html.match(/id="supportChooseFilesBtn"/g) || []).length, 1);
+  assert.match(source, /supportChooseFilesBtn[\s\S]*?supportImagesInput[\s\S]*?\.click\(\)/);
+  for (const code of window.PulsI18n.registry.codes) {
+    for (const key of ["support.chooseFiles", "support.noFiles", "support.filesSelected"]) {
+      assert.notEqual(window.PulsI18n.t(key, { count: "2" }, code), key, `${code}: ${key}`);
+    }
+  }
 });
